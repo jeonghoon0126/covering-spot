@@ -24,22 +24,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const bookings = await getBookings(date);
-    const bookedTimes = new Set(bookings.map((b) => b.timeSlot));
+    // Google Sheets에서 기존 예약 조회 (실패 시 빈 배열)
+    let bookedTimes = new Set<string>();
+    try {
+      const bookings = await getBookings(date);
+      bookedTimes = new Set(bookings.map((b) => b.timeSlot));
+    } catch {
+      // DB 미연결 시 모든 슬롯 available로 표시
+    }
 
+    // KST 기준 오늘 날짜 계산
     const now = new Date();
-    const isToday =
-      date ===
-      now.toLocaleDateString("ko-KR", {
-        timeZone: "Asia/Seoul",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).replace(/\. /g, "-").replace(".", "");
-
-    const kstHour = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }),
-    ).getHours();
+    const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+    const todayStr = `${kst.getFullYear()}-${String(kst.getMonth() + 1).padStart(2, "0")}-${String(kst.getDate()).padStart(2, "0")}`;
+    const isToday = date === todayStr;
+    const kstHour = kst.getHours();
 
     const slots = DEFAULT_SLOTS.map((time) => {
       const hour = parseInt(time.split(":")[0]);
