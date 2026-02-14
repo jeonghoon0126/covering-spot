@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 
@@ -30,12 +31,12 @@ export function Hero() {
                 <KakaoIcon />
                 <span>무료 견적 받기</span>
               </CTALink>
-              <a
-                href="#process"
-                className="inline-flex items-center bg-bg text-text-sub text-base font-semibold py-[15px] px-7 rounded-[12px] border border-border hover:border-[#CBD5E1] hover:text-text-primary transition-all max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+              <Link
+                href="/booking"
+                className="inline-flex items-center bg-primary text-white text-base font-semibold py-[15px] px-7 rounded-[12px] hover:bg-primary/90 active:scale-[0.98] transition-all max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
-                이용 방법 보기
-              </a>
+                온라인 예약하기
+              </Link>
             </div>
           </div>
 
