@@ -5,25 +5,32 @@ const SPREADSHEET_ID = process.env.BOOKING_SPREADSHEET_ID!;
 const SHEET_NAME = process.env.BOOKING_SHEET_NAME || "bookings";
 
 const HEADERS = [
-  "id",
-  "date",
-  "timeSlot",
-  "area",
-  "items",
-  "totalPrice",
-  "crewSize",
-  "needLadder",
-  "ladderType",
-  "ladderHours",
-  "ladderPrice",
-  "customerName",
-  "phone",
-  "address",
-  "addressDetail",
-  "memo",
-  "status",
-  "createdAt",
-  "updatedAt",
+  "id",            // A (0)
+  "date",          // B (1)
+  "timeSlot",      // C (2)
+  "area",          // D (3)
+  "items",         // E (4)
+  "totalPrice",    // F (5)
+  "crewSize",      // G (6)
+  "needLadder",    // H (7)
+  "ladderType",    // I (8)
+  "ladderHours",   // J (9)
+  "ladderPrice",   // K (10)
+  "customerName",  // L (11)
+  "phone",         // M (12)
+  "address",       // N (13)
+  "addressDetail", // O (14)
+  "memo",          // P (15)
+  "status",        // Q (16)
+  "createdAt",     // R (17)
+  "updatedAt",     // S (18)
+  "hasElevator",   // T (19)
+  "hasParking",    // U (20)
+  "estimateMin",   // V (21)
+  "estimateMax",   // W (22)
+  "finalPrice",    // X (23)
+  "photos",        // Y (24)
+  "adminMemo",     // Z (25)
 ];
 
 function getAuth() {
@@ -32,12 +39,19 @@ function getAuth() {
   return new google.auth.JWT({
     email,
     key,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.file",
+    ],
   });
 }
 
 function getSheets() {
   return google.sheets({ version: "v4", auth: getAuth() });
+}
+
+export function getDriveService() {
+  return google.drive({ version: "v3", auth: getAuth() });
 }
 
 function rowToBooking(row: string[]): Booking {
@@ -61,6 +75,14 @@ function rowToBooking(row: string[]): Booking {
     status: (row[16] as Booking["status"]) || "pending",
     createdAt: row[17] || "",
     updatedAt: row[18] || "",
+    // 새 필드 - 기존 데이터에 컬럼이 없어도 안전하게 기본값 처리
+    hasElevator: row[19] === "true",
+    hasParking: row[20] === "true",
+    estimateMin: Number(row[21]) || 0,
+    estimateMax: Number(row[22]) || 0,
+    finalPrice: row[23] ? Number(row[23]) : null,
+    photos: row[24] ? JSON.parse(row[24]) : [],
+    adminMemo: row[25] || "",
   };
 }
 
@@ -85,6 +107,13 @@ function bookingToRow(b: Booking): string[] {
     b.status,
     b.createdAt,
     b.updatedAt,
+    String(b.hasElevator),
+    String(b.hasParking),
+    String(b.estimateMin),
+    String(b.estimateMax),
+    b.finalPrice != null ? String(b.finalPrice) : "",
+    JSON.stringify(b.photos),
+    b.adminMemo,
   ];
 }
 
@@ -121,7 +150,7 @@ export async function getBookings(date?: string): Promise<Booking[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:S`,
+    range: `${SHEET_NAME}!A2:Z`,
   });
   const rows = (res.data.values || []) as string[][];
   let bookings = rows
@@ -147,10 +176,28 @@ export async function getBookingsByPhone(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:S`,
+    range: `${SHEET_NAME}!A2:Z`,
   });
   const rows = (res.data.values || []) as string[][];
   return rows.filter((r) => r[12] === phone && r[0]).map(rowToBooking);
+}
+
+export async function getAllBookings(): Promise<Booking[]> {
+  await initBookingSheet();
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A2:Z`,
+  });
+  const rows = (res.data.values || []) as string[][];
+  return rows.filter((r) => r[0]).map(rowToBooking);
+}
+
+export async function getBookingsByStatus(
+  status: string,
+): Promise<Booking[]> {
+  const all = await getAllBookings();
+  return all.filter((b) => b.status === status);
 }
 
 export async function createBooking(
@@ -160,7 +207,7 @@ export async function createBooking(
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:S`,
+    range: `${SHEET_NAME}!A:Z`,
     valueInputOption: "RAW",
     requestBody: { values: [bookingToRow(booking)] },
   });
@@ -175,7 +222,7 @@ export async function updateBooking(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:S`,
+    range: `${SHEET_NAME}!A2:Z`,
   });
   const rows = (res.data.values || []) as string[][];
   const rowIndex = rows.findIndex((r) => r[0] === id);
@@ -191,7 +238,7 @@ export async function updateBooking(
   const sheetRow = rowIndex + 2; // 1-indexed + header row
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A${sheetRow}:S${sheetRow}`,
+    range: `${SHEET_NAME}!A${sheetRow}:Z${sheetRow}`,
     valueInputOption: "RAW",
     requestBody: { values: [bookingToRow(updated)] },
   });

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { BookingItem, TimeSlot } from "@/types/booking";
+import type { BookingItem } from "@/types/booking";
 import type { SpotArea } from "@/data/spot-areas";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 
-const STEPS = ["날짜/시간", "지역", "품목", "사다리차", "견적 확인"];
+const STEPS = ["날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "신청 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
+const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
+const PHOTO_RECOMMEND_CATEGORIES = ["장롱", "침대", "소파"];
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -28,24 +30,30 @@ export default function BookingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Step 1: 날짜/시간
+  // Step 0: 날짜/시간
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
 
-  // Step 2: 지역
+  // Step 1: 지역
   const [areas, setAreas] = useState<SpotArea[]>([]);
   const [selectedArea, setSelectedArea] = useState("");
   const [areaSearch, setAreaSearch] = useState("");
 
-  // Step 3: 품목
+  // Step 2: 품목 + 사진
   const [categories, setCategories] = useState<SpotCategory[]>([]);
   const [openCat, setOpenCat] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<BookingItem[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Step 3: 작업 환경 (NEW)
+  const [hasElevator, setHasElevator] = useState<boolean | null>(null);
+  const [hasParking, setHasParking] = useState<boolean | null>(null);
 
   // Step 4: 사다리차
   const [needLadder, setNeedLadder] = useState(false);
@@ -72,15 +80,40 @@ export default function BookingPage() {
       .then((d) => setCategories(d.categories || []));
   }, []);
 
-  // 날짜 선택 시 슬롯 로드
+  // 사진 선택 시 미리보기 생성
   useEffect(() => {
-    if (!selectedDate) return;
-    setSlots([]);
-    setSelectedTime("");
-    fetch(`/api/slots?date=${selectedDate}`)
-      .then((r) => r.json())
-      .then((d) => setSlots(d.slots || []));
-  }, [selectedDate]);
+    // 기존 preview URL 해제
+    photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+    const urls = photos.map((f) => URL.createObjectURL(f));
+    setPhotoPreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos]);
+
+  // 사진 추가
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setPhotos((prev) => {
+      const combined = [...prev, ...newFiles];
+      return combined.slice(0, 5); // 최대 5장
+    });
+    // input 초기화 (같은 파일 다시 선택 가능하게)
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  // 사진 삭제
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // 사진 권장 카테고리가 선택되었는지 확인
+  const hasPhotoRecommendItem = selectedItems.some((item) =>
+    PHOTO_RECOMMEND_CATEGORIES.includes(item.category),
+  );
 
   // 견적 계산
   const calcQuote = useCallback(async () => {
@@ -105,7 +138,7 @@ export default function BookingPage() {
   }, [selectedArea, selectedItems, needLadder, ladderType, ladderHours]);
 
   useEffect(() => {
-    if (step === 4) calcQuote();
+    if (step === 5) calcQuote();
   }, [step, calcQuote]);
 
   // 품목 수량 변경
@@ -140,11 +173,27 @@ export default function BookingPage() {
     );
   }
 
-  // 예약 제출
+  // 수거 신청 제출
   async function handleSubmit() {
     if (!quote) return;
     setLoading(true);
     try {
+      // 1. 사진이 있으면 먼저 업로드
+      let photoUrls: string[] = [];
+      if (photos.length > 0) {
+        const formData = new FormData();
+        photos.forEach((file) => formData.append("photos", file));
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadRes.ok) {
+          photoUrls = uploadData.urls || [];
+        }
+      }
+
+      // 2. 신청 데이터 전송
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,11 +203,16 @@ export default function BookingPage() {
           area: selectedArea,
           items: selectedItems,
           totalPrice: quote.totalPrice,
+          estimateMin: quote.estimateMin,
+          estimateMax: quote.estimateMax,
           crewSize: quote.crewSize,
           needLadder,
           ladderType: needLadder ? ladderType : "",
           ladderHours: needLadder ? ladderHours : undefined,
           ladderPrice: quote.ladderPrice,
+          hasElevator,
+          hasParking,
+          photos: photoUrls,
           customerName,
           phone,
           address,
@@ -170,7 +224,7 @@ export default function BookingPage() {
       if (res.ok) {
         router.push(`/booking/complete?id=${data.booking.id}`);
       } else {
-        alert(data.error || "예약 실패");
+        alert(data.error || "신청 실패");
       }
     } catch {
       alert("네트워크 오류");
@@ -181,11 +235,12 @@ export default function BookingPage() {
 
   // 스텝별 완료 조건
   const canNext = [
-    selectedDate && selectedTime,
-    selectedArea,
-    selectedItems.length > 0,
-    true,
-    customerName && phone && address,
+    selectedDate && selectedTime,                        // Step 0
+    selectedArea,                                         // Step 1
+    selectedItems.length > 0,                            // Step 2
+    hasElevator !== null && hasParking !== null,          // Step 3 (NEW)
+    true,                                                 // Step 4 (사다리차)
+    customerName && phone && address,                    // Step 5
   ];
 
   const today = new Date();
@@ -218,7 +273,7 @@ export default function BookingPage() {
         {STEPS[step]}
       </h2>
 
-      {/* Step 1: 날짜/시간 */}
+      {/* Step 0: 날짜/시간 */}
       {step === 0 && (
         <div className="space-y-6">
           {/* 달력 */}
@@ -282,38 +337,31 @@ export default function BookingPage() {
             </div>
           </div>
 
-          {/* 시간 슬롯 */}
+          {/* 시간대 선택 */}
           {selectedDate && (
             <div className="bg-white rounded-2xl shadow-sm p-5">
-              <h3 className="font-semibold mb-3">시간 선택</h3>
-              {slots.length === 0 ? (
-                <p className="text-text-muted text-sm">로딩 중...</p>
-              ) : (
-                <div className="grid grid-cols-5 gap-2">
-                  {slots.map((s) => (
-                    <button
-                      key={s.time}
-                      disabled={!s.available}
-                      onClick={() => setSelectedTime(s.time)}
-                      className={`py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                        !s.available
-                          ? "bg-bg-warm2 text-text-muted line-through cursor-not-allowed"
-                          : s.time === selectedTime
-                            ? "bg-primary text-white"
-                            : "bg-bg-warm hover:bg-primary-bg"
-                      }`}
-                    >
-                      {s.time}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <h3 className="font-semibold mb-3">시간대 선택</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {TIME_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setSelectedTime(opt)}
+                    className={`py-3 rounded-xl text-sm font-medium transition-colors ${
+                      opt === selectedTime
+                        ? "bg-primary text-white"
+                        : "bg-bg-warm hover:bg-primary-bg"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Step 2: 지역 */}
+      {/* Step 1: 지역 */}
       {step === 1 && (
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <input
@@ -361,7 +409,7 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 3: 품목 */}
+      {/* Step 2: 품목 + 사진 업로드 */}
       {step === 2 && (
         <div className="space-y-3">
           {/* 선택된 품목 요약 */}
@@ -472,11 +520,121 @@ export default function BookingPage() {
               )}
             </div>
           ))}
+
+          {/* 사진 업로드 */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1">품목 사진 첨부</h3>
+              <p className="text-sm text-text-sub">
+                대형 품목(침대, 장롱, 소파 등)은 사진 첨부 시 정확한 견적 산정이 가능합니다
+              </p>
+              {hasPhotoRecommendItem && photos.length === 0 && (
+                <p className="text-sm text-[#F97316] mt-1 font-medium">
+                  선택하신 품목은 사진 첨부를 권장합니다
+                </p>
+              )}
+            </div>
+
+            {/* 미리보기 그리드 */}
+            {photoPreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {photoPreviews.map((url, i) => (
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-bg-warm">
+                    <img
+                      src={url}
+                      alt={`사진 ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 파일 선택 버튼 */}
+            {photos.length < 5 && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-border text-sm text-text-sub font-medium hover:border-primary hover:text-primary transition-colors"
+              >
+                사진 추가 ({photos.length}/5)
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: 작업 환경 (NEW) */}
+      {step === 3 && (
+        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-6">
+          <div>
+            <p className="font-medium mb-3">엘리베이터</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setHasElevator(true)}
+                className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  hasElevator === true
+                    ? "bg-primary text-white"
+                    : "bg-bg-warm hover:bg-primary-bg"
+                }`}
+              >
+                사용 가능
+              </button>
+              <button
+                onClick={() => setHasElevator(false)}
+                className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  hasElevator === false
+                    ? "bg-primary text-white"
+                    : "bg-bg-warm hover:bg-primary-bg"
+                }`}
+              >
+                사용 불가
+              </button>
+            </div>
+          </div>
+          <div>
+            <p className="font-medium mb-3">주차</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setHasParking(true)}
+                className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  hasParking === true
+                    ? "bg-primary text-white"
+                    : "bg-bg-warm hover:bg-primary-bg"
+                }`}
+              >
+                가능
+              </button>
+              <button
+                onClick={() => setHasParking(false)}
+                className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  hasParking === false
+                    ? "bg-primary text-white"
+                    : "bg-bg-warm hover:bg-primary-bg"
+                }`}
+              >
+                불가능
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Step 4: 사다리차 */}
-      {step === 3 && (
+      {step === 4 && (
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-5">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -540,16 +698,20 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 5: 견적 확인 + 고객정보 */}
-      {step === 4 && (
+      {/* Step 5: 수거 신청 확인 + 고객정보 */}
+      {step === 5 && (
         <div className="space-y-5">
-          {/* 견적 요약 */}
+          {/* 수거 신청 요약 */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
-            <h3 className="font-semibold mb-3">예약 요약</h3>
+            <h3 className="font-semibold mb-3">수거 신청 요약</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-text-sub">날짜</span>
-                <span className="font-medium">{selectedDate} {selectedTime}</span>
+                <span className="font-medium">{selectedDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub">시간대</span>
+                <span className="font-medium">{selectedTime}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-sub">지역</span>
@@ -559,6 +721,24 @@ export default function BookingPage() {
                 <span className="text-text-sub">품목 수</span>
                 <span className="font-medium">{selectedItems.length}종</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub">엘리베이터</span>
+                <span className="font-medium">
+                  {hasElevator ? "사용 가능" : "사용 불가"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub">주차</span>
+                <span className="font-medium">
+                  {hasParking ? "가능" : "불가능"}
+                </span>
+              </div>
+              {photos.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-text-sub">첨부 사진</span>
+                  <span className="font-medium">{photos.length}장</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -597,9 +777,16 @@ export default function BookingPage() {
                     </span>
                   </div>
                 )}
-                <div className="border-t border-primary/20 pt-2 flex justify-between text-lg font-bold text-primary">
-                  <span>총 견적</span>
-                  <span>{formatPrice(quote.totalPrice)}원</span>
+                <div className="border-t border-primary/20 pt-3 mt-2">
+                  <div className="flex justify-between text-lg font-bold text-primary">
+                    <span>예상 견적</span>
+                    <span>
+                      {formatPrice(quote.estimateMin)} ~ {formatPrice(quote.estimateMax)}원
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-1">
+                    정확한 금액은 담당자 확인 후 안내드립니다
+                  </p>
                 </div>
               </div>
             </div>
@@ -657,7 +844,7 @@ export default function BookingPage() {
             이전
           </button>
         )}
-        {step < 4 ? (
+        {step < 5 ? (
           <button
             onClick={() => setStep(step + 1)}
             disabled={!canNext[step]}
@@ -671,7 +858,7 @@ export default function BookingPage() {
             disabled={!canNext[step] || loading}
             className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading ? "예약 중..." : "예약 신청하기"}
+            {loading ? "신청 중..." : "수거 신청하기"}
           </button>
         )}
       </div>

@@ -2,6 +2,18 @@ import type { Booking } from "@/types/booking";
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "접수 대기",
+  confirmed: "확인됨",
+  quote_confirmed: "견적 확정",
+  in_progress: "수거 진행중",
+  completed: "수거 완료",
+  payment_requested: "결제 요청",
+  payment_completed: "결제 완료",
+  cancelled: "취소",
+  rejected: "거절",
+};
+
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
 }
@@ -38,6 +50,11 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
     )
     .join("\n");
 
+  const envInfo: string[] = [];
+  envInfo.push(`엘리베이터: ${b.hasElevator ? "있음" : "없음"}`);
+  envInfo.push(`주차: ${b.hasParking ? "가능" : "불가"}`);
+  const envText = envInfo.join(" | ");
+
   const blocks = [
     {
       type: "header",
@@ -60,6 +77,10 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
           text: `*주소*\n${b.address} ${b.addressDetail}`,
         },
       ],
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `*작업환경*\n${envText}` },
     },
     { type: "divider" },
     {
@@ -84,6 +105,19 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
         {
           type: "mrkdwn",
           text: `*총 견적*\n*${formatPrice(b.totalPrice)}*`,
+        },
+      ],
+    },
+    {
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*예상 견적 범위*\n${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*사진*\n${b.photos.length > 0 ? `${b.photos.length}장 첨부` : "없음"}`,
         },
       ],
     },
@@ -158,6 +192,137 @@ export async function sendBookingDeleted(b: Booking): Promise<void> {
         {
           type: "mrkdwn",
           text: `*총 견적*\n${formatPrice(b.totalPrice)}`,
+        },
+      ],
+    },
+  ];
+
+  await postSlack(blocks);
+}
+
+export async function sendQuoteConfirmed(b: Booking): Promise<void> {
+  const blocks = [
+    {
+      type: "header",
+      text: { type: "plain_text", text: "💰 견적 확정" },
+    },
+    {
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
+        },
+        { type: "mrkdwn", text: `*지역*\n${b.area}` },
+        {
+          type: "mrkdwn",
+          text: `*고객*\n${b.customerName} (${b.phone})`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*주소*\n${b.address} ${b.addressDetail}`,
+        },
+      ],
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*예상 견적 범위*\n${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*최종 확정 금액*\n*${b.finalPrice != null ? formatPrice(b.finalPrice) : "미정"}*`,
+        },
+      ],
+    },
+    ...(b.adminMemo
+      ? [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*관리자 메모*\n${b.adminMemo}`,
+            },
+          },
+        ]
+      : []),
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `<https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}|📊 예약 시트 바로가기>`,
+        },
+      ],
+    },
+  ];
+
+  await postSlack(blocks);
+}
+
+export async function sendStatusChanged(
+  b: Booking,
+  newStatus: string,
+): Promise<void> {
+  const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+
+  const blocks = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: `🔄 예약 상태 변경: ${statusLabel}`,
+      },
+    },
+    {
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
+        },
+        { type: "mrkdwn", text: `*지역*\n${b.area}` },
+        {
+          type: "mrkdwn",
+          text: `*고객*\n${b.customerName} (${b.phone})`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*상태*\n*${statusLabel}*`,
+        },
+      ],
+    },
+    ...(b.finalPrice != null
+      ? [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*최종 금액*\n${formatPrice(b.finalPrice)}`,
+            },
+          },
+        ]
+      : []),
+    ...(b.adminMemo
+      ? [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*관리자 메모*\n${b.adminMemo}`,
+            },
+          },
+        ]
+      : []),
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `<https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}|📊 예약 시트 바로가기>`,
         },
       ],
     },

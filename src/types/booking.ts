@@ -23,9 +23,25 @@ export interface Booking {
   address: string;
   addressDetail: string;
   memo: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "quote_confirmed"
+    | "in_progress"
+    | "completed"
+    | "payment_requested"
+    | "payment_completed"
+    | "cancelled"
+    | "rejected";
   createdAt: string;
   updatedAt: string;
+  hasElevator: boolean;
+  hasParking: boolean;
+  estimateMin: number;
+  estimateMax: number;
+  finalPrice: number | null;
+  photos: string[];
+  adminMemo: string;
 }
 
 export interface TimeSlot {
@@ -47,6 +63,8 @@ export interface QuoteResult {
   crewPrice: number;
   ladderPrice: number;
   totalPrice: number;
+  estimateMin: number;
+  estimateMax: number;
   breakdown: {
     name: string;
     quantity: number;

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import {
-  getBookings,
   getBookingsByPhone,
   createBooking,
 } from "@/lib/sheets-db";
@@ -31,16 +30,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 슬롯 중복 체크
-    const existing = await getBookings(body.date);
-    const conflict = existing.find((b) => b.timeSlot === body.timeSlot);
-    if (conflict) {
-      return NextResponse.json(
-        { error: "해당 시간은 이미 예약되어 있습니다" },
-        { status: 409 },
-      );
-    }
-
     const now = new Date().toISOString();
     const booking: Booking = {
       id: uuidv4(),
@@ -62,6 +51,13 @@ export async function POST(req: NextRequest) {
       status: "pending",
       createdAt: now,
       updatedAt: now,
+      hasElevator: body.hasElevator || false,
+      hasParking: body.hasParking || false,
+      estimateMin: body.estimateMin || 0,
+      estimateMax: body.estimateMax || 0,
+      finalPrice: null,
+      photos: body.photos || [],
+      adminMemo: "",
     };
 
     await createBooking(booking);

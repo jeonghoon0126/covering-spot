@@ -36,7 +36,7 @@ function BookingCompleteContent() {
       .then((r) => r.json())
       .then((d) => {
         if (d.booking) setBooking(d.booking);
-        else setError("예약 정보를 찾을 수 없습니다");
+        else setError("신청 정보를 찾을 수 없습니다");
       })
       .catch(() => setError("조회 실패"));
   }, [id]);
@@ -46,7 +46,7 @@ function BookingCompleteContent() {
       <div className="text-center py-20">
         <p className="text-text-muted mb-4">{error}</p>
         <Link href="/booking" className="text-primary font-semibold">
-          다시 예약하기
+          다시 신청하기
         </Link>
       </div>
     );
@@ -56,7 +56,7 @@ function BookingCompleteContent() {
     return (
       <div className="text-center py-20">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-text-muted mt-4 text-sm">예약 정보 불러오는 중...</p>
+        <p className="text-text-muted mt-4 text-sm">신청 정보 불러오는 중...</p>
       </div>
     );
   }
@@ -70,18 +70,32 @@ function BookingCompleteContent() {
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-2">예약이 접수되었습니다</h1>
+        <h1 className="text-2xl font-bold mb-2">수거 신청이 접수되었습니다</h1>
         <p className="text-text-sub text-sm">
-          담당자 확인 후 연락드리겠습니다
+          담당자가 확인 후 최종 견적을 안내드립니다 (영업일 기준 24시간 이내)
         </p>
       </div>
 
-      {/* 예약 요약 */}
+      {/* 상태 표시 */}
+      <div className="bg-[#F97316]/10 rounded-2xl p-4 flex items-center gap-3">
+        <div className="w-10 h-10 bg-[#F97316]/20 rounded-full flex items-center justify-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#F97316]">견적 산정 중</p>
+          <p className="text-xs text-text-sub mt-0.5">담당자가 품목을 확인하고 있습니다</p>
+        </div>
+      </div>
+
+      {/* 신청 요약 */}
       <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
-        <h2 className="font-semibold text-lg">예약 정보</h2>
+        <h2 className="font-semibold text-lg">신청 정보</h2>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between py-2 border-b border-border-light">
-            <span className="text-text-sub">예약번호</span>
+            <span className="text-text-sub">신청번호</span>
             <span className="font-mono text-xs">{booking.id.slice(0, 8)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-border-light">
@@ -106,6 +120,20 @@ function BookingCompleteContent() {
               {booking.address} {booking.addressDetail}
             </span>
           </div>
+          <div className="flex justify-between py-2 border-b border-border-light">
+            <span className="text-text-sub">엘리베이터</span>
+            <span className="font-medium">{booking.hasElevator ? "사용 가능" : "사용 불가"}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-border-light">
+            <span className="text-text-sub">주차</span>
+            <span className="font-medium">{booking.hasParking ? "가능" : "불가능"}</span>
+          </div>
+          {booking.photos && booking.photos.length > 0 && (
+            <div className="flex justify-between py-2 border-b border-border-light">
+              <span className="text-text-sub">첨부 사진</span>
+              <span className="font-medium">{booking.photos.length}장</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -127,14 +155,17 @@ function BookingCompleteContent() {
       {/* 견적 금액 */}
       <div className="bg-primary-bg rounded-2xl p-5">
         <div className="flex justify-between items-center">
-          <span className="font-semibold">총 견적 금액</span>
+          <span className="font-semibold">예상 견적</span>
           <span className="text-xl font-bold text-primary">
-            {formatPrice(booking.totalPrice)}원
+            {formatPrice(booking.estimateMin)} ~ {formatPrice(booking.estimateMax)}원
           </span>
         </div>
         <p className="text-xs text-text-muted mt-2">
           인력 {booking.crewSize}명 배정
-          {booking.needLadder ? ` / 사다리차 포함` : ""}
+          {booking.needLadder ? " / 사다리차 포함" : ""}
+        </p>
+        <p className="text-xs text-text-muted mt-1">
+          정확한 금액은 담당자 확인 후 안내드립니다
         </p>
       </div>
 
@@ -144,7 +175,7 @@ function BookingCompleteContent() {
         <ul className="space-y-2 text-sm text-text-sub">
           <li className="flex gap-2">
             <span className="text-primary shrink-0">1.</span>
-            담당자가 예약 내용을 확인하고 확정 연락을 드립니다.
+            담당자가 신청 내용과 사진을 확인하고 최종 견적을 안내드립니다.
           </li>
           <li className="flex gap-2">
             <span className="text-primary shrink-0">2.</span>
@@ -152,7 +183,7 @@ function BookingCompleteContent() {
           </li>
           <li className="flex gap-2">
             <span className="text-primary shrink-0">3.</span>
-            예약 변경/취소는 예약 관리 페이지에서 가능합니다.
+            신청 변경/취소는 신청 관리 페이지에서 가능합니다.
           </li>
         </ul>
       </div>
@@ -163,7 +194,7 @@ function BookingCompleteContent() {
           href="/booking/manage"
           className="flex-1 py-3.5 rounded-2xl border border-border text-center text-text-sub font-semibold text-sm"
         >
-          예약 조회/관리
+          신청 조회/관리
         </Link>
         <Link
           href="/"
