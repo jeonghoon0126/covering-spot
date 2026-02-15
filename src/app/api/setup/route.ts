@@ -37,42 +37,93 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
 ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;
 `;
 
-export async function GET() {
-  const results: string[] = [];
+const PROJECT_REF = "agqynwvbswolmrktjsbw";
+const DB_PASSWORD = "pmjeonghoon4189";
+const IPV6_ADDR = "2406:da14:271:990b:c9d0:c824:f419:ad79";
 
-  // Try direct connection
-  const host = "db.agqynwvbswolmrktjsbw.supabase.co";
-  const password = "pmjeonghoon4189";
-
-  const client = new Client({
-    host,
-    port: 5432,
-    user: "postgres",
-    password,
-    database: "postgres",
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-  });
-
+async function tryConnect(config: Record<string, unknown>, label: string) {
+  const client = new Client(config);
   try {
     await client.connect();
-    results.push("Connected to DB");
-
     await client.query(CREATE_TABLE_SQL);
-    results.push("Table created successfully");
-
     const check = await client.query(
       "SELECT count(*) FROM information_schema.tables WHERE table_name = 'bookings'",
     );
-    results.push(`Verification: ${JSON.stringify(check.rows)}`);
-
     await client.end();
-    return NextResponse.json({ success: true, results });
+    return { success: true, label, rows: check.rows };
   } catch (e) {
-    results.push(`Error: ${String(e)}`);
-    try {
-      await client.end();
-    } catch {}
-    return NextResponse.json({ success: false, results }, { status: 500 });
+    try { await client.end(); } catch {}
+    return { success: false, label, error: String(e).slice(0, 200) };
   }
+}
+
+export async function GET() {
+  const ssl = { rejectUnauthorized: false };
+  const timeout = 10000;
+
+  // Try multiple connection methods in parallel
+  const attempts = await Promise.all([
+    // 1. Direct hostname
+    tryConnect({
+      host: `db.${PROJECT_REF}.supabase.co`,
+      port: 5432, user: "postgres", password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "direct-hostname"),
+
+    // 2. IPv6 address directly
+    tryConnect({
+      host: IPV6_ADDR,
+      port: 5432, user: "postgres", password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "direct-ipv6"),
+
+    // 3. Pooler ap-northeast-1
+    tryConnect({
+      host: `aws-0-ap-northeast-1.pooler.supabase.com`,
+      port: 6543, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "pooler-ne1-tx"),
+
+    // 4. Pooler ap-northeast-2
+    tryConnect({
+      host: `aws-0-ap-northeast-2.pooler.supabase.com`,
+      port: 6543, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "pooler-ne2-tx"),
+
+    // 5. Pooler ap-southeast-1
+    tryConnect({
+      host: `aws-0-ap-southeast-1.pooler.supabase.com`,
+      port: 6543, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "pooler-se1-tx"),
+
+    // 6. Pooler session mode
+    tryConnect({
+      host: `aws-0-ap-northeast-1.pooler.supabase.com`,
+      port: 5432, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "pooler-ne1-session"),
+
+    // 7. Fly pooler nrt
+    tryConnect({
+      host: `fly-0-nrt.pooler.supabase.com`,
+      port: 6543, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "fly-nrt"),
+
+    // 8. Fly pooler icn
+    tryConnect({
+      host: `fly-0-icn.pooler.supabase.com`,
+      port: 6543, user: `postgres.${PROJECT_REF}`, password: DB_PASSWORD,
+      database: "postgres", ssl, connectionTimeoutMillis: timeout,
+    }, "fly-icn"),
+  ]);
+
+  const success = attempts.find((a) => a.success);
+  if (success) {
+    return NextResponse.json({ success: true, method: success.label, attempts });
+  }
+
+  return NextResponse.json({ success: false, attempts }, { status: 500 });
 }
