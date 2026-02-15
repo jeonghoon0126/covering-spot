@@ -57,12 +57,6 @@ export function Hero() {
               >
                 온라인 예약하기
               </Link>
-              <Link
-                href="/booking/manage"
-                className="inline-flex items-center text-text-sub text-[15px] font-semibold py-[16px] px-6 rounded-[14px] border border-border bg-white hover:bg-bg-warm hover:border-border hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
-              >
-                신청 조회
-              </Link>
             </div>
           </div>
 

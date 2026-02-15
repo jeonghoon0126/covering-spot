@@ -46,7 +46,7 @@ export const carouselItems: CarouselItem[] = [
     title: "에어컨",
     price: "30,000원~",
     image:
-      "https://images.unsplash.com/photo-1631567091196-0eb0b7e283d6?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=640&h=400&fit=crop&q=80",
     alt: "에어컨 수거",
   },
   {

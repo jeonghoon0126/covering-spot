@@ -2,6 +2,22 @@ import type { Booking } from "@/types/booking";
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://covering-spot.vercel.app";
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}`;
+
+function actionsBlock(buttons: { text: string; url: string; primary?: boolean }[]) {
+  return {
+    type: "actions",
+    elements: buttons.map((btn) => ({
+      type: "button",
+      text: { type: "plain_text", text: btn.text },
+      url: btn.url,
+      ...(btn.primary ? { style: "primary" } : {}),
+    })),
+  };
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "접수 대기",
   confirmed: "확인됨",
@@ -129,15 +145,10 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
           },
         ]
       : []),
-    {
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: `<https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}|📊 예약 시트 바로가기>`,
-        },
-      ],
-    },
+    actionsBlock([
+      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
+      { text: "견적 확인", url: SHEET_URL },
+    ]),
   ];
 
   await postSlack(blocks);
@@ -167,6 +178,10 @@ export async function sendBookingUpdated(b: Booking): Promise<void> {
         },
       ],
     },
+    actionsBlock([
+      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
+      { text: "시트 보기", url: SHEET_URL },
+    ]),
   ];
 
   await postSlack(blocks);
@@ -195,6 +210,9 @@ export async function sendBookingDeleted(b: Booking): Promise<void> {
         },
       ],
     },
+    actionsBlock([
+      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
+    ]),
   ];
 
   await postSlack(blocks);
@@ -249,15 +267,10 @@ export async function sendQuoteConfirmed(b: Booking): Promise<void> {
           },
         ]
       : []),
-    {
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: `<https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}|📊 예약 시트 바로가기>`,
-        },
-      ],
-    },
+    actionsBlock([
+      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
+      { text: "시트 보기", url: SHEET_URL },
+    ]),
   ];
 
   await postSlack(blocks);
@@ -317,15 +330,10 @@ export async function sendStatusChanged(
           },
         ]
       : []),
-    {
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: `<https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}|📊 예약 시트 바로가기>`,
-        },
-      ],
-    },
+    actionsBlock([
+      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
+      { text: "시트 보기", url: SHEET_URL },
+    ]),
   ];
 
   await postSlack(blocks);

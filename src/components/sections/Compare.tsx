@@ -2,13 +2,10 @@ import { compareCards, compareReasons } from "@/data/compare-data";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
-const iconMap = {
-  check: { text: "✓", goodBg: "bg-[#DCFCE7] text-[#166534]" },
-  cross: { text: "✗", badBg: "bg-[#FEE2E2] text-[#991B1B]" },
-  warn: { text: "!", badBg: "bg-[#FEE2E2] text-[#991B1B]" },
-};
-
 export function Compare() {
+  const good = compareCards[0];
+  const bad = compareCards[1];
+
   return (
     <section className="py-[120px] bg-bg-warm max-md:py-20" id="compare">
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
@@ -21,130 +18,108 @@ export function Compare() {
           />
         </ScrollReveal>
 
-        <div className="grid grid-cols-2 gap-8 max-w-[840px] mx-auto relative max-lg:grid-cols-1 max-lg:max-w-[420px] max-lg:gap-4">
-          {compareCards.map((card, i) => (
-            <ScrollReveal key={card.badge} delay={i * 0.1} className={i === 1 ? "max-lg:order-2" : ""}>
-              <div className="rounded-[20px] overflow-hidden bg-bg border border-border flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-hover">
-                {/* Accent bar */}
-                <div
-                  className={`h-1.5 ${
-                    card.type === "good"
-                      ? "bg-gradient-to-r from-[#10B981] to-[#34D399]"
-                      : "bg-gradient-to-r from-[#EF4444] to-[#F87171]"
-                  }`}
-                />
-                {/* Head */}
-                <div
-                  className={`px-8 py-5 flex items-center gap-3 border-b border-border-light ${
-                    card.type === "good" ? "bg-[#F0FDF4]" : "bg-[#FEF2F2]"
-                  } max-sm:px-5 max-sm:py-4`}
-                >
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-md tracking-[0.3px] whitespace-nowrap ${
-                      card.type === "good"
-                        ? "bg-[#DCFCE7] text-[#166534]"
-                        : "bg-[#FEE2E2] text-[#991B1B]"
-                    }`}
-                  >
-                    {card.badge}
+        {/* Comparison Table */}
+        <ScrollReveal>
+          <div className="max-w-[720px] mx-auto">
+            <div className="bg-bg rounded-2xl border border-border overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-[1fr_1fr] border-b border-border">
+                <div className="px-8 py-5 max-sm:px-5 max-sm:py-4">
+                  <span className="text-[15px] font-bold text-text-primary">
+                    {good.badge}
                   </span>
-                  <span className="text-[13px] font-semibold text-text-sub">
-                    {card.method}
+                  <p className="text-[13px] text-text-muted mt-0.5">
+                    {good.method}
+                  </p>
+                </div>
+                <div className="px-8 py-5 border-l border-border max-sm:px-5 max-sm:py-4">
+                  <span className="text-[15px] font-bold text-text-primary">
+                    {bad.badge}
                   </span>
+                  <p className="text-[13px] text-text-muted mt-0.5">
+                    {bad.method}
+                  </p>
                 </div>
-                {/* Body */}
-                <div className="px-8 py-7 flex-1 max-sm:px-5 max-sm:py-5">
-                  {card.lines.map((line, j) => {
-                    const isLast = j === card.lines.length - 1 && card.type === "good" && j === 3;
-                    return (
-                      <div key={j}>
-                        {j === 3 && card.type === "good" && (
-                          <hr className="border-0 border-t border-dashed border-border my-3" />
-                        )}
-                        <div
-                          className={`flex items-center gap-3 py-[6px] text-sm font-medium ${
-                            line.isExtra
-                              ? "text-semantic-red font-semibold"
-                              : isLast
-                              ? "text-text-sub"
-                              : "text-text-primary"
-                          }`}
-                        >
-                          <span
-                            className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] shrink-0 font-bold ${
-                              card.type === "good"
-                                ? "bg-[#DCFCE7] text-[#166534]"
-                                : "bg-[#FEE2E2] text-[#991B1B]"
-                            }`}
-                          >
-                            {iconMap[line.icon].text}
-                          </span>
-                          {line.text}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Foot */}
-                <div
-                  className={`px-8 py-6 text-center border-t border-border-light ${
-                    card.type === "good" ? "bg-[#F0FDF4]" : "bg-[#FEF2F2]"
-                  } max-sm:px-5 max-sm:py-5`}
-                >
+              </div>
+
+              {/* Line Items */}
+              {good.lines.map((goodLine, i) => {
+                const badLine = bad.lines[i];
+                return (
                   <div
-                    className={`text-[28px] font-extrabold tracking-[-0.5px] leading-none max-md:text-2xl ${
-                      card.type === "good"
-                        ? "text-[#166534]"
-                        : "text-[#991B1B]"
+                    key={i}
+                    className={`grid grid-cols-[1fr_1fr] ${
+                      i < good.lines.length - 1
+                        ? "border-b border-dashed border-border/60"
+                        : ""
                     }`}
                   >
-                    {card.total}
+                    <div className="px-8 py-3.5 max-sm:px-5 max-sm:py-3">
+                      <span className="text-sm text-text-primary">
+                        {goodLine.text}
+                      </span>
+                    </div>
+                    <div className="px-8 py-3.5 border-l border-border max-sm:px-5 max-sm:py-3">
+                      <span
+                        className={`text-sm ${
+                          badLine?.isExtra
+                            ? "text-[#B91C1C]"
+                            : "text-text-primary"
+                        }`}
+                      >
+                        {badLine?.text}
+                        {badLine?.isExtra && (
+                          <span className="text-[11px] text-text-muted ml-1.5">
+                            추가
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <span
-                    className={`inline-block text-[13px] font-bold px-3 py-[5px] rounded-lg mt-3 ${
-                      card.type === "good"
-                        ? "bg-[#DCFCE7] text-[#166534]"
-                        : "bg-[#FEE2E2] text-[#991B1B]"
-                    }`}
-                  >
-                    {card.tag}
+                );
+              })}
+
+              {/* Totals */}
+              <div className="grid grid-cols-[1fr_1fr] border-t border-border bg-[#FAFAFA]">
+                <div className="px-8 py-6 max-sm:px-5 max-sm:py-5">
+                  <div className="text-[22px] font-extrabold tracking-[-0.3px] text-text-primary max-sm:text-xl">
+                    {good.total}
+                  </div>
+                  <span className="text-[13px] font-medium text-[#16A34A] mt-1 inline-block">
+                    {good.tag}
+                  </span>
+                </div>
+                <div className="px-8 py-6 border-l border-border max-sm:px-5 max-sm:py-5">
+                  <div className="text-[22px] font-extrabold tracking-[-0.3px] text-text-primary max-sm:text-xl">
+                    {bad.total}
+                  </div>
+                  <span className="text-[13px] font-medium text-[#DC2626] mt-1 inline-block">
+                    {bad.tag}
                   </span>
                 </div>
               </div>
-            </ScrollReveal>
-          ))}
-
-          {/* VS Badge - 데스크톱: absolute 중앙, 모바일: 카드 사이 자연스럽게 */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] max-lg:static max-lg:translate-x-0 max-lg:translate-y-0 max-lg:mx-auto max-lg:-my-2 max-lg:order-1">
-            <div className="w-12 h-12 rounded-full bg-bg border-2 border-border shadow-md flex items-center justify-center text-xs font-extrabold text-text-muted tracking-[0.5px]">
-              VS
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
-        {/* Reasons */}
+        {/* Reasons - conversational style */}
         <ScrollReveal>
-          <div className="max-w-[840px] mx-auto mt-16">
-            <div className="text-xl font-bold mb-8 text-center">
+          <div className="max-w-[720px] mx-auto mt-20">
+            <p className="text-lg font-bold text-text-primary mb-2">
               왜 이런 차이가 날까요?
-            </div>
-            <div className="flex flex-col gap-4">
+            </p>
+            <p className="text-[15px] text-text-muted mb-8 leading-relaxed">
+              대부분의 업체는 이런 패턴을 따릅니다.
+            </p>
+            <div className="flex flex-col gap-6">
               {compareReasons.map((reason, i) => (
-                <div
-                  key={i}
-                  className="bg-bg border border-border rounded-[16px] px-8 py-7 flex gap-5 items-start transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-hover hover:border-primary/20"
-                >
-                  <div className="w-9 h-9 rounded-[12px] bg-primary-bg text-primary text-sm font-extrabold flex items-center justify-center shrink-0">
-                    {i + 1}
-                  </div>
-                  <div>
-                    <div className="text-[15px] font-bold mb-1.5">
-                      {reason.heading}
-                    </div>
-                    <div className="text-sm text-text-muted leading-relaxed">
-                      {reason.desc}
-                    </div>
-                  </div>
+                <div key={i}>
+                  <p className="text-[15px] font-semibold text-text-primary mb-1">
+                    {reason.heading}
+                  </p>
+                  <p className="text-sm text-text-muted leading-relaxed">
+                    {reason.desc}
+                  </p>
                 </div>
               ))}
             </div>
