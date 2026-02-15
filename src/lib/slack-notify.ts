@@ -4,7 +4,6 @@ const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://covering-spot.vercel.app";
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${process.env.BOOKING_SPREADSHEET_ID}`;
 
 function actionsBlock(buttons: { text: string; url: string; primary?: boolean }[]) {
   return {
@@ -147,7 +146,6 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
       : []),
     actionsBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "견적 확인", url: SHEET_URL },
     ]),
   ];
 
@@ -180,7 +178,6 @@ export async function sendBookingUpdated(b: Booking): Promise<void> {
     },
     actionsBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "시트 보기", url: SHEET_URL },
     ]),
   ];
 
@@ -269,7 +266,6 @@ export async function sendQuoteConfirmed(b: Booking): Promise<void> {
       : []),
     actionsBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "시트 보기", url: SHEET_URL },
     ]),
   ];
 
@@ -332,7 +328,6 @@ export async function sendStatusChanged(
       : []),
     actionsBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "시트 보기", url: SHEET_URL },
     ]),
   ];
 
