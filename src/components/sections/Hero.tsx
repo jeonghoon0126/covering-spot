@@ -153,7 +153,7 @@ export function Hero() {
         {/* Wave 1 - 상단 넓은 파도 */}
         <WaveLayer
           d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,149.3C672,139,768,149,864,170.7C960,192,1056,224,1152,218.7C1248,213,1344,171,1392,149.3L1440,128L1440,320L0,320Z"
-          opacity={0.03}
+          opacity={0.06}
           animationName="hero-wave-drift"
           duration="8s"
           top="20%"
@@ -161,7 +161,7 @@ export function Hero() {
         {/* Wave 2 - 중간 파도 */}
         <WaveLayer
           d="M0,224L48,213.3C96,203,192,181,288,186.7C384,192,480,224,576,234.7C672,245,768,235,864,208C960,181,1056,139,1152,133.3C1248,128,1344,160,1392,176L1440,192L1440,320L0,320Z"
-          opacity={0.04}
+          opacity={0.08}
           animationName="hero-wave-drift2"
           duration="10s"
           top="30%"
@@ -169,7 +169,7 @@ export function Hero() {
         {/* Wave 3 - 하단 파도 */}
         <WaveLayer
           d="M0,256L48,261.3C96,267,192,277,288,272C384,267,480,245,576,240C672,235,768,245,864,261.3C960,277,1056,299,1152,293.3C1248,288,1344,256,1392,240L1440,224L1440,320L0,320Z"
-          opacity={0.05}
+          opacity={0.10}
           animationName="hero-wave-drift3"
           duration="12s"
           top="40%"
@@ -295,31 +295,29 @@ export function Hero() {
             <div className="w-full max-w-[400px] bg-white rounded-[20px] shadow-lg overflow-hidden max-md:max-w-[340px] max-md:mx-auto border border-white/80 ring-1 ring-black/[0.04]">
               {/* Chat Header */}
               <div className="bg-gradient-to-r from-bg-warm to-white px-6 py-5 flex items-center gap-3.5 border-b border-border-light">
-                <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-primary to-primary-light grid place-items-center text-white text-sm font-extrabold shadow-sm shadow-primary/20">
-                  C
-                </div>
+                <img src="/images/logo.png" alt="커버링" className="w-10 h-10 rounded-[12px]" />
                 <div>
                   <div className="text-[15px] font-bold text-text-primary">
-                    커버링 스팟
+                    커버링 방문수거
                   </div>
                   <div className="text-[11px] text-semantic-green font-medium mt-0.5 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-semantic-green" />
-                    보통 3분 내 응답
+                    10:00~22:30 주 7일 응답
                   </div>
                 </div>
               </div>
 
               {/* Chat Messages - Animated Sequence */}
-              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 min-h-[280px]">
+              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 h-[320px] max-sm:h-[300px]">
                 {/* 1. User: 수거 문의 */}
                 <ChatMessage visible={step >= 1} align="right">
                   <span className="text-[11px] text-text-muted shrink-0">
                     오후 2:03
                   </span>
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
-                    침대, 책상, 의류박스 2개
+                    내일 오전 11시에 침대, 책상,
                     <br />
-                    수거 가능한가요?
+                    냉장고, 세탁기 수거 가능한가요?
                   </div>
                 </ChatMessage>
 
@@ -334,40 +332,32 @@ export function Hero() {
                     <br />
                     <div className="space-y-0.5">
                       <div className="flex justify-between gap-4">
-                        <span className="text-text-sub">침대 세트</span>
-                        <span className="font-medium tabular-nums">
-                          50,000원
-                        </span>
+                        <span className="text-text-sub">침대 싱글 SET</span>
+                        <span className="font-medium tabular-nums">45,000원</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">책상</span>
-                        <span className="font-medium tabular-nums">
-                          37,000원
-                        </span>
+                        <span className="font-medium tabular-nums">32,000원</span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-text-sub">박스 2개</span>
-                        <span className="font-medium tabular-nums">
-                          10,000원
-                        </span>
+                        <span className="text-text-sub">냉장고</span>
+                        <span className="font-medium tabular-nums">35,000원</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-text-sub">세탁기</span>
+                        <span className="font-medium tabular-nums">15,000원</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">출장비</span>
-                        <span className="font-medium tabular-nums">
-                          47,000원
-                        </span>
+                        <span className="font-medium tabular-nums">45,000원</span>
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-border/50 flex justify-between gap-4">
                       <span className="font-bold">합계</span>
-                      <span className="font-bold text-primary tabular-nums">
-                        144,000원
-                      </span>
+                      <span className="font-bold text-primary tabular-nums">172,000원</span>
                     </div>
                   </div>
-                  <span className="text-[11px] text-text-muted shrink-0">
-                    오후 2:05
-                  </span>
+                  <span className="text-[11px] text-text-muted shrink-0">오후 2:05</span>
                 </ChatMessage>
 
                 {/* 4. User: 감탄 */}
@@ -376,7 +366,9 @@ export function Hero() {
                     오후 2:06
                   </span>
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
-                    오 깔끔하다! 토요일 가능해요?
+                    타 업체보다 훨씬 저렴하네요.
+                    <br />
+                    내일 바로 방문해주세요!
                   </div>
                 </ChatMessage>
               </div>

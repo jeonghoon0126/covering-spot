@@ -12,7 +12,7 @@ export const compareCards: CompareCard[] = [
       { icon: "check", text: "출장비: 47,000원" },
     ],
     total: "총 144,000원",
-    tag: "추가 비용 0원",
+    tag: "추가 비용 없음",
   },
   {
     type: "bad",

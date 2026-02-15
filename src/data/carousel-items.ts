@@ -78,13 +78,13 @@ export const carouselItems: CarouselItem[] = [
     title: "서랍장/캐비닛",
     price: "18,000원~",
     image:
-      "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=640&h=400&fit=crop&q=80",
     alt: "서랍장 캐비닛 수거",
   },
   {
     id: "bookshelf",
     title: "책장",
-    price: "18,000원~",
+    price: "32,500원~",
     image:
       "https://images.unsplash.com/photo-1594620302200-9a762244a156?w=640&h=400&fit=crop&q=80",
     alt: "책장 수거",
@@ -92,7 +92,7 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "treadmill",
     title: "런닝머신/운동기구",
-    price: "5,500원~",
+    price: "43,000원~",
     image:
       "https://images.unsplash.com/photo-1576678927484-cc907957088c?w=640&h=400&fit=crop&q=80",
     alt: "런닝머신 운동기구 수거",
@@ -108,9 +108,9 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "massage-chair",
     title: "안마의자",
-    price: "500원~",
+    price: "57,500원~",
     image:
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=640&h=400&fit=crop&q=80",
     alt: "안마의자 수거",
   },
   {
@@ -118,7 +118,7 @@ export const carouselItems: CarouselItem[] = [
     title: "유아용품",
     price: "4,500원~",
     image:
-      "https://images.unsplash.com/photo-1586105449897-20b5efeb3233?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=640&h=400&fit=crop&q=80",
     alt: "유아용품 수거",
   },
   {

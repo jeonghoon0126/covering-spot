@@ -63,16 +63,16 @@ function StatItem({ value, suffix, label }: { value: string; suffix?: string; la
   }, [start]);
 
   return (
-    <div ref={ref} className="text-center group">
-      <div className="text-[40px] font-extrabold tracking-[-1.5px] leading-none mb-2 flex items-baseline gap-0.5 justify-center max-md:text-[30px] text-text-primary">
+    <div ref={ref} className="text-center">
+      <div className="text-[36px] font-extrabold tracking-[-1px] leading-none mb-3 flex items-baseline gap-1 justify-center max-md:text-[28px] text-text-primary">
         {display}
         {suffix && (
-          <span className="text-xl font-bold text-primary">
+          <span className="text-[20px] font-bold text-primary max-md:text-[16px]">
             {suffix}
           </span>
         )}
       </div>
-      <div className="text-[13px] text-text-muted font-medium tracking-wide">
+      <div className="text-[14px] text-text-sub font-medium">
         {label}
       </div>
     </div>

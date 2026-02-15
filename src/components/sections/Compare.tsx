@@ -129,17 +129,19 @@ function BarChart({
       </div>
 
       {/* total */}
-      <div className="mt-5">
-        <div className="text-[24px] font-extrabold tracking-[-0.5px] text-text-primary max-sm:text-xl">
+      <div className="mt-5 flex items-baseline gap-3">
+        <span className="text-[22px] font-bold tracking-[-0.3px] text-text-primary max-sm:text-lg">
           {card.total}
-        </div>
-        <span
-          className={`text-[13px] font-semibold mt-0.5 inline-block ${
-            isGood ? "text-semantic-green" : "text-semantic-red"
-          }`}
-        >
-          {card.tag}
         </span>
+        {isGood ? (
+          <span className="text-[13px] font-medium text-text-muted">
+            추가 비용 없음
+          </span>
+        ) : (
+          <span className="text-[13px] font-medium text-semantic-red">
+            {card.tag}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -263,35 +265,20 @@ export function Compare() {
 
             {/* saving highlight */}
             <div
-              className={`mt-8 flex items-center justify-center gap-2 py-4 rounded-xl bg-semantic-green-tint transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              className={`mt-8 pt-6 border-t border-border-light text-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                 barAnimated
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-3"
               }`}
               style={{ transitionDelay: "0.8s" }}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-              >
-                <path
-                  d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
-                  stroke="#07C576"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="m7 10 2 2 4-4"
-                  stroke="#07C576"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-[15px] font-bold text-semantic-green">
-                커버링으로 {formatPrice(saving)} 절약
-              </span>
+              <p className="text-[15px] text-text-sub">
+                같은 품목인데
+                <span className="text-[20px] font-bold text-primary mx-1.5">
+                  {formatPrice(saving)}
+                </span>
+                차이납니다
+              </p>
             </div>
           </div>
         </ScrollReveal>
