@@ -33,7 +33,7 @@ export function FloatingCTA() {
       }`}
     >
       {/* 모바일: 풀 와이드 */}
-      <div className="md:hidden p-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 backdrop-blur-xl border-t border-border-light shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+      <div className="md:hidden p-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/70 backdrop-blur-2xl border-t border-border-light/60">
         <div className="flex gap-2">
           <CTALink
             location="floating"
@@ -49,17 +49,11 @@ export function FloatingCTA() {
             5분만에 수거신청하기
           </Link>
         </div>
-        <Link
-          href="/booking/manage"
-          className="block text-center text-[13px] text-text-muted font-medium mt-2 py-1 hover:text-primary transition-colors"
-        >
-          신청 조회/관리
-        </Link>
       </div>
 
       {/* PC: 중앙 플로팅 바 */}
       <div className="hidden md:flex justify-center pb-6">
-        <div className="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-border-light">
+        <div className="flex items-center gap-3 p-3 bg-white/70 backdrop-blur-2xl rounded-2xl shadow-lg border border-border-light/60">
           <CTALink
             location="floating"
             className="flex items-center gap-2.5 bg-kakao text-text-primary text-[15px] font-bold py-3 px-6 rounded-xl hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
@@ -72,12 +66,6 @@ export function FloatingCTA() {
             className="flex items-center bg-primary text-white text-[15px] font-semibold py-3 px-6 rounded-xl shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
           >
             5분만에 수거신청하기
-          </Link>
-          <Link
-            href="/booking/manage"
-            className="flex items-center text-[13px] text-text-muted font-medium px-4 py-3 rounded-xl hover:text-primary hover:bg-black/[0.04] transition-all duration-200"
-          >
-            신청 조회
           </Link>
         </div>
       </div>

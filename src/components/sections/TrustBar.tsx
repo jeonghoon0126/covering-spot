@@ -13,7 +13,6 @@ function useCountUp(target: string, duration = 1200) {
   useEffect(() => {
     if (!started) return;
 
-    // "30", "4.9", "주 7일" 등 → 숫자만 추출
     const numMatch = target.match(/[\d.]+/);
     if (!numMatch) {
       setDisplay(target);
@@ -29,7 +28,6 @@ function useCountUp(target: string, duration = 1200) {
     function step(now: number) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = end * eased;
       setDisplay(
@@ -83,12 +81,12 @@ function StatItem({ value, suffix, label }: { value: string; suffix?: string; la
 
 export function TrustBar() {
   return (
-    <div className="border-t border-b border-border bg-gradient-to-b from-bg to-bg-warm/40">
+    <div className="bg-bg-warm/60">
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5 flex items-center justify-center py-14 gap-16 max-md:gap-8 max-md:flex-wrap max-sm:flex-col max-sm:gap-6 max-sm:py-10">
         {trustStats.map((stat, i) => (
           <div key={stat.label} className="contents">
             {i > 0 && (
-              <div className="w-px h-14 bg-gradient-to-b from-transparent via-border to-transparent max-md:h-10 max-sm:hidden" />
+              <div className="w-px h-10 bg-border/40 max-sm:hidden" />
             )}
             <StatItem value={stat.value} suffix={stat.suffix} label={stat.label} />
           </div>

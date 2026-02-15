@@ -29,9 +29,9 @@ export function ItemsCarousel({ items }: Props) {
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
         <ScrollReveal>
           <SectionHeader
-            tag="수거 품목"
-            title="이런 것들 처리해드려요"
-            desc="가구부터 가전까지, 처리하기 어려웠던 대형 폐기물을 수거해요"
+            tag="품목 안내"
+            title="수거 가능한 품목"
+            desc="가구부터 가전, 운동기구까지 500여 가지 대형 폐기물을 수거해요"
           />
         </ScrollReveal>
 

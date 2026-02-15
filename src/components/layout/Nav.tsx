@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export function Nav() {
@@ -20,10 +21,14 @@ export function Nav() {
           href="#"
           className="flex items-center gap-2 font-bold text-[16px] text-text-primary no-underline"
         >
-          <div className="w-7 h-7 bg-primary rounded-lg grid place-items-center text-white text-[13px] font-extrabold">
-            C
-          </div>
-          <span className="max-sm:hidden">커버링 스팟</span>
+          <Image
+            src="/images/logo.png"
+            alt="커버링"
+            width={28}
+            height={28}
+            className="w-7 h-7"
+          />
+          <span className="max-sm:hidden">커버링 방문 수거</span>
         </a>
 
         <div className="flex items-center gap-0.5">
@@ -47,7 +52,7 @@ export function Nav() {
           </a>
           <Link
             href="/booking/manage"
-            className="text-text-sub no-underline text-[13px] font-medium px-3 py-1.5 rounded-lg transition-all hover:text-text-primary hover:bg-black/[0.04]"
+            className="ml-1 inline-flex items-center gap-1.5 bg-bg-warm text-text-primary text-[13px] font-semibold px-4 py-2 rounded-xl no-underline transition-all hover:bg-bg-warm2 active:scale-[0.97] border border-border-light"
           >
             신청 조회
           </Link>

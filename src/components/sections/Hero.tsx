@@ -1,10 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import Link from "next/link";
+
+/* ── Wave Background CSS (inline keyframes) ── */
+const waveStyles = `
+@keyframes hero-wave-drift {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(-40px) translateY(-12px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+@keyframes hero-wave-drift2 {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(30px) translateY(-8px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+@keyframes hero-wave-drift3 {
+  0%   { transform: translateX(0) translateY(0) scale(1); }
+  50%  { transform: translateX(-20px) translateY(-16px) scale(1.03); }
+  100% { transform: translateX(0) translateY(0) scale(1); }
+}
+@keyframes hero-text-reveal {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes hero-emphasis-glow {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+`;
 
 /* ── 타이핑 인디케이터 ── */
 function TypingIndicator() {
@@ -47,9 +74,51 @@ function ChatMessage({
   );
 }
 
+/* ── Animated Wave Layer ── */
+function WaveLayer({
+  d,
+  opacity,
+  animationName,
+  duration,
+  top,
+}: {
+  d: string;
+  opacity: number;
+  animationName: string;
+  duration: string;
+  top: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 1440 320"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="absolute w-[160%] left-[-30%]"
+      preserveAspectRatio="none"
+      style={{
+        top,
+        height: "320px",
+        animation: `${animationName} ${duration} ease-in-out infinite`,
+        opacity,
+      }}
+    >
+      <path d={d} fill="#1AA3FF" />
+    </svg>
+  );
+}
+
 export function Hero() {
   const { ref: leftRef, visible: leftVisible } = useScrollReveal(0);
   const { ref: rightRef, visible: rightVisible } = useScrollReveal(0);
+
+  /* ── 텍스트 등장 애니메이션 ── */
+  const [textReady, setTextReady] = useState(false);
+
+  useEffect(() => {
+    if (leftVisible && !textReady) {
+      setTextReady(true);
+    }
+  }, [leftVisible, textReady]);
 
   /* ── 채팅 애니메이션 시퀀스 ── */
   const [step, setStep] = useState(0);
@@ -72,9 +141,40 @@ export function Hero() {
 
   return (
     <section className="relative pt-[160px] pb-32 overflow-hidden max-md:pt-[128px] max-md:pb-24">
+      {/* Inline keyframes */}
+      <style dangerouslySetInnerHTML={{ __html: waveStyles }} />
+
       {/* Gradient Background - CDS brand tint */}
       <div className="absolute inset-0 bg-gradient-to-b from-white via-[#F8FAFB] to-[#E5F4FF] -z-10" />
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#1AA3FF]/[0.04] rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/4" />
+
+      {/* ── Animated Wave Background ── */}
+      <div className="absolute inset-0 -z-[5] overflow-hidden pointer-events-none">
+        {/* Wave 1 - 상단 넓은 파도 */}
+        <WaveLayer
+          d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,149.3C672,139,768,149,864,170.7C960,192,1056,224,1152,218.7C1248,213,1344,171,1392,149.3L1440,128L1440,320L0,320Z"
+          opacity={0.03}
+          animationName="hero-wave-drift"
+          duration="8s"
+          top="20%"
+        />
+        {/* Wave 2 - 중간 파도 */}
+        <WaveLayer
+          d="M0,224L48,213.3C96,203,192,181,288,186.7C384,192,480,224,576,234.7C672,245,768,235,864,208C960,181,1056,139,1152,133.3C1248,128,1344,160,1392,176L1440,192L1440,320L0,320Z"
+          opacity={0.04}
+          animationName="hero-wave-drift2"
+          duration="10s"
+          top="30%"
+        />
+        {/* Wave 3 - 하단 파도 */}
+        <WaveLayer
+          d="M0,256L48,261.3C96,267,192,277,288,272C384,267,480,245,576,240C672,235,768,245,864,261.3C960,277,1056,299,1152,293.3C1248,288,1344,256,1392,240L1440,224L1440,320L0,320Z"
+          opacity={0.05}
+          animationName="hero-wave-drift3"
+          duration="12s"
+          top="40%"
+        />
+      </div>
 
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
         <div className="grid grid-cols-[1fr_400px] items-center gap-16 max-lg:grid-cols-[1fr_360px] max-lg:gap-10 max-md:grid-cols-1 max-md:text-center">
@@ -87,6 +187,7 @@ export function Hero() {
                 : "opacity-0 translate-y-6"
             }`}
           >
+            {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white border border-border-light rounded-full px-4 py-2 text-sm font-semibold text-text-sub mb-8 shadow-sm">
               <span className="relative flex h-2.5 w-2.5 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-semantic-green opacity-75" />
@@ -94,17 +195,77 @@ export function Hero() {
               </span>
               서울 · 경기 · 인천 전 지역 | 주 7일 운영
             </div>
-            <h1 className="text-[56px] font-extrabold leading-[1.15] tracking-[-2.5px] mb-6 max-lg:text-[48px] max-lg:tracking-[-2px] max-md:text-[40px] max-md:tracking-[-1.5px] max-sm:text-[32px] max-sm:tracking-[-1px]">
-              대형/대량 폐기물,
-              <br />
-              <span className="text-primary">이제 쉽고 간편하게</span>
+
+            {/* Heading - Staggered Animation */}
+            <h1 className="text-[56px] font-extrabold leading-[1.15] tracking-[-2.5px] mb-8 max-lg:text-[48px] max-lg:tracking-[-2px] max-md:text-[40px] max-md:tracking-[-1.5px] max-sm:text-[32px] max-sm:tracking-[-1px]">
+              <span
+                className="block overflow-hidden"
+                style={{
+                  opacity: 0,
+                  animation: textReady
+                    ? "hero-text-reveal 0.7s cubic-bezier(0.16,1,0.3,1) forwards"
+                    : "none",
+                }}
+              >
+                대형/대량 폐기물,
+              </span>
+              <span
+                className="block overflow-hidden"
+                style={{
+                  opacity: 0,
+                  animation: textReady
+                    ? "hero-text-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s forwards"
+                    : "none",
+                }}
+              >
+                <span
+                  className="text-primary inline-block"
+                  style={{
+                    backgroundImage: textReady
+                      ? "linear-gradient(90deg, #1AA3FF 0%, #4DB5FF 40%, #80CAFF 50%, #4DB5FF 60%, #1AA3FF 100%)"
+                      : "none",
+                    backgroundSize: "200% 100%",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: textReady ? "transparent" : undefined,
+                    animation: textReady
+                      ? "hero-emphasis-glow 4s ease-in-out 1.2s infinite"
+                      : "none",
+                  }}
+                >
+                  이제 쉽고 간편하게
+                </span>
+              </span>
             </h1>
-            <p className="text-[18px] text-text-sub leading-[1.75] mb-10 max-w-[440px] max-md:max-w-none max-md:text-[16px]">
-              소량부터 대량까지, 카톡 한 번이면 끝
-              <br />
-              사전 견적 = 최종 금액, 추가 비용 없는 투명한 가격
-            </p>
-            <div className="flex gap-3 max-md:justify-center max-md:flex-col max-md:items-center">
+
+            {/* Subtitle - Improved typography */}
+            <div
+              className="mb-10 max-w-[480px] max-md:max-w-none space-y-3"
+              style={{
+                opacity: 0,
+                animation: textReady
+                  ? "hero-text-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 0.45s forwards"
+                  : "none",
+              }}
+            >
+              <p className="text-[20px] text-text-primary font-semibold leading-[1.6] max-md:text-[18px]">
+                소량부터 대량까지, 카톡 한 번이면 끝
+              </p>
+              <p className="text-[17px] text-text-sub leading-[1.7] max-md:text-[15px]">
+                사전 견적 = 최종 금액, 추가 비용 없는 투명한 가격
+              </p>
+            </div>
+
+            {/* CTA Buttons */}
+            <div
+              className="flex gap-3 max-md:justify-center max-md:flex-col max-md:items-center"
+              style={{
+                opacity: 0,
+                animation: textReady
+                  ? "hero-text-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 0.6s forwards"
+                  : "none",
+              }}
+            >
               <CTALink
                 location="hero"
                 className="group inline-flex items-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-[16px] px-8 rounded-[14px] shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
@@ -119,13 +280,6 @@ export function Hero() {
                 5분만에 수거신청하기
               </Link>
             </div>
-            <Link
-              href="/booking/manage"
-              className="inline-flex items-center gap-1.5 text-sm text-text-muted font-medium mt-5 hover:text-primary transition-colors max-md:justify-center"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              기존 신청 조회하기
-            </Link>
           </div>
 
           {/* Right: Chat Mockup with Live Animation */}

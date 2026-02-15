@@ -9,7 +9,7 @@ export function SectionHeader({ tag, title, desc, center }: Props) {
   return (
     <div className={`mb-16 ${center ? "text-center" : ""}`}>
       {tag && (
-        <span className="inline-block text-sm font-semibold text-primary mb-3.5">
+        <span className="inline-flex items-center h-7 px-3 rounded-full bg-primary-tint text-primary text-[13px] font-semibold mb-4">
           {tag}
         </span>
       )}

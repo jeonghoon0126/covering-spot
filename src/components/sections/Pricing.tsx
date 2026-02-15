@@ -1,7 +1,37 @@
+import React from "react";
 import { pricingItems } from "@/data/pricing-items";
 import { features } from "@/data/features";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+
+const featureIcons: Record<string, React.ReactNode> = {
+  chat: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M8 10h.01" />
+      <path d="M12 10h.01" />
+      <path d="M16 10h.01" />
+    </svg>
+  ),
+  clock: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  home: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  dollar: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  ),
+};
 
 export function Pricing() {
   return (
@@ -63,25 +93,28 @@ export function Pricing() {
               </h3>
             </div>
 
-            {/* 수평 스트립 형태 */}
-            <div className="flex max-lg:flex-col">
-              {features.map((feat, i) => (
-                <div
-                  key={feat.title}
-                  className={`flex-1 px-8 py-4 max-lg:px-0 max-lg:py-6 rounded-xl transition-all duration-200 hover:bg-primary-bg ${
-                    i < features.length - 1
-                      ? "border-r border-border max-lg:border-r-0 max-lg:border-b"
-                      : ""
-                  }`}
-                >
-                  <div className="text-[16px] font-bold text-text-primary mb-2">
-                    {feat.title}
+            {/* 2x2 카드 그리드 */}
+            <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1">
+              {features.map((feat) => {
+                const icon = featureIcons[feat.icon];
+                const desc = feat.desc.replace(/\n/g, " ");
+                return (
+                  <div
+                    key={feat.title}
+                    className="rounded-2xl border border-border bg-bg p-8 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-primary-tint flex items-center justify-center">
+                      {icon}
+                    </div>
+                    <div className="text-lg font-bold text-text-primary mt-5 mb-2">
+                      {feat.title}
+                    </div>
+                    <div className="text-[15px] text-text-sub leading-relaxed">
+                      {desc}
+                    </div>
                   </div>
-                  <div className="text-[14px] text-text-sub leading-[1.7] whitespace-pre-line">
-                    {feat.desc}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </ScrollReveal>
