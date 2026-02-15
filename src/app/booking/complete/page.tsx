@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
+import { Button } from "@/components/ui/Button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -14,7 +16,7 @@ export default function BookingCompletePage() {
     <Suspense
       fallback={
         <div className="text-center py-20">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <LoadingSpinner size="lg" />
           <p className="text-text-muted mt-4 text-sm">로딩 중...</p>
         </div>
       }
@@ -54,8 +56,8 @@ function BookingCompleteContent() {
 
   if (!booking) {
     return (
-      <div className="text-center py-20">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <div className="text-center py-20 flex flex-col items-center">
+        <LoadingSpinner size="lg" />
         <p className="text-text-muted mt-4 text-sm">신청 정보 불러오는 중...</p>
       </div>
     );
@@ -190,18 +192,12 @@ function BookingCompleteContent() {
 
       {/* 하단 버튼 */}
       <div className="flex gap-3">
-        <Link
-          href="/booking/manage"
-          className="flex-1 py-3.5 rounded-2xl border border-border text-center text-text-sub font-semibold text-sm"
-        >
+        <Button variant="tertiary" size="lg" fullWidth href="/booking/manage">
           신청 조회/관리
-        </Link>
-        <Link
-          href="/"
-          className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-center font-semibold text-sm"
-        >
+        </Button>
+        <Button variant="primary" size="lg" fullWidth href="/">
           홈으로
-        </Link>
+        </Button>
       </div>
     </div>
   );

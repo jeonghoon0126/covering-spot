@@ -7,6 +7,12 @@ import type { SpotArea } from "@/data/spot-areas";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import DaumPostcodeEmbed from "react-daum-postcode";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { TextArea } from "@/components/ui/TextArea";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { ModalHeader } from "@/components/ui/ModalHeader";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 const STEPS = ["날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "신청 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -386,13 +392,13 @@ export default function BookingPage() {
       {/* Step 1: 지역 */}
       {step === 1 && (
         <div className="bg-white rounded-2xl shadow-sm p-5">
-          <input
-            type="text"
-            placeholder="지역 검색 (예: 강남구)"
-            value={areaSearch}
-            onChange={(e) => setAreaSearch(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm mb-4 focus:outline-none focus:border-primary"
-          />
+          <div className="mb-4">
+            <TextField
+              placeholder="지역 검색 (예: 강남구)"
+              value={areaSearch}
+              onChange={(e) => setAreaSearch(e.target.value)}
+            />
+          </div>
           <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto">
             {areas
               .filter((a) => a.name.includes(areaSearch))
@@ -658,15 +664,11 @@ export default function BookingPage() {
       {/* Step 4: 사다리차 */}
       {step === 4 && (
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-5">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={needLadder}
-              onChange={(e) => setNeedLadder(e.target.checked)}
-              className="w-5 h-5 accent-primary"
-            />
-            <span className="font-medium">사다리차가 필요합니다</span>
-          </label>
+          <Checkbox
+            checked={needLadder}
+            onChange={(e) => setNeedLadder(e.target.checked)}
+            label="사다리차가 필요합니다"
+          />
 
           {needLadder && (
             <>
@@ -817,42 +819,52 @@ export default function BookingPage() {
           {/* 고객 정보 */}
           <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
             <h3 className="font-semibold">고객 정보</h3>
-            <input
-              type="text"
-              placeholder="이름 *"
+            <TextField
+              label="이름"
+              required
+              placeholder="이름을 입력하세요"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary"
+              error={customerName.length > 0 && customerName.trim().length < 2}
+              helperText={customerName.length > 0 && customerName.trim().length < 2 ? "2글자 이상 입력하세요" : undefined}
             />
-            <input
+            <TextField
+              label="전화번호"
+              required
               type="tel"
-              placeholder="전화번호 * (예: 010-1234-5678)"
+              placeholder="010-1234-5678"
               value={phone}
               onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary"
+              error={phone.length > 0 && phone.replace(/-/g, "").length < 10}
+              helperText={phone.length > 0 && phone.replace(/-/g, "").length < 10 ? "올바른 전화번호를 입력하세요" : undefined}
             />
-            <button
-              type="button"
-              onClick={() => setShowPostcode(true)}
-              className={`w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm text-left focus:outline-none focus:border-primary ${
-                address ? "text-text-primary" : "text-text-muted"
-              }`}
-            >
-              {address || "주소 검색 *"}
-            </button>
-            <input
-              type="text"
-              placeholder="상세주소 (동/호수)"
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
+                주소<span className="ml-0.5 text-semantic-red">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPostcode(true)}
+                className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 ${
+                  address ? "text-text-primary" : "text-text-muted"
+                }`}
+              >
+                {address || "주소를 검색하세요"}
+              </button>
+            </div>
+            <TextField
+              label="상세주소"
+              placeholder="동/호수를 입력하세요"
               value={addressDetail}
               onChange={(e) => setAddressDetail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary"
             />
-            <textarea
-              placeholder="요청사항 (선택)"
+            <TextArea
+              label="요청사항"
+              placeholder="요청사항을 입력하세요 (선택)"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary resize-none"
+              maxLength={200}
             />
           </div>
         </div>
@@ -861,45 +873,47 @@ export default function BookingPage() {
       {/* 하단 네비게이션 */}
       <div className="flex gap-3 mt-8">
         {step > 0 && (
-          <button
+          <Button
+            variant="tertiary"
+            size="lg"
+            fullWidth
             onClick={() => setStep(step - 1)}
-            className="flex-1 py-3.5 rounded-2xl border border-border text-text-sub font-semibold text-sm"
           >
             이전
-          </button>
+          </Button>
         )}
         {step < 5 ? (
-          <button
-            onClick={() => setStep(step + 1)}
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
             disabled={!canNext[step]}
-            className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => setStep(step + 1)}
           >
             다음
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={handleSubmit}
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
             disabled={!canNext[step] || loading}
-            className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            loading={loading}
+            onClick={handleSubmit}
           >
-            {loading ? "신청 중..." : "수거 신청하기"}
-          </button>
+            {loading ? "" : "수거 신청하기"}
+          </Button>
         )}
       </div>
 
       {/* 주소 검색 팝업 */}
       {showPostcode && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4">
           <div className="bg-white rounded-2xl overflow-hidden w-full max-w-md">
-            <div className="flex justify-between items-center px-5 py-4 border-b border-border-light">
-              <h3 className="font-semibold">주소 검색</h3>
-              <button
-                onClick={() => setShowPostcode(false)}
-                className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-bg-warm transition-colors"
-              >
-                ✕
-              </button>
-            </div>
+            <ModalHeader
+              title="주소 검색"
+              onClose={() => setShowPostcode(false)}
+            />
             <DaumPostcodeEmbed
               onComplete={(data) => {
                 setAddress(data.roadAddress || data.jibunAddress);

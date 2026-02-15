@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -42,24 +44,25 @@ export default function AdminLoginPage() {
           <p className="text-sm text-gray-500 text-center mb-8">관리자 로그인</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <input
+            <TextField
               type="password"
               placeholder="비밀번호"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#2563EB]"
+              error={!!error}
+              helperText={error || undefined}
             />
-            {error && (
-              <p className="text-sm text-red-500 text-center">{error}</p>
-            )}
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
               disabled={loading || !password.trim()}
-              className="w-full py-3 rounded-xl bg-[#2563EB] text-white font-semibold text-sm disabled:opacity-40"
+              loading={loading}
             >
-              {loading ? "..." : "로그인"}
-            </button>
+              {loading ? "" : "로그인"}
+            </Button>
           </form>
         </div>
       </div>

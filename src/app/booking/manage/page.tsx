@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -96,21 +98,24 @@ export default function BookingManagePage() {
       </div>
 
       {/* 전화번호 검색 */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <input
-          type="tel"
-          placeholder="전화번호 (예: 01012345678)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="flex-1 px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary"
-        />
-        <button
+      <form onSubmit={handleSearch} className="flex gap-2 items-end">
+        <div className="flex-1">
+          <TextField
+            type="tel"
+            placeholder="전화번호 (예: 01012345678)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
           disabled={loading || !phone.trim()}
-          className="px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm disabled:opacity-40"
+          loading={loading}
         >
-          {loading ? "..." : "조회"}
-        </button>
+          조회
+        </Button>
       </form>
 
       {/* 결과 */}
@@ -261,15 +266,17 @@ export default function BookingManagePage() {
                         b.status !== "rejected" &&
                         b.status !== "payment_requested" &&
                         b.status !== "payment_completed" && (
-                        <button
+                        <Button
+                          variant="danger"
+                          size="md"
+                          fullWidth
+                          className="mt-3"
                           onClick={() => handleCancel(b.id)}
                           disabled={cancelling === b.id}
-                          className="w-full mt-3 py-2.5 rounded-xl border border-[#EF4444] text-[#EF4444] text-sm font-semibold hover:bg-[#EF4444]/5 disabled:opacity-40"
+                          loading={cancelling === b.id}
                         >
-                          {cancelling === b.id
-                            ? "취소 처리 중..."
-                            : "신청 취소"}
-                        </button>
+                          {cancelling === b.id ? "" : "신청 취소"}
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -282,12 +289,9 @@ export default function BookingManagePage() {
 
       {/* 새 신청 링크 */}
       <div className="pt-4">
-        <Link
-          href="/booking"
-          className="block w-full py-3.5 rounded-2xl bg-primary text-white text-center font-semibold text-sm"
-        >
+        <Button variant="primary" size="lg" fullWidth href="/booking">
           새 수거 신청하기
-        </Link>
+        </Button>
       </div>
     </div>
   );
