@@ -138,10 +138,17 @@ export async function getBookingById(
 export async function getBookingsByPhone(
   phone: string,
 ): Promise<Booking[]> {
+  // 하이픈 포함/미포함 모두 검색 (포맷 불일치 방어)
+  const digits = phone.replace(/[^\d]/g, "");
+  const formatted =
+    digits.length >= 10
+      ? `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+      : phone;
+
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
-    .eq("phone", phone)
+    .or(`phone.eq.${formatted},phone.eq.${digits}`)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

@@ -10,6 +10,13 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
+function formatPhoneNumber(value: string): string {
+  const numbers = value.replace(/[^\d]/g, "").slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
@@ -102,9 +109,9 @@ export default function BookingManagePage() {
         <div className="flex-1">
           <TextField
             type="tel"
-            placeholder="전화번호 (예: 01012345678)"
+            placeholder="전화번호 (예: 010-1234-5678)"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
           />
         </div>
         <Button
