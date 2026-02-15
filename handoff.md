@@ -6,9 +6,14 @@ Vercel 프로젝트: covering_spot (framework: nextjs)
 
 ### 최근 작업 (2026-02-15)
 
-**홈페이지 UX 개선 (완료)**
+**홈페이지/UX 전체 개선 (완료)**
 - TrustBar: 카운트업 애니메이션 (IntersectionObserver + ease-out cubic) ✅
 - FloatingCTA: 모바일/PC에 "신청 조회" 진입점 추가 ✅
+- Hero: "기존 신청 조회하기" 링크 추가 ✅
+- Pricing: "왜 커버링인가요" 호버 효과 ✅
+- ItemPrices: 탭 전환 렉 수정 (double rAF → setTimeout) ✅
+- FAQ: 하드코딩 maxHeight → ref 기반 동적 높이 ✅
+- 예약 폼: 스텝 인디케이터에 스텝명 라벨 추가 (데스크톱) ✅
 - useScrollPosition: rAF throttle로 스크롤 성능 최적화 ✅
 - globals.css: 트랜지션 변수 통일 (ease-smooth, duration-*) ✅
 
@@ -61,5 +66,4 @@ UI: Divider, Chip, Label, DotBadge, NumberBadge
 1. 배포 검증 (예약 생성/조회/수정 테스트)
 2. 운영 Slack 채널 전환
 3. 고객 SMS/카톡 알림 (견적 확정 시)
-4. 홈페이지 섹션별 디자인 심화 (recatch.cc 참고 리디자인)
-5. Figma 디자인 시스템 누락 컴포넌트 있으면 사용자에게 MCP 링크 요청
+4. Figma 디자인 시스템 누락 컴포넌트 있으면 사용자에게 MCP 링크 요청
