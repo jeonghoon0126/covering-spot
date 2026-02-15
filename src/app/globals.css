@@ -76,6 +76,12 @@
   --shadow-lg: 0 12px 40px rgba(22,25,29,0.08), 0 4px 12px rgba(22,25,29,0.04);
   --shadow-hover: 0 8px 30px rgba(22,25,29,0.10), 0 4px 8px rgba(22,25,29,0.06);
 
+  /* ═══ Transitions ═══ */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
   /* ═══ Font ═══ */
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }

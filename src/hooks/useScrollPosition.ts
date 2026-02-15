@@ -6,7 +6,17 @@ export function useScrollPosition() {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    const handle = () => setScrollY(window.scrollY);
+    let ticking = false;
+
+    const handle = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+        ticking = false;
+      });
+    };
+
     window.addEventListener("scroll", handle, { passive: true });
     return () => window.removeEventListener("scroll", handle);
   }, []);

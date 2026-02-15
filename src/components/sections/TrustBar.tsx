@@ -1,4 +1,85 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
 import { trustStats } from "@/data/trust-stats";
+
+/* ── 숫자 카운트업 (소수점 지원) ── */
+function useCountUp(target: string, duration = 1200) {
+  const [display, setDisplay] = useState("0");
+  const [started, setStarted] = useState(false);
+
+  const start = useCallback(() => setStarted(true), []);
+
+  useEffect(() => {
+    if (!started) return;
+
+    // "30", "4.9", "주 7일" 등 → 숫자만 추출
+    const numMatch = target.match(/[\d.]+/);
+    if (!numMatch) {
+      setDisplay(target);
+      return;
+    }
+
+    const end = parseFloat(numMatch[0]);
+    const isDecimal = target.includes(".");
+    const prefix = target.slice(0, numMatch.index);
+    const suffix = target.slice((numMatch.index ?? 0) + numMatch[0].length);
+    const startTime = performance.now();
+
+    function step(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = end * eased;
+      setDisplay(
+        prefix + (isDecimal ? current.toFixed(1) : Math.round(current).toString()) + suffix,
+      );
+      if (progress < 1) requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
+  }, [started, target, duration]);
+
+  return { display, start };
+}
+
+function StatItem({ value, suffix, label }: { value: string; suffix?: string; label: string }) {
+  const { display, start } = useCountUp(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          start();
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [start]);
+
+  return (
+    <div ref={ref} className="text-center group">
+      <div className="text-[40px] font-extrabold tracking-[-1.5px] leading-none mb-2 flex items-baseline gap-0.5 justify-center max-md:text-[30px] text-text-primary">
+        {display}
+        {suffix && (
+          <span className="text-xl font-bold text-primary">
+            {suffix}
+          </span>
+        )}
+      </div>
+      <div className="text-[13px] text-text-muted font-medium tracking-wide">
+        {label}
+      </div>
+    </div>
+  );
+}
 
 export function TrustBar() {
   return (
@@ -9,19 +90,7 @@ export function TrustBar() {
             {i > 0 && (
               <div className="w-px h-14 bg-gradient-to-b from-transparent via-border to-transparent max-md:h-10 max-sm:hidden" />
             )}
-            <div className="text-center group">
-              <div className="text-[40px] font-extrabold tracking-[-1.5px] leading-none mb-2 flex items-baseline gap-0.5 justify-center max-md:text-[30px] text-text-primary">
-                {stat.value}
-                {stat.suffix && (
-                  <span className="text-xl font-bold text-primary">
-                    {stat.suffix}
-                  </span>
-                )}
-              </div>
-              <div className="text-[13px] text-text-muted font-medium tracking-wide">
-                {stat.label}
-              </div>
-            </div>
+            <StatItem value={stat.value} suffix={stat.suffix} label={stat.label} />
           </div>
         ))}
       </div>
