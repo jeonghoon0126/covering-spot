@@ -42,11 +42,8 @@ export function ItemPrices({ categories }: Props) {
   // Re-trigger bar animation on tab change
   useEffect(() => {
     setBarsAnimated(false);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setBarsAnimated(true);
-      });
-    });
+    const timer = setTimeout(() => setBarsAnimated(true), 50);
+    return () => clearTimeout(timer);
   }, [activeId]);
 
   return (

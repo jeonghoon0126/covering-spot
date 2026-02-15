@@ -265,6 +265,7 @@ export default function BookingPage() {
     <div>
       {/* 스텝 인디케이터 */}
       <div className="mb-8">
+        {/* 프로그레스 바 + 스텝 번호 */}
         <div className="flex items-center gap-1 mb-3">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-1 flex-1">
@@ -290,6 +291,21 @@ export default function BookingPage() {
                   className={`h-0.5 flex-1 transition-colors ${i < step ? "bg-primary" : "bg-border-light"}`}
                 />
               )}
+            </div>
+          ))}
+        </div>
+        {/* 스텝명 라벨 (데스크톱: 전체 표시, 모바일: 현재 스텝만) */}
+        <div className="hidden sm:flex items-center gap-1 mb-3">
+          {STEPS.map((s, i) => (
+            <div key={`label-${s}`} className="flex items-center gap-1 flex-1">
+              <span
+                className={`text-[11px] font-medium w-8 text-center shrink-0 transition-colors ${
+                  i <= step ? "text-primary" : "text-text-muted"
+                }`}
+              >
+                {s}
+              </span>
+              {i < STEPS.length - 1 && <div className="flex-1" />}
             </div>
           ))}
         </div>

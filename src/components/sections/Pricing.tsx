@@ -68,7 +68,7 @@ export function Pricing() {
               {features.map((feat, i) => (
                 <div
                   key={feat.title}
-                  className={`flex-1 px-8 py-2 max-lg:px-0 max-lg:py-6 ${
+                  className={`flex-1 px-8 py-4 max-lg:px-0 max-lg:py-6 rounded-xl transition-all duration-200 hover:bg-primary-bg ${
                     i < features.length - 1
                       ? "border-r border-border max-lg:border-r-0 max-lg:border-b"
                       : ""
