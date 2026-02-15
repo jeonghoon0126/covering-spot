@@ -2,7 +2,77 @@
   "meta": {
     "name": "커버링 디자인 시스템 (CDS)",
     "version": "2025-01-21",
-    "note": "커버링 스팟 프로젝트 전용 - 코딩 시에만 참조"
+    "updated": "2026-02-15",
+    "note": "커버링 스팟 프로젝트 전용 - 코딩 시에만 참조",
+    "figma": "https://www.figma.com/design/QGO304gR4NUFzJkMbHEPz7"
+  },
+  "layoutGrid": {
+    "breakpoints": {
+      "xsmall": { "range": "0-767", "device": "mobile", "columns": 4, "margins": 20, "gutters": 8 },
+      "small": { "range": "768-1023", "device": "tablet-portrait", "columns": 8, "margins": 40, "gutters": 16 },
+      "medium": { "range": "1024-1439", "device": "tablet-large", "columns": 12, "margins": 40, "gutters": 16 },
+      "large": { "range": "1440+", "device": "desktop", "columns": 12, "margins": 40, "gutters": 16 }
+    },
+    "rules": [
+      "모바일 좌우 여백 20px 고정",
+      "각 브레이크포인트까지 margin 제외 full(fill 100%)로 늘어남",
+      "중간 단계 부재시 이전 브레이크포인트 사이즈로 노출"
+    ]
+  },
+  "typography": {
+    "fontFamily": "Pretendard",
+    "scale": {
+      "display1": { "size": 57, "weight": 400, "lineHeight": 80, "letterSpacing": 0 },
+      "display2": { "size": 45, "weight": 400, "lineHeight": 63, "letterSpacing": 0 },
+      "display3": { "size": 36, "weight": 400, "lineHeight": 44, "letterSpacing": 0 },
+      "headline1": { "size": 32, "weight": 600, "lineHeight": 44, "letterSpacing": 0 },
+      "headline2": { "size": 28, "weight": 600, "lineHeight": 39, "letterSpacing": 0 },
+      "headline3": { "size": 24, "weight": 600, "lineHeight": 34, "letterSpacing": 0 },
+      "title1": { "size": 22, "weight": 700, "lineHeight": 30, "letterSpacing": 0 },
+      "title2": { "size": 20, "weight": 700, "lineHeight": 28, "letterSpacing": 0 },
+      "title3": { "size": 18, "weight": 400, "lineHeight": 26, "letterSpacing": 0 },
+      "body1Regular": { "size": 16, "weight": 400, "lineHeight": 24, "letterSpacing": 0 },
+      "body1Emphasized": { "size": 16, "weight": 600, "lineHeight": 24, "letterSpacing": 0 },
+      "body2Regular": { "size": 14, "weight": 400, "lineHeight": 22, "letterSpacing": 0 },
+      "body2Emphasized": { "size": 14, "weight": 600, "lineHeight": 22, "letterSpacing": 0 },
+      "label1Regular": { "size": 12, "weight": 400, "lineHeight": 18, "letterSpacing": 0 },
+      "label1Emphasized": { "size": 12, "weight": 600, "lineHeight": 18, "letterSpacing": 0 },
+      "label2Emphasized": { "size": 11, "weight": 600, "lineHeight": 14, "letterSpacing": 0.6 }
+    }
+  },
+  "spacing": {
+    "3xs": 2,
+    "2xs": 4,
+    "xs": 8,
+    "sm": 12,
+    "md": 16,
+    "lg": 20,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 40,
+    "4xl": 48,
+    "5xl": 64
+  },
+  "radius": {
+    "comment": "Figma node 504:9551 - Radius 토큰 (추출 대기, 스크린샷 필요)"
+  },
+  "ratio": {
+    "1:1": 1,
+    "1:2": 0.5,
+    "9:16": 0.5625,
+    "2:3": 0.6667,
+    "3:4": 0.75,
+    "4:5": 0.8,
+    "2:1": 2,
+    "16:9": 1.7778,
+    "3:2": 1.5,
+    "4:3": 1.3333
+  },
+  "interaction": {
+    "stateLayer": {
+      "default": { "color": "grey/900", "opacity": "pressed=0.12, hovered=0.08, focused=0.12" },
+      "weak": { "color": "grey/900", "opacity": "default * 0.4" }
+    }
   },
   "primitive": {
     "brand": {
@@ -118,62 +188,32 @@
       "assistive": "grey/400",
       "tint": "grey/50",
       "inverse": "base/white",
-      "onStrong": "base/white",
-      "onDefault": "base/white",
-      "onNeutral": "base/white",
-      "onAlternative": "base/white",
-      "onAssistive": "grey/900",
-      "onTint": "grey/800",
-      "onInverse": "grey/700",
       "primary": {
         "strong": "brand/700",
         "default": "brand/400",
         "alternative": "brand/300",
         "assistive": "brand/100",
-        "tint": "brand/50",
-        "onStrong": "base/white",
-        "onDefault": "base/white",
-        "onAlternative": "base/white",
-        "onAssistive": "brand/600",
-        "onTint": "brand/700"
+        "tint": "brand/50"
       },
       "secondary": {
         "default": "green/600",
-        "tint": "green/50",
-        "onDefault": "base/white",
-        "onTint": "green/600"
+        "tint": "green/50"
       },
       "accent": {
         "red": "red/400",
-        "redTint": "red/50",
-        "onRed": "base/white",
-        "onRedTint": "red/500"
+        "redTint": "red/50"
       }
     },
     "border": {
       "default": "grey/200",
       "strong": "grey/400",
       "assistive": "grey/50",
-      "primary": {
-        "default": "brand/400",
-        "assistive": "brand/200"
-      },
-      "secondary": {
-        "default": "green/500",
-        "assistive": "green/200"
-      },
-      "red": {
-        "default": "red/400",
-        "assistive": "red/200"
-      }
+      "primary": { "default": "brand/400", "assistive": "brand/200" },
+      "secondary": { "default": "green/500", "assistive": "green/200" },
+      "red": { "default": "red/400", "assistive": "red/200" }
     },
-    "scrim": {
-      "default": "grey/900 opacity 50%"
-    },
-    "elevation": {
-      "default": "grey/900 opacity 8%",
-      "weak": "grey/900 opacity 4%"
-    },
+    "scrim": { "default": "grey/900 opacity 50%" },
+    "elevation": { "default": "grey/900 opacity 8%", "weak": "grey/900 opacity 4%" },
     "status": {
       "caution": "orange/500",
       "negative": "red/400",
@@ -182,32 +222,12 @@
       "cautionTint": "orange/50",
       "negativeTint": "red/50",
       "positiveTint": "green/50",
-      "informationTint": "brand/50",
-      "onCaution": "base/white",
-      "onNegative": "base/white",
-      "onPositive": "base/white",
-      "onInformation": "base/white",
-      "onCautionTint": "orange/500",
-      "onNegativeTint": "red/500",
-      "onPositiveTint": "green/600",
-      "onInformationTint": "brand/500"
+      "informationTint": "brand/50"
     }
   },
   "component": {
-    "interaction": {
-      "default": "grey/900",
-      "primary": "brand/400"
-    },
-    "disable": {
-      "strong": "grey/300",
-      "normal": "grey/200",
-      "alternative": "grey/100",
-      "assistive": "grey/50"
-    },
-    "inactive": {
-      "default": "grey/400",
-      "alternative": "grey/200",
-      "assistive": "grey/100"
-    }
+    "interaction": { "default": "grey/900", "primary": "brand/400" },
+    "disable": { "strong": "grey/300", "normal": "grey/200", "alternative": "grey/100", "assistive": "grey/50" },
+    "inactive": { "default": "grey/400", "alternative": "grey/200", "assistive": "grey/100" }
   }
 }

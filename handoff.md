@@ -6,13 +6,15 @@ Vercel 프로젝트: covering_spot (framework: nextjs)
 
 ### 최근 작업 (2026-02-15)
 
+**CDS 디자인 시스템 통합 (완료)**
+- Figma MCP로 디자인 토큰 추출 (Typography/Spacing/Ratio/Interaction) ✅
+- `.design-system.json` - CDS 전체 토큰 저장 (Primitive→Semantic→Component) ✅
+- `globals.css` - brand 컬러팔레트, 시맨틱 컬러, CDS 스페이싱 토큰 반영 ✅
+- Hero 채팅 애니메이션, FloatingCTA 리뉴얼, 브랜드 컬러 #1AA3FF 전역 적용 ✅
+
 **Supabase 마이그레이션 (완료)**
 - Google Sheets DB → Supabase PostgreSQL 전환 ✅
-- Google Drive 사진 → Supabase Storage 전환 ✅
-- Storage booking-photos 버킷 생성 ✅
-- Vercel 환경변수 업데이트 완료 ✅ (Google 4개 제거, Supabase 2개 추가)
 - bookings 테이블 생성 완료 ✅ (Management API로 DDL 실행)
-- 임시 setup route 제거 + pg 패키지 제거 ✅
 
 Supabase 프로젝트 정보:
 - Project ref: agqynwvbswolmrktjsbw
@@ -67,7 +69,14 @@ photos: JSONB (string[])
 - Slack 채널이 테스트용. 운영 시 C0ACBEFKPDJ로 전환 필요
 - DB 직접 연결 불가 (IPv6 + 차단) - SQL Editor 사용 필요
 
+### 디자인 시스템 참조
+- `.design-system.json` - CDS 전체 토큰 (타이포/스페이싱/컬러/레이아웃그리드/비율/인터랙션)
+- Figma: https://www.figma.com/design/QGO304gR4NUFzJkMbHEPz7
+- Radius 토큰은 아직 미추출 (Figma node 504:9551)
+
 ### TODO
 1. 배포 검증 (예약 생성/조회/수정 테스트)
 2. 운영 Slack 채널 전환
 3. 고객 SMS/카톡 알림 (견적 확정 시)
+4. Radius 토큰 Figma에서 추출 후 반영
+5. 컴포넌트 MCP 연동 (사용자 제공 예정)
