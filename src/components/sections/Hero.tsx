@@ -1,24 +1,44 @@
+"use client";
+
 import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export function Hero() {
+  const { ref: leftRef, visible: leftVisible } = useScrollReveal(0);
+  const { ref: rightRef, visible: rightVisible } = useScrollReveal(0);
+
   return (
-    <section className="pt-[140px] pb-20 bg-bg-warm max-md:pt-[120px] max-md:pb-16">
+    <section className="relative pt-[160px] pb-32 overflow-hidden max-md:pt-[128px] max-md:pb-24">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#F8FAFC] to-[#EFF6FF] -z-10" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#2563EB]/[0.03] rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/4" />
+
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
-        <div className="grid grid-cols-[1fr_400px] items-center gap-16 max-lg:grid-cols-[1fr_340px] max-lg:gap-10 max-md:grid-cols-1 max-md:text-center">
+        <div className="grid grid-cols-[1fr_400px] items-center gap-16 max-lg:grid-cols-[1fr_360px] max-lg:gap-10 max-md:grid-cols-1 max-md:text-center">
           {/* Left: Text */}
-          <div>
-            <div className="inline-flex items-center gap-2 bg-bg border border-border rounded-full px-4 py-2 text-sm font-semibold text-text-sub mb-7">
-              <span className="w-2 h-2 bg-[#22C55E] rounded-full shrink-0" />
+          <div
+            ref={leftRef}
+            className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              leftVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-6"
+            }`}
+          >
+            <div className="inline-flex items-center gap-2 bg-white border border-border rounded-full px-4 py-2 text-sm font-semibold text-text-sub mb-8 shadow-sm">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22C55E] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#22C55E]" />
+              </span>
               서울 · 경기 · 인천 전 지역 | 주 7일 운영
             </div>
-            <h1 className="text-[48px] font-extrabold leading-[1.2] tracking-[-1.5px] mb-5 max-lg:text-[40px] max-md:text-[32px] max-sm:text-[28px] max-md:tracking-[-1px]">
+            <h1 className="text-[56px] font-extrabold leading-[1.15] tracking-[-2.5px] mb-6 max-lg:text-[48px] max-lg:tracking-[-2px] max-md:text-[40px] max-md:tracking-[-1.5px] max-sm:text-[32px] max-sm:tracking-[-1px]">
               대형/대량 폐기물,
               <br />
               <span className="text-primary">이제 쉽고 간편하게</span>
             </h1>
-            <p className="text-[17px] text-text-sub leading-[1.7] mb-9 max-md:text-[15px]">
+            <p className="text-[18px] text-text-sub leading-[1.75] mb-10 max-w-[440px] max-md:max-w-none max-md:text-[16px]">
               소량부터 대량까지, 카톡 한 번이면 끝
               <br />
               사전 견적 = 최종 금액, 추가 비용 없는 투명한 가격
@@ -26,74 +46,140 @@ export function Hero() {
             <div className="flex gap-3 max-md:justify-center max-md:flex-col max-md:items-center">
               <CTALink
                 location="hero"
-                className="inline-flex items-center gap-2 bg-kakao text-text-primary text-base font-bold py-[15px] px-7 rounded-[12px] hover:bg-kakao-hover active:scale-[0.98] transition-all max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+                className="group inline-flex items-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-[16px] px-8 rounded-[14px] shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 <KakaoIcon />
                 <span>무료 견적 받기</span>
               </CTALink>
               <Link
                 href="/booking"
-                className="inline-flex items-center bg-primary text-white text-base font-semibold py-[15px] px-7 rounded-[12px] hover:bg-primary/90 active:scale-[0.98] transition-all max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+                className="group inline-flex items-center bg-primary text-white text-base font-semibold py-[16px] px-8 rounded-[14px] shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 온라인 예약하기
+              </Link>
+              <Link
+                href="/booking/manage"
+                className="inline-flex items-center text-text-sub text-[15px] font-semibold py-[16px] px-6 rounded-[14px] border border-border bg-white hover:bg-bg-warm hover:border-border hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+              >
+                신청 조회
               </Link>
             </div>
           </div>
 
           {/* Right: Chat Mockup */}
-          <div className="w-full max-w-[380px] bg-white rounded-[16px] border border-border overflow-hidden max-md:max-w-[320px] max-md:mx-auto">
-            <div className="bg-bg-warm px-5 py-4 flex items-center gap-3 border-b border-border">
-              <div className="w-9 h-9 rounded-[10px] bg-primary grid place-items-center text-white text-sm font-extrabold">
-                C
-              </div>
-              <div>
-                <div className="text-[15px] font-bold">커버링 스팟</div>
-                <div className="text-[11px] text-text-muted mt-px">
-                  보통 3분 내 응답
+          <div
+            ref={rightRef}
+            className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              rightVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+            style={{ transitionDelay: "0.15s" }}
+          >
+            <div className="w-full max-w-[400px] bg-white rounded-[20px] shadow-lg overflow-hidden max-md:max-w-[340px] max-md:mx-auto border border-white/80 ring-1 ring-black/[0.04]">
+              {/* Chat Header */}
+              <div className="bg-gradient-to-r from-bg-warm to-white px-6 py-5 flex items-center gap-3.5 border-b border-border/60">
+                <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-primary to-primary-light grid place-items-center text-white text-sm font-extrabold shadow-sm shadow-primary/20">
+                  C
+                </div>
+                <div>
+                  <div className="text-[15px] font-bold text-text-primary">
+                    커버링 스팟
+                  </div>
+                  <div className="text-[11px] text-semantic-green font-medium mt-0.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-semantic-green" />
+                    보통 3분 내 응답
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-5 flex flex-col gap-2.5">
-              <div className="flex justify-end">
-                <span className="text-[11px] text-text-muted self-end mx-1.5">
-                  오후 2:03
-                </span>
-                <div className="max-w-[250px] px-3.5 py-2.5 text-[13px] leading-[1.55] break-keep bg-kakao rounded-[14px_14px_4px_14px]">
-                  침대, 책상, 의류박스 2개
-                  <br />
-                  수거 가능한가요?
+
+              {/* Chat Messages */}
+              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40">
+                {/* User message */}
+                <div className="flex justify-end items-end gap-1.5">
+                  <span className="text-[11px] text-text-muted">
+                    오후 2:03
+                  </span>
+                  <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
+                    침대, 책상, 의류박스 2개
+                    <br />
+                    수거 가능한가요?
+                  </div>
                 </div>
-              </div>
-              <div className="flex">
-                <div className="max-w-[250px] px-3.5 py-2.5 text-[13px] leading-[1.55] break-keep bg-bg-warm2 rounded-[14px_14px_14px_4px]">
-                  네! 바로 견적 드릴게요 😊
-                  <br />
-                  <br />
-                  침대 세트: 50,000원
-                  <br />
-                  책상: 37,000원
-                  <br />
-                  박스 2개: 10,000원
-                  <br />
-                  출장비: 47,000원
-                  <br />
-                  <strong className="font-bold">총 144,000원</strong>
+
+                {/* Bot response */}
+                <div className="flex items-end gap-1.5">
+                  <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-bg-warm2 rounded-[16px_16px_16px_4px] shadow-sm">
+                    네! 바로 견적 드릴게요 😊
+                    <br />
+                    <br />
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-text-sub">침대 세트</span>
+                        <span className="font-medium tabular-nums">
+                          50,000원
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-text-sub">책상</span>
+                        <span className="font-medium tabular-nums">
+                          37,000원
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-text-sub">박스 2개</span>
+                        <span className="font-medium tabular-nums">
+                          10,000원
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-text-sub">출장비</span>
+                        <span className="font-medium tabular-nums">
+                          47,000원
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border/50 flex justify-between gap-4">
+                      <span className="font-bold">합계</span>
+                      <span className="font-bold text-primary tabular-nums">
+                        144,000원
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-text-muted">
+                    오후 2:05
+                  </span>
                 </div>
-                <span className="text-[11px] text-text-muted self-end mx-1.5">
-                  오후 2:05
-                </span>
-              </div>
-              <div className="flex justify-end">
-                <span className="text-[11px] text-text-muted self-end mx-1.5">
-                  오후 2:06
-                </span>
-                <div className="max-w-[250px] px-3.5 py-2.5 text-[13px] leading-[1.55] break-keep bg-kakao rounded-[14px_14px_4px_14px]">
-                  오 깔끔하다! 토요일 가능해요?
+
+                {/* User reply */}
+                <div className="flex justify-end items-end gap-1.5">
+                  <span className="text-[11px] text-text-muted">
+                    오후 2:06
+                  </span>
+                  <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
+                    오 깔끔하다! 토요일 가능해요?
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Wave Divider */}
+      <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] -z-0">
+        <svg
+          viewBox="0 0 1440 56"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="relative block w-full h-[56px] max-md:h-[40px]"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 56V28C240 4 480 4 720 28C960 52 1200 52 1440 28V56H0Z"
+            fill="white"
+          />
+        </svg>
       </div>
     </section>
   );

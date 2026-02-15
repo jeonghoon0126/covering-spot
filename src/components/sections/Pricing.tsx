@@ -72,11 +72,11 @@ export function Pricing() {
         </ScrollReveal>
 
         {/* Pricing Grid */}
-        <div className="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
+        <div className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
           {pricingItems.map((item, i) => (
             <ScrollReveal key={item.title} delay={i * 0.1}>
-              <div className="bg-bg-warm rounded-[20px] p-9 flex flex-col border border-transparent transition-all hover:border-border hover:shadow-sm">
-                <div className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center mb-5 text-primary">
+              <div className="bg-bg-warm rounded-[20px] p-10 flex flex-col border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-hover hover:border-primary/20">
+                <div className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center mb-6 text-primary">
                   {pricingIcons[item.icon]}
                 </div>
                 <div className="text-xs font-bold text-primary tracking-[0.5px] mb-2 uppercase">
@@ -93,20 +93,20 @@ export function Pricing() {
 
         {/* Features Strip */}
         <ScrollReveal>
-          <div className="mt-16 pt-14 border-t border-border">
-            <h3 className="text-2xl font-extrabold text-center mb-10 tracking-[-0.5px]">
+          <div className="mt-20 pt-16 border-t border-border">
+            <h3 className="text-2xl font-extrabold text-center mb-12 tracking-[-0.5px]">
               왜 커버링인가요?
             </h3>
-            <div className="grid grid-cols-4 gap-6 max-lg:grid-cols-2 max-sm:gap-3">
+            <div className="grid grid-cols-4 gap-6 max-lg:grid-cols-2 max-sm:gap-4">
               {features.map((feat) => (
                 <div
                   key={feat.title}
-                  className="text-center py-7 px-4 rounded-[16px] bg-bg-warm transition-all hover:-translate-y-0.5 hover:shadow-sm max-sm:py-5 max-sm:px-3"
+                  className="text-center py-8 px-5 rounded-[16px] bg-bg-warm border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-hover hover:border-primary/20 max-sm:py-6 max-sm:px-4"
                 >
-                  <div className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center mx-auto mb-4 text-primary">
+                  <div className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center mx-auto mb-5 text-primary">
                     {featureIcons[feat.icon]}
                   </div>
-                  <div className="text-[15px] font-bold mb-1.5">
+                  <div className="text-[15px] font-bold mb-2">
                     {feat.title}
                   </div>
                   <div className="text-[13px] text-text-sub leading-relaxed whitespace-pre-line">

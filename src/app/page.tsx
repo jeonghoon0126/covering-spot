@@ -19,7 +19,7 @@ export default function Page() {
   return (
     <>
       <Nav />
-      <section className="hero-section">
+      <section className="hero-section" id="hero">
         <Hero />
       </section>
       <TrustBar />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import type { PriceCategory } from "@/types";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
@@ -76,10 +77,10 @@ export function ItemPrices({ categories }: Props) {
                   setActiveId(cat.id);
                   track("price_tab_select", { item: cat.id });
                 }}
-                className={`flex flex-col items-center gap-2 py-4 px-6 rounded-[16px] font-semibold text-sm border cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] max-md:py-3 max-md:px-4 ${
+                className={`flex flex-col items-center gap-2 py-4 px-6 rounded-[16px] font-semibold text-sm border cursor-pointer transition-all duration-300 ease-out max-md:py-3 max-md:px-4 ${
                   cat.id === activeId
-                    ? "bg-primary text-white border-primary shadow-[0_4px_16px_rgba(37,99,235,0.3)] -translate-y-0.5"
-                    : "bg-bg text-text-primary border-border hover:border-primary-light hover:shadow-sm"
+                    ? "bg-primary text-white border-primary shadow-[0_4px_20px_rgba(37,99,235,0.35)] -translate-y-1"
+                    : "bg-bg text-text-primary border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
                 }`}
               >
                 <span className="text-[28px] leading-none max-md:text-2xl">
@@ -95,7 +96,7 @@ export function ItemPrices({ categories }: Props) {
         <ScrollReveal>
           <div
             ref={cardRef}
-            className="max-w-[640px] mx-auto bg-bg rounded-3xl p-10 border border-border shadow-md max-md:p-7"
+            className="max-w-[640px] mx-auto bg-bg rounded-3xl p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
           >
             <div className="flex items-center gap-4 mb-8">
               <div className="w-16 h-16 rounded-[18px] bg-primary-bg flex items-center justify-center shrink-0 max-md:w-[52px] max-md:h-[52px]">
@@ -140,14 +141,20 @@ export function ItemPrices({ categories }: Props) {
               ))}
             </div>
 
-            <div className="mt-8">
+            <div className="mt-8 flex flex-col items-center gap-3">
               <CTALink
                 location="price"
-                className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-[16px] hover:bg-kakao-hover active:scale-[0.98] transition-all"
+                className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-[16px] hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
               >
                 <KakaoIcon size={18} />
                 <span>카톡으로 견적받기</span>
               </CTALink>
+              <Link
+                href="/booking"
+                className="text-sm font-medium text-text-muted hover:text-primary transition-colors duration-300"
+              >
+                온라인 예약하기 &rarr;
+              </Link>
             </div>
           </div>
         </ScrollReveal>

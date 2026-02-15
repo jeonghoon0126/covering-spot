@@ -6,6 +6,7 @@ import type { BookingItem } from "@/types/booking";
 import type { SpotArea } from "@/data/spot-areas";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
+import DaumPostcodeEmbed from "react-daum-postcode";
 
 const STEPS = ["날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "신청 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -14,6 +15,13 @@ const PHOTO_RECOMMEND_CATEGORIES = ["장롱", "침대", "소파"];
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
+}
+
+function formatPhoneNumber(value: string): string {
+  const numbers = value.replace(/[^\d]/g, "").slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
 function getMonthDays(year: number, month: number) {
@@ -66,6 +74,7 @@ export default function BookingPage() {
   const [address, setAddress] = useState("");
   const [addressDetail, setAddressDetail] = useState("");
   const [memo, setMemo] = useState("");
+  const [showPostcode, setShowPostcode] = useState(false);
 
   // 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
@@ -240,7 +249,7 @@ export default function BookingPage() {
     selectedItems.length > 0,                            // Step 2
     hasElevator !== null && hasParking !== null,          // Step 3 (NEW)
     true,                                                 // Step 4 (사다리차)
-    customerName && phone && address,                    // Step 5
+    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address,  // Step 5
   ];
 
   const today = new Date();
@@ -249,29 +258,42 @@ export default function BookingPage() {
   return (
     <div>
       {/* 스텝 인디케이터 */}
-      <div className="flex items-center gap-1 mb-8">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex items-center gap-1 flex-1">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${
-                i <= step
-                  ? "bg-primary text-white"
-                  : "bg-border-light text-text-muted"
-              }`}
-            >
-              {i + 1}
-            </div>
-            {i < STEPS.length - 1 && (
+      <div className="mb-8">
+        <div className="flex items-center gap-1 mb-3">
+          {STEPS.map((s, i) => (
+            <div key={s} className="flex items-center gap-1 flex-1">
               <div
-                className={`h-0.5 flex-1 ${i < step ? "bg-primary" : "bg-border-light"}`}
-              />
-            )}
-          </div>
-        ))}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
+                  i < step
+                    ? "bg-primary text-white"
+                    : i === step
+                      ? "bg-primary text-white ring-4 ring-primary/20"
+                      : "bg-border-light text-text-muted"
+                }`}
+              >
+                {i < step ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  i + 1
+                )}
+              </div>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 transition-colors ${i < step ? "bg-primary" : "bg-border-light"}`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-text-muted">
+          {step + 1}/{STEPS.length}단계
+        </p>
+        <h2 className="text-xl font-bold">
+          {STEPS[step]}
+        </h2>
       </div>
-      <h2 className="text-xl font-bold mb-6">
-        {STEPS[step]}
-      </h2>
 
       {/* Step 0: 날짜/시간 */}
       {step === 0 && (
@@ -804,18 +826,20 @@ export default function BookingPage() {
             />
             <input
               type="tel"
-              placeholder="전화번호 * (예: 01012345678)"
+              placeholder="전화번호 * (예: 010-1234-5678)"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
               className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary"
             />
-            <input
-              type="text"
-              placeholder="주소 *"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm focus:outline-none focus:border-primary"
-            />
+            <button
+              type="button"
+              onClick={() => setShowPostcode(true)}
+              className={`w-full px-4 py-3 rounded-xl border border-border bg-bg-warm text-sm text-left focus:outline-none focus:border-primary ${
+                address ? "text-text-primary" : "text-text-muted"
+              }`}
+            >
+              {address || "주소 검색 *"}
+            </button>
             <input
               type="text"
               placeholder="상세주소 (동/호수)"
@@ -862,6 +886,30 @@ export default function BookingPage() {
           </button>
         )}
       </div>
+
+      {/* 주소 검색 팝업 */}
+      {showPostcode && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-md">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-border-light">
+              <h3 className="font-semibold">주소 검색</h3>
+              <button
+                onClick={() => setShowPostcode(false)}
+                className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-bg-warm transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setAddress(data.roadAddress || data.jibunAddress);
+                setShowPostcode(false);
+              }}
+              style={{ height: 400 }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

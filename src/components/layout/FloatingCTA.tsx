@@ -9,7 +9,7 @@ export function FloatingCTA() {
 
   useEffect(() => {
     const handle = () => {
-      const hero = document.querySelector(".hero-section");
+      const hero = document.getElementById("hero") || document.querySelector(".hero-section");
       const cta = document.getElementById("cta");
       if (!hero || !cta) return;
 
@@ -28,6 +28,12 @@ export function FloatingCTA() {
         show ? "translate-y-0" : "translate-y-full"
       }`}
     >
+      <a
+        href="/booking/manage"
+        className="block text-center text-xs text-text-sub font-medium mb-2 hover:text-primary transition-colors"
+      >
+        신청 조회하기
+      </a>
       <CTALink
         location="floating"
         className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-[14px] hover:bg-kakao-hover active:scale-[0.98] transition-all"

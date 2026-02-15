@@ -41,6 +41,12 @@ export function Nav() {
           >
             FAQ
           </a>
+          <a
+            href="/booking/manage"
+            className="text-text-sub no-underline text-sm font-medium px-3.5 py-2 rounded-lg transition-all hover:text-text-primary hover:bg-bg-warm max-md:hidden"
+          >
+            신청 조회
+          </a>
           <CTALink
             location="nav"
             className="ml-2 bg-text-primary text-white text-[13px] font-semibold px-[18px] py-2 rounded-lg no-underline transition-colors hover:bg-[#1E293B]"

@@ -32,16 +32,23 @@ export function FAQ({ items }: Props) {
         <ScrollReveal>
           <div className="max-w-[720px] mx-auto">
             {items.map((item, i) => (
-              <div key={i} className="border-b border-border">
+              <div
+                key={i}
+                className={`border-b border-border rounded-2xl mb-2 transition-all duration-300 ease-out ${
+                  openIndex === i
+                    ? "bg-primary/[0.03] border-primary/20"
+                    : "hover:bg-bg-warm/60"
+                }`}
+              >
                 <button
                   onClick={() => toggle(i)}
-                  className="w-full bg-none border-none cursor-pointer py-7 flex justify-between items-center text-left gap-4 transition-colors hover:text-primary text-[17px] font-semibold text-text-primary"
+                  className="w-full bg-none border-none cursor-pointer py-7 px-6 flex justify-between items-center text-left gap-4 transition-all duration-300 ease-out hover:text-primary text-[17px] font-semibold text-text-primary max-md:px-4"
                 >
                   <span>{item.question}</span>
                   <span
-                    className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center text-lg transition-all duration-250 ${
+                    className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center text-lg transition-all duration-300 ease-out ${
                       openIndex === i
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-white rotate-0 shadow-[0_2px_8px_rgba(37,99,235,0.3)]"
                         : "bg-bg-warm text-text-muted"
                     }`}
                   >
@@ -49,13 +56,16 @@ export function FAQ({ items }: Props) {
                   </span>
                 </button>
                 <div
-                  className="overflow-hidden transition-[max-height] duration-350 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                  style={{ maxHeight: openIndex === i ? "300px" : "0px" }}
+                  className="overflow-hidden transition-[max-height,opacity] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    maxHeight: openIndex === i ? "500px" : "0px",
+                    opacity: openIndex === i ? 1 : 0,
+                  }}
                 >
-                  <div className="pb-7 text-[15px] text-text-sub leading-[1.75]">
+                  <div className="pb-7 px-6 text-[15px] text-text-sub leading-[1.75] max-md:px-4">
                     {item.answer}
                     {item.note && (
-                      <div className="text-[13px] text-text-muted mt-2.5 py-3.5 px-[18px] bg-bg-warm rounded-[10px] leading-relaxed">
+                      <div className="text-[13px] text-text-muted mt-3 py-4 px-5 bg-bg-warm rounded-2xl leading-relaxed border border-border/50">
                         {item.note}
                       </div>
                     )}
