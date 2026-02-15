@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-[24rem]">
         <div className="bg-white rounded-2xl shadow-sm p-8">
           <h1 className="text-xl font-bold text-center mb-1">커버링 스팟</h1>
           <p className="text-sm text-gray-500 text-center mb-8">관리자 로그인</p>

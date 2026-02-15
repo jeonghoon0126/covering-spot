@@ -39,7 +39,7 @@ function BarChart({
   const isGood = variant === "good";
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="flex-1 min-w-0 flex flex-col">
       {/* badge + method */}
       <div className="mb-5">
         <span
@@ -129,7 +129,7 @@ function BarChart({
       </div>
 
       {/* total */}
-      <div className="mt-5 flex items-baseline gap-3">
+      <div className="mt-auto pt-5 flex items-baseline gap-3">
         <span className="text-[22px] font-bold tracking-[-0.3px] text-text-primary max-sm:text-lg">
           {card.total}
         </span>
@@ -147,7 +147,7 @@ function BarChart({
   );
 }
 
-function ReasonCard({
+function ReasonItem({
   reason,
   index,
 }: {
@@ -155,36 +155,18 @@ function ReasonCard({
   index: number;
 }) {
   return (
-    <ScrollReveal delay={index * 0.1}>
-      <div className="group bg-bg rounded-2xl border border-border-light p-6 shadow-sm transition-all duration-300 hover:shadow-hover hover:border-border hover:-translate-y-0.5 max-sm:p-5">
-        <div className="flex gap-4 items-start">
-          {/* warning icon */}
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-semantic-orange-tint flex items-center justify-center max-sm:w-9 max-sm:h-9">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="max-sm:w-[18px] max-sm:h-[18px]"
-            >
-              <path
-                d="M10 6v5m0 2.5h.01M8.57 2.72 1.52 14.5c-.67 1.12.17 2.5 1.43 2.5h14.1c1.26 0 2.1-1.38 1.43-2.5L11.43 2.72c-.67-1.12-2.19-1.12-2.86 0Z"
-                stroke="#FF9C1A"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold text-text-primary mb-1 leading-snug">
-              {reason.heading}
-            </p>
-            <p className="text-[14px] text-text-muted leading-relaxed">
-              {reason.desc}
-            </p>
-          </div>
+    <ScrollReveal delay={index * 0.08}>
+      <div className="flex gap-3 items-baseline">
+        <span className="text-[15px] font-bold text-semantic-orange shrink-0">
+          {index + 1}.
+        </span>
+        <div>
+          <span className="text-[15px] font-bold text-text-primary">
+            {reason.heading}
+          </span>
+          <p className="text-[14px] text-text-muted mt-1 leading-relaxed">
+            {reason.desc}
+          </p>
         </div>
       </div>
     </ScrollReveal>
@@ -284,19 +266,16 @@ export function Compare() {
         </ScrollReveal>
 
         {/* ── Reasons ── */}
-        <div className="max-w-[800px] mx-auto mt-20">
+        <div className="max-w-[800px] mx-auto mt-16">
           <ScrollReveal>
-            <p className="text-xl font-bold text-text-primary mb-2 max-sm:text-lg">
-              왜 이런 차이가 날까요?
-            </p>
-            <p className="text-[15px] text-text-muted mb-8 leading-relaxed">
-              대부분의 업체는 이런 패턴을 따릅니다.
+            <p className="text-[17px] font-bold text-text-primary mb-6 max-sm:text-[15px]">
+              대부분의 업체가 이런 식으로 추가 비용을 붙여요
             </p>
           </ScrollReveal>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {compareReasons.map((reason, i) => (
-              <ReasonCard key={i} reason={reason} index={i} />
+              <ReasonItem key={i} reason={reason} index={i} />
             ))}
           </div>
         </div>

@@ -20,14 +20,12 @@ export function Footer() {
           {/* Logo + Desc */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-primary rounded-[9px] grid place-items-center text-white text-[15px] font-extrabold">
-                C
-              </div>
-              <span className="text-white font-bold text-[17px]">커버링 스팟</span>
+              <img src="/images/logo.png" alt="커버링" className="w-8 h-8 rounded-[9px]" />
+              <span className="text-white font-bold text-[17px]">커버링 방문 수거</span>
             </div>
-            <p className="text-sm leading-relaxed max-w-[280px]">
-              대형/대량 폐기물 수거 전문<br />
-              서울 · 경기 · 인천 전 지역
+            <p className="text-sm leading-relaxed max-w-[320px]">
+              소량부터 대량까지, 카톡 한 번이면 끝<br />
+              사전 견적 = 최종 금액, 추가 비용 없는 투명한 가격
             </p>
           </div>
 

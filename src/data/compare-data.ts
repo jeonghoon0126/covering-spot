@@ -20,9 +20,9 @@ export const compareCards: CompareCard[] = [
     method: '전화 "대충 15만원 정도요"',
     lines: [
       { icon: "cross", text: "기본: 150,000원" },
-      { icon: "warn", text: "침대 분리 추가: +30,000원", isExtra: true },
-      { icon: "warn", text: "박스 추가: +20,000원", isExtra: true },
-      { icon: "warn", text: "계단 추가: +20,000원", isExtra: true },
+      { icon: "warn", text: "침대 분리: +30,000원", isExtra: true },
+      { icon: "warn", text: "박스: +20,000원", isExtra: true },
+      { icon: "warn", text: "계단: +20,000원", isExtra: true },
     ],
     total: "실제 청구 220,000원",
     tag: "추가 비용 +70,000원",

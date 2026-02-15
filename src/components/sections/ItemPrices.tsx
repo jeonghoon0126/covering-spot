@@ -170,7 +170,7 @@ export function ItemPrices({ categories }: Props) {
           <SectionHeader
             tag="투명한 가격"
             title="품목별 예상 가격"
-            desc="정확한 견적은 카톡으로 품목 알려주시면 바로 안내드려요"
+            desc="정확한 품목별 가격은 수거 신청 후 확정돼요"
             center
           />
         </ScrollReveal>

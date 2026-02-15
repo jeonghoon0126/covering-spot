@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { CarouselItem } from "@/types";
 import { useCarousel } from "@/hooks/useCarousel";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
@@ -47,15 +46,16 @@ export function ItemsCarousel({ items }: Props) {
                     key={item.id}
                     className="min-w-[300px] max-w-[300px] bg-bg rounded-[16px] overflow-hidden shrink-0 border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg max-md:min-w-[260px] max-md:max-w-[260px] max-sm:min-w-[240px] max-sm:max-w-[240px]"
                   >
-                    <div className="overflow-hidden relative">
-                      <Image
+                    <div className="overflow-hidden relative bg-bg-warm2">
+                      <img
                         src={item.image}
                         alt={item.alt}
-                        width={640}
-                        height={400}
                         className="w-full h-[200px] object-cover transition-transform duration-400 hover:scale-[1.04] pointer-events-none max-md:h-[170px] max-sm:h-[150px]"
                         loading="lazy"
-                        sizes="(max-width: 480px) 240px, (max-width: 768px) 260px, 300px"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = "none";
+                        }}
                       />
                       <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black/[0.03] to-transparent pointer-events-none" />
                     </div>

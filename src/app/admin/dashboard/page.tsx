@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-[#F8F9FA]">
       {/* 헤더 */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
           <div className="flex items-center gap-3">
             <button
@@ -113,7 +113,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="max-w-[56rem] mx-auto px-4 py-4">
         {/* 상태 탭 */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4">
           {STATUS_TABS.map((tab) => {

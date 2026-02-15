@@ -308,7 +308,7 @@ export function Hero() {
               </div>
 
               {/* Chat Messages - Animated Sequence */}
-              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 h-[320px] max-sm:h-[300px]">
+              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 h-[380px] max-sm:h-[350px]">
                 {/* 1. User: 수거 문의 */}
                 <ChatMessage visible={step >= 1} align="right">
                   <span className="text-[11px] text-text-muted shrink-0">
@@ -327,7 +327,7 @@ export function Hero() {
                 {/* 3. Bot: 견적 응답 */}
                 <ChatMessage visible={step >= 3} align="left">
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-bg-warm2 rounded-[16px_16px_16px_4px] shadow-sm">
-                    네! 바로 견적 드릴게요 😊
+                    네! 가능합니다. 바로 견적 드릴게요 😊
                     <br />
                     <br />
                     <div className="space-y-0.5">
@@ -349,12 +349,12 @@ export function Hero() {
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">출장비</span>
-                        <span className="font-medium tabular-nums">45,000원</span>
+                        <span className="font-medium tabular-nums">35,000원</span>
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-border/50 flex justify-between gap-4">
                       <span className="font-bold">합계</span>
-                      <span className="font-bold text-primary tabular-nums">172,000원</span>
+                      <span className="font-bold text-primary tabular-nums">162,000원</span>
                     </div>
                   </div>
                   <span className="text-[11px] text-text-muted shrink-0">오후 2:05</span>

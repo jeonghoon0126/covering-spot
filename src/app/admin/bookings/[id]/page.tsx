@@ -198,7 +198,7 @@ function AdminBookingDetailContent() {
     <div className="min-h-screen bg-[#F8F9FA]">
       {/* 헤더 */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.push(`/admin/dashboard`)}
             className="text-gray-500 hover:text-gray-800"
@@ -209,7 +209,7 @@ function AdminBookingDetailContent() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
         {/* 상태 + ID */}
         <div className="bg-white rounded-xl p-4 flex items-center justify-between">
           <span

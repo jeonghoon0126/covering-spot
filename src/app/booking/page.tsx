@@ -925,7 +925,7 @@ export default function BookingPage() {
       {/* 주소 검색 팝업 */}
       {showPostcode && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4">
-          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-md">
+          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-[28rem]">
             <ModalHeader
               title="주소 검색"
               onClose={() => setShowPostcode(false)}
