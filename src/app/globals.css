@@ -2,20 +2,22 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ═══ Colors ═══ */
+  /* ═══ Colors (CDS 기반) ═══ */
   --color-bg: #FFFFFF;
-  --color-bg-warm: #F8FAFC;
-  --color-bg-warm2: #F1F5F9;
-  --color-text-primary: #0F172A;
-  --color-text-sub: #475569;
-  --color-text-muted: #94A3B8;
-  --color-primary: #2563EB;
-  --color-primary-light: #3B82F6;
-  --color-primary-bg: rgba(37, 99, 235, 0.06);
-  --color-semantic-green: #10B981;
-  --color-semantic-red: #EF4444;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-bg-warm: #F8FAFB;
+  --color-bg-warm2: #EEF2F6;
+  --color-text-primary: #16191D;
+  --color-text-sub: #5C6575;
+  --color-text-muted: #8A96A8;
+  --color-primary: #1AA3FF;
+  --color-primary-dark: #0068B2;
+  --color-primary-light: #4DB5FF;
+  --color-primary-bg: rgba(26, 163, 255, 0.06);
+  --color-primary-tint: #E5F4FF;
+  --color-semantic-green: #07C576;
+  --color-semantic-red: #FF3358;
+  --color-border: #C0C7D8;
+  --color-border-light: #EEF2F6;
   --color-kakao: #FEE500;
   --color-kakao-hover: #FADC00;
 
@@ -24,11 +26,11 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  /* ═══ Shadows ═══ */
-  --shadow-sm: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
-  --shadow-md: 0 4px 16px rgba(15,23,42,0.06), 0 2px 4px rgba(15,23,42,0.04);
-  --shadow-lg: 0 12px 40px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04);
-  --shadow-hover: 0 8px 30px rgba(15,23,42,0.10), 0 4px 8px rgba(15,23,42,0.06);
+  /* ═══ Shadows (CDS elevation) ═══ */
+  --shadow-sm: 0 1px 3px rgba(22,25,29,0.04), 0 1px 2px rgba(22,25,29,0.06);
+  --shadow-md: 0 4px 16px rgba(22,25,29,0.06), 0 2px 4px rgba(22,25,29,0.04);
+  --shadow-lg: 0 12px 40px rgba(22,25,29,0.08), 0 4px 12px rgba(22,25,29,0.04);
+  --shadow-hover: 0 8px 30px rgba(22,25,29,0.10), 0 4px 8px rgba(22,25,29,0.06);
 
   /* ═══ Font ═══ */
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -57,6 +59,12 @@ body {
 }
 .price-bar-fill.animated {
   width: var(--target-width);
+}
+
+/* ═══ Typing indicator animation ═══ */
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
 }
 
 /* ═══ Carousel grab cursor ═══ */

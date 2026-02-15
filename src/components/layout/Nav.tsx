@@ -55,7 +55,7 @@ export function Nav() {
             href="https://abr.ge/u7gjoq"
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-1.5 inline-flex items-center gap-1.5 bg-text-primary text-white text-[13px] font-semibold px-4 py-2 rounded-xl no-underline transition-all hover:bg-[#1E293B] hover:shadow-md active:scale-[0.97]"
+            className="ml-1.5 inline-flex items-center gap-1.5 bg-text-primary text-white text-[13px] font-semibold px-4 py-2 rounded-xl no-underline transition-all hover:bg-[#2D3139] hover:shadow-md active:scale-[0.97]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

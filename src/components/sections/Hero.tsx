@@ -1,19 +1,80 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
+/* ── 타이핑 인디케이터 ── */
+function TypingIndicator() {
+  return (
+    <div className="flex items-end gap-1.5">
+      <div className="px-4 py-3 bg-bg-warm2 rounded-[16px_16px_16px_4px] shadow-sm">
+        <div className="flex gap-1 items-center h-[21px]">
+          <span className="w-[6px] h-[6px] rounded-full bg-text-muted/60 animate-[typing_1.4s_ease-in-out_infinite]" />
+          <span className="w-[6px] h-[6px] rounded-full bg-text-muted/60 animate-[typing_1.4s_ease-in-out_0.2s_infinite]" />
+          <span className="w-[6px] h-[6px] rounded-full bg-text-muted/60 animate-[typing_1.4s_ease-in-out_0.4s_infinite]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 메시지 래퍼 (등장 애니메이션) ── */
+function ChatMessage({
+  children,
+  visible,
+  align = "left",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  visible: boolean;
+  align?: "left" | "right";
+  delay?: number;
+}) {
+  return (
+    <div
+      className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        visible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-3"
+      } ${align === "right" ? "flex justify-end items-end gap-1.5" : "flex items-end gap-1.5"}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Hero() {
   const { ref: leftRef, visible: leftVisible } = useScrollReveal(0);
   const { ref: rightRef, visible: rightVisible } = useScrollReveal(0);
 
+  /* ── 채팅 애니메이션 시퀀스 ── */
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (!rightVisible) return;
+    // step 0: 카드 보임
+    // step 1: 첫 유저 메시지 (0.4s)
+    // step 2: 타이핑 인디케이터 (1.0s)
+    // step 3: 봇 견적 응답 (2.0s)
+    // step 4: 유저 감탄 메시지 (3.2s)
+    const timers = [
+      setTimeout(() => setStep(1), 400),
+      setTimeout(() => setStep(2), 1000),
+      setTimeout(() => setStep(3), 2000),
+      setTimeout(() => setStep(4), 3200),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [rightVisible]);
+
   return (
     <section className="relative pt-[160px] pb-32 overflow-hidden max-md:pt-[128px] max-md:pb-24">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#F8FAFC] to-[#EFF6FF] -z-10" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#2563EB]/[0.03] rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/4" />
+      {/* Gradient Background - CDS brand tint */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#F8FAFB] to-[#E5F4FF] -z-10" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#1AA3FF]/[0.04] rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/4" />
 
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
         <div className="grid grid-cols-[1fr_400px] items-center gap-16 max-lg:grid-cols-[1fr_360px] max-lg:gap-10 max-md:grid-cols-1 max-md:text-center">
@@ -26,10 +87,10 @@ export function Hero() {
                 : "opacity-0 translate-y-6"
             }`}
           >
-            <div className="inline-flex items-center gap-2 bg-white border border-border rounded-full px-4 py-2 text-sm font-semibold text-text-sub mb-8 shadow-sm">
+            <div className="inline-flex items-center gap-2 bg-white border border-border-light rounded-full px-4 py-2 text-sm font-semibold text-text-sub mb-8 shadow-sm">
               <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22C55E] opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#22C55E]" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-semantic-green opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-semantic-green" />
               </span>
               서울 · 경기 · 인천 전 지역 | 주 7일 운영
             </div>
@@ -49,18 +110,18 @@ export function Hero() {
                 className="group inline-flex items-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-[16px] px-8 rounded-[14px] shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 <KakaoIcon />
-                <span>무료 견적 받기</span>
+                <span>카카오톡으로 5분만에 견적 받기</span>
               </CTALink>
               <Link
                 href="/booking"
                 className="group inline-flex items-center bg-primary text-white text-base font-semibold py-[16px] px-8 rounded-[14px] shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
-                온라인 예약하기
+                5분만에 수거신청하기
               </Link>
             </div>
           </div>
 
-          {/* Right: Chat Mockup */}
+          {/* Right: Chat Mockup with Live Animation */}
           <div
             ref={rightRef}
             className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
@@ -72,7 +133,7 @@ export function Hero() {
           >
             <div className="w-full max-w-[400px] bg-white rounded-[20px] shadow-lg overflow-hidden max-md:max-w-[340px] max-md:mx-auto border border-white/80 ring-1 ring-black/[0.04]">
               {/* Chat Header */}
-              <div className="bg-gradient-to-r from-bg-warm to-white px-6 py-5 flex items-center gap-3.5 border-b border-border/60">
+              <div className="bg-gradient-to-r from-bg-warm to-white px-6 py-5 flex items-center gap-3.5 border-b border-border-light">
                 <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-primary to-primary-light grid place-items-center text-white text-sm font-extrabold shadow-sm shadow-primary/20">
                   C
                 </div>
@@ -87,11 +148,11 @@ export function Hero() {
                 </div>
               </div>
 
-              {/* Chat Messages */}
-              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40">
-                {/* User message */}
-                <div className="flex justify-end items-end gap-1.5">
-                  <span className="text-[11px] text-text-muted">
+              {/* Chat Messages - Animated Sequence */}
+              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 min-h-[280px]">
+                {/* 1. User: 수거 문의 */}
+                <ChatMessage visible={step >= 1} align="right">
+                  <span className="text-[11px] text-text-muted shrink-0">
                     오후 2:03
                   </span>
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
@@ -99,10 +160,13 @@ export function Hero() {
                     <br />
                     수거 가능한가요?
                   </div>
-                </div>
+                </ChatMessage>
 
-                {/* Bot response */}
-                <div className="flex items-end gap-1.5">
+                {/* 2. Typing indicator */}
+                {step === 2 && <TypingIndicator />}
+
+                {/* 3. Bot: 견적 응답 */}
+                <ChatMessage visible={step >= 3} align="left">
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-bg-warm2 rounded-[16px_16px_16px_4px] shadow-sm">
                     네! 바로 견적 드릴게요 😊
                     <br />
@@ -140,20 +204,20 @@ export function Hero() {
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] text-text-muted">
+                  <span className="text-[11px] text-text-muted shrink-0">
                     오후 2:05
                   </span>
-                </div>
+                </ChatMessage>
 
-                {/* User reply */}
-                <div className="flex justify-end items-end gap-1.5">
-                  <span className="text-[11px] text-text-muted">
+                {/* 4. User: 감탄 */}
+                <ChatMessage visible={step >= 4} align="right" delay={0}>
+                  <span className="text-[11px] text-text-muted shrink-0">
                     오후 2:06
                   </span>
                   <div className="max-w-[240px] px-4 py-3 text-[13px] leading-[1.6] break-keep bg-kakao rounded-[16px_16px_4px_16px] shadow-sm">
                     오 깔끔하다! 토요일 가능해요?
                   </div>
-                </div>
+                </ChatMessage>
               </div>
             </div>
           </div>

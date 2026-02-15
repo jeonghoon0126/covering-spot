@@ -1,0 +1,213 @@
+{
+  "meta": {
+    "name": "커버링 디자인 시스템 (CDS)",
+    "version": "2025-01-21",
+    "note": "커버링 스팟 프로젝트 전용 - 코딩 시에만 참조"
+  },
+  "primitive": {
+    "brand": {
+      "900": "#000E1A",
+      "800": "#002B4D",
+      "700": "#004880",
+      "600": "#0068B2",
+      "500": "#008AE5",
+      "400": "#1AA3FF",
+      "300": "#4DB5FF",
+      "200": "#80CAFF",
+      "100": "#B2DFFF",
+      "50": "#E5F4FF"
+    },
+    "grey": {
+      "900": "#16191D",
+      "800": "#2D3139",
+      "700": "#434A56",
+      "600": "#5C6575",
+      "500": "#707C8F",
+      "400": "#8A96A8",
+      "300": "#A3AEC2",
+      "200": "#C0C7D8",
+      "100": "#DEE3ED",
+      "50": "#EEF2F6",
+      "10": "#F8FAFB"
+    },
+    "green": {
+      "900": "#01321D",
+      "800": "#03633B",
+      "700": "#059458",
+      "600": "#07C576",
+      "500": "#18DC8A",
+      "400": "#4DE5A4",
+      "300": "#79ECBC",
+      "200": "#A5F3D2",
+      "100": "#D3F8E9",
+      "50": "#EDFCF6"
+    },
+    "red": {
+      "900": "#330009",
+      "800": "#660012",
+      "700": "#99001C",
+      "600": "#CC0025",
+      "500": "#F20D36",
+      "400": "#FF3358",
+      "300": "#FF6682",
+      "200": "#FF99AB",
+      "100": "#FFCCD5",
+      "50": "#FFEBEE"
+    },
+    "orange": {
+      "900": "#662C00",
+      "800": "#994200",
+      "700": "#CC5F00",
+      "600": "#FF8000",
+      "500": "#FF9C1A",
+      "400": "#FFC233",
+      "300": "#FFD166",
+      "200": "#FFE099",
+      "100": "#FFF0CC",
+      "50": "#FFF7E5"
+    },
+    "base": {
+      "white": "#FFFFFF",
+      "black": "#000000"
+    }
+  },
+  "semantic": {
+    "background": {
+      "default": "base/white",
+      "dim": "grey/50",
+      "bright": "base/white"
+    },
+    "surface": {
+      "default": "base/white",
+      "dim": "grey/10",
+      "dim2": "grey/50",
+      "dim3": "grey/100",
+      "inverse": "base/black"
+    },
+    "text": {
+      "strong": "base/black",
+      "default": "grey/900",
+      "neutral": "grey/700",
+      "alternative": "grey/600",
+      "assistive": "grey/400",
+      "inverse": "base/white",
+      "primary": {
+        "strong": "brand/700",
+        "default": "brand/500",
+        "alternative": "brand/400"
+      }
+    },
+    "icon": {
+      "strong": "base/black",
+      "default": "grey/900",
+      "neutral": "grey/700",
+      "alternative": "grey/600",
+      "assistive": "grey/400",
+      "inverse": "base/white",
+      "primary": {
+        "strong": "brand/700",
+        "default": "brand/500",
+        "alternative": "brand/400"
+      }
+    },
+    "fill": {
+      "strong": "base/black",
+      "default": "grey/800",
+      "neutral": "grey/700",
+      "alternative": "grey/600",
+      "assistive": "grey/400",
+      "tint": "grey/50",
+      "inverse": "base/white",
+      "onStrong": "base/white",
+      "onDefault": "base/white",
+      "onNeutral": "base/white",
+      "onAlternative": "base/white",
+      "onAssistive": "grey/900",
+      "onTint": "grey/800",
+      "onInverse": "grey/700",
+      "primary": {
+        "strong": "brand/700",
+        "default": "brand/400",
+        "alternative": "brand/300",
+        "assistive": "brand/100",
+        "tint": "brand/50",
+        "onStrong": "base/white",
+        "onDefault": "base/white",
+        "onAlternative": "base/white",
+        "onAssistive": "brand/600",
+        "onTint": "brand/700"
+      },
+      "secondary": {
+        "default": "green/600",
+        "tint": "green/50",
+        "onDefault": "base/white",
+        "onTint": "green/600"
+      },
+      "accent": {
+        "red": "red/400",
+        "redTint": "red/50",
+        "onRed": "base/white",
+        "onRedTint": "red/500"
+      }
+    },
+    "border": {
+      "default": "grey/200",
+      "strong": "grey/400",
+      "assistive": "grey/50",
+      "primary": {
+        "default": "brand/400",
+        "assistive": "brand/200"
+      },
+      "secondary": {
+        "default": "green/500",
+        "assistive": "green/200"
+      },
+      "red": {
+        "default": "red/400",
+        "assistive": "red/200"
+      }
+    },
+    "scrim": {
+      "default": "grey/900 opacity 50%"
+    },
+    "elevation": {
+      "default": "grey/900 opacity 8%",
+      "weak": "grey/900 opacity 4%"
+    },
+    "status": {
+      "caution": "orange/500",
+      "negative": "red/400",
+      "positive": "green/600",
+      "information": "brand/400",
+      "cautionTint": "orange/50",
+      "negativeTint": "red/50",
+      "positiveTint": "green/50",
+      "informationTint": "brand/50",
+      "onCaution": "base/white",
+      "onNegative": "base/white",
+      "onPositive": "base/white",
+      "onInformation": "base/white",
+      "onCautionTint": "orange/500",
+      "onNegativeTint": "red/500",
+      "onPositiveTint": "green/600",
+      "onInformationTint": "brand/500"
+    }
+  },
+  "component": {
+    "interaction": {
+      "default": "grey/900",
+      "primary": "brand/400"
+    },
+    "disable": {
+      "strong": "grey/300",
+      "normal": "grey/200",
+      "alternative": "grey/100",
+      "assistive": "grey/50"
+    },
+    "inactive": {
+      "default": "grey/400",
+      "alternative": "grey/200",
+      "assistive": "grey/100"
+    }
+  }
+}

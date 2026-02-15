@@ -26,26 +26,46 @@ export function FloatingCTA() {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[900] hidden max-md:block transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`fixed bottom-0 left-0 right-0 z-[900] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         show
           ? "translate-y-0 opacity-100"
-          : "translate-y-full opacity-0"
+          : "translate-y-full opacity-0 pointer-events-none"
       }`}
     >
-      <div className="p-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 backdrop-blur-xl border-t border-border/50 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+      {/* 모바일: 풀 와이드 */}
+      <div className="md:hidden p-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 backdrop-blur-xl border-t border-border-light shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
         <div className="flex gap-2">
           <CTALink
             location="floating"
             className="flex-1 flex items-center justify-center gap-2 bg-kakao text-text-primary text-[15px] font-bold py-3.5 rounded-xl hover:bg-kakao-hover active:scale-[0.98] transition-all"
           >
             <KakaoIcon />
-            <span>무료 견적 받기</span>
+            <span>5분만에 견적 받기</span>
           </CTALink>
           <Link
             href="/booking"
             className="flex-1 flex items-center justify-center bg-primary text-white text-[15px] font-semibold py-3.5 rounded-xl shadow-sm shadow-primary/20 hover:bg-primary-light active:scale-[0.98] transition-all"
           >
-            온라인 예약하기
+            5분만에 수거신청하기
+          </Link>
+        </div>
+      </div>
+
+      {/* PC: 중앙 플로팅 바 */}
+      <div className="hidden md:flex justify-center pb-6">
+        <div className="flex gap-3 p-3 bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-border-light">
+          <CTALink
+            location="floating"
+            className="flex items-center gap-2.5 bg-kakao text-text-primary text-[15px] font-bold py-3 px-6 rounded-xl hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+          >
+            <KakaoIcon />
+            <span>카카오톡으로 5분만에 견적 받기</span>
+          </CTALink>
+          <Link
+            href="/booking"
+            className="flex items-center bg-primary text-white text-[15px] font-semibold py-3 px-6 rounded-xl shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+          >
+            5분만에 수거신청하기
           </Link>
         </div>
       </div>

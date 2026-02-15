@@ -10,9 +10,9 @@ export function CTASection() {
       id="cta"
     >
       {/* Primary radial glow */}
-      <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.12)_0%,transparent_50%)] pointer-events-none" />
+      <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_30%_50%,rgba(26,163,255,0.12)_0%,transparent_50%)] pointer-events-none" />
       {/* Secondary glow - right side */}
-      <div className="absolute -bottom-1/2 -right-1/4 w-[150%] h-[150%] bg-[radial-gradient(circle_at_70%_60%,rgba(37,99,235,0.08)_0%,transparent_45%)] pointer-events-none" />
+      <div className="absolute -bottom-1/2 -right-1/4 w-[150%] h-[150%] bg-[radial-gradient(circle_at_70%_60%,rgba(26,163,255,0.08)_0%,transparent_45%)] pointer-events-none" />
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5 relative">
@@ -35,13 +35,13 @@ export function CTASection() {
               className="inline-flex items-center gap-2 bg-kakao text-text-primary text-[17px] font-bold py-[17px] px-9 rounded-[12px] hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
             >
               <KakaoIcon />
-              <span>카카오톡으로 무료 견적 받기</span>
+              <span>카카오톡으로 5분만에 견적 받기</span>
             </CTALink>
             <Link
               href="/booking"
               className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#94A3B8] hover:text-white border border-[#334155] hover:border-[#475569] py-3 px-7 rounded-[12px] transition-all duration-300 ease-out hover:-translate-y-0.5"
             >
-              온라인 예약하기
+              5분만에 수거신청하기
             </Link>
           </div>
         </ScrollReveal>
