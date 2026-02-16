@@ -8,6 +8,20 @@ import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import type { Booking } from "@/types/booking";
 
+interface AuditLog {
+  id: string;
+  admin_email: string;
+  action: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  status_change: "상태 변경",
+  info_update: "정보 수정",
+  items_update: "품목 수정",
+};
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
@@ -64,6 +78,8 @@ export default function AdminBookingDetailPage() {
   const [slotAvailability, setSlotAvailability] = useState<Record<string, { available: boolean; count: number }>>({});
   const [editingItems, setEditingItems] = useState(false);
   const [itemEdits, setItemEdits] = useState<{ price: string; category: string }[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditOpen, setAuditOpen] = useState(false);
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
@@ -227,6 +243,18 @@ export default function AdminBookingDetailPage() {
     );
   }
 
+  function loadAuditLogs() {
+    if (!token || !id) return;
+    fetch(`/api/admin/bookings/${id}/audit`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.logs) setAuditLogs(data.logs);
+      })
+      .catch(() => {});
+  }
+
   const nextActions = NEXT_STATUS[booking.status] || [];
 
   return (
@@ -248,7 +276,7 @@ export default function AdminBookingDetailPage() {
 
       <div className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
         {/* 상태 + ID */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light flex items-center justify-between">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light flex items-center justify-between">
           <span
             className={`text-sm font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[booking.status] || STATUS_COLORS.pending}`}
           >
@@ -260,7 +288,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 고객 정보 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             고객 정보
           </h3>
@@ -288,7 +316,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 수거 정보 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 정보
           </h3>
@@ -343,7 +371,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 품목 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-text-sub">
               품목 ({booking.items.length}종)
@@ -461,7 +489,7 @@ export default function AdminBookingDetailPage() {
 
         {/* 사진 */}
         {booking.photos && booking.photos.length > 0 && (
-          <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
             <h3 className="text-sm font-semibold text-text-sub mb-3">
               사진 ({booking.photos.length}장)
             </h3>
@@ -472,7 +500,7 @@ export default function AdminBookingDetailPage() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="aspect-square bg-bg-warm rounded-xl overflow-hidden"
+                  className="aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden"
                 >
                   <img
                     src={url}
@@ -486,7 +514,7 @@ export default function AdminBookingDetailPage() {
         )}
 
         {/* 견적 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">견적</h3>
           <div className="space-y-0 text-sm">
             {booking.estimateMin != null && booking.estimateMax != null && (
@@ -531,7 +559,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 수거 시간 확정 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 시간 확정
           </h3>
@@ -552,7 +580,7 @@ export default function AdminBookingDetailPage() {
                   key={slot}
                   onClick={() => !isFull && setConfirmedTimeInput(slot)}
                   disabled={isFull}
-                  className={`py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                  className={`py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
                     isFull
                       ? "bg-fill-tint text-text-muted cursor-not-allowed"
                       : confirmedTimeInput === slot
@@ -571,7 +599,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 관리자 메모 */}
-        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             관리자 메모
           </h3>
@@ -617,6 +645,63 @@ export default function AdminBookingDetailPage() {
             })}
           </div>
         )}
+
+        {/* 변경 이력 */}
+        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+          <button
+            className="w-full flex items-center justify-between"
+            onClick={() => {
+              if (!auditOpen) loadAuditLogs();
+              setAuditOpen(!auditOpen);
+            }}
+          >
+            <h3 className="text-sm font-semibold text-text-sub">변경 이력</h3>
+            <svg
+              width="16" height="16" viewBox="0 0 16 16" fill="none"
+              className={`text-text-muted transition-transform duration-200 ${auditOpen ? "rotate-180" : ""}`}
+            >
+              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {auditOpen && (
+            <div className="mt-3 pt-3 border-t border-border-light space-y-3">
+              {auditLogs.length === 0 ? (
+                <p className="text-xs text-text-muted">변경 이력이 없습니다</p>
+              ) : (
+                auditLogs.map((log) => (
+                  <div key={log.id} className="text-xs space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {ACTION_LABELS[log.action] || log.action}
+                      </span>
+                      <span className="text-text-muted">
+                        {log.admin_email === "legacy" ? "비밀번호 로그인" : log.admin_email}
+                      </span>
+                    </div>
+                    <div className="text-text-muted">
+                      {typeof log.details?.previousStatus === "string" && typeof log.details?.newStatus === "string" && (
+                        <span>
+                          {STATUS_LABELS[log.details.previousStatus] || log.details.previousStatus}
+                          {" → "}
+                          {STATUS_LABELS[log.details.newStatus] || log.details.newStatus}
+                        </span>
+                      )}
+                      {typeof log.details?.finalPrice === "number" && (
+                        <span> | 견적: {formatPrice(log.details.finalPrice)}원</span>
+                      )}
+                      {typeof log.details?.confirmedTime === "string" && (
+                        <span> | 시간: {log.details.confirmedTime}</span>
+                      )}
+                    </div>
+                    <div className="text-text-muted/60">
+                      {new Date(log.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="h-8" />
       </div>

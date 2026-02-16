@@ -5,6 +5,36 @@ export interface SpotArea {
   price3: number; // 3명 단가
 }
 
+/**
+ * Daum Postcode API의 sigungu/sido로 서비스 지역 자동 매칭
+ * - 서울: sigungu 직접 매칭 (예: "강남구")
+ * - 경기: sigungu에서 시 이름 추출 (예: "고양시 덕양구" → "고양")
+ * - 인천: sido로 매칭
+ * @returns SpotArea 또는 null (서비스 불가 지역)
+ */
+export function detectAreaFromAddress(
+  sigungu: string,
+  sido: string,
+): SpotArea | null {
+  // 1. 서울 25개 구: sigungu 직접 매칭
+  const directMatch = SPOT_AREAS.find((a) => a.name === sigungu);
+  if (directMatch) return directMatch;
+
+  // 2. 경기도 시 매칭: "김포시" → "김포", "고양시 덕양구" → "고양"
+  if (sido.startsWith("경기")) {
+    const cityName = sigungu.split("시")[0]; // "고양시 덕양구" → "고양"
+    const cityMatch = SPOT_AREAS.find((a) => a.name === cityName);
+    if (cityMatch) return cityMatch;
+  }
+
+  // 3. 인천광역시 → "인천"
+  if (sido.startsWith("인천")) {
+    return SPOT_AREAS.find((a) => a.name === "인천") || null;
+  }
+
+  return null;
+}
+
 export const SPOT_AREAS: SpotArea[] = [
   { name: "광진구", price1: 47000, price2: 71000, price3: 107000 },
   { name: "강동구", price1: 49000, price2: 74000, price3: 111000 },

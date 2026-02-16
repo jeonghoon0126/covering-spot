@@ -67,11 +67,14 @@ function BookingCompleteContent() {
     <div className="space-y-6">
       {/* 완료 헤더 */}
       <div className="text-center py-6">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
+        <div className="relative w-20 h-20 flex items-center justify-center mx-auto mb-4">
+          {/* 펄스 링 */}
+          <div className="absolute inset-0 rounded-full bg-semantic-green/10 animate-pulse-ring" />
+          {/* 메인 아이콘 */}
+          <svg width="64" height="64" viewBox="0 0 48 48" fill="none" className="animate-scale-in relative z-10">
             <circle cx="24" cy="24" r="22" fill="#EDFCF6" />
             <circle cx="24" cy="24" r="17" fill="#D1FAE5" />
-            <path d="M15 24l6 6L33 18" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 24l6 6L33 18" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="animate-check-draw" />
           </svg>
         </div>
         <h1 className="text-2xl font-bold mb-2">수거 신청이 접수되었습니다</h1>
@@ -81,7 +84,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 상태 표시 */}
-      <div className="bg-semantic-orange-tint rounded-2xl p-4 flex items-center gap-3">
+      <div className="bg-semantic-orange-tint rounded-[--radius-lg] p-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <circle cx="18" cy="18" r="16" fill="#FFF7E5" />
@@ -97,7 +100,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 신청 요약 */}
-      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
         <h2 className="font-semibold text-lg">신청 정보</h2>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between py-2 border-b border-border-light">
@@ -144,7 +147,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 품목 내역 */}
-      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
+      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">품목 내역</h2>
         <div className="space-y-2 text-sm">
           {booking.items.map((item, i) => (
@@ -159,7 +162,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 견적 금액 */}
-      <div className="bg-primary-bg rounded-2xl p-5">
+      <div className="bg-primary-bg rounded-[--radius-lg] p-5">
         <div className="flex justify-between items-center">
           <span className="font-semibold">예상 견적</span>
           <span className="text-xl font-bold text-primary">
@@ -176,7 +179,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 안내 */}
-      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
+      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">안내 사항</h2>
         <ul className="space-y-2 text-sm text-text-sub">
           <li className="flex gap-2">

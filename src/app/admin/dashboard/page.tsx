@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
                 onClick={() =>
                   router.push(`/admin/bookings/${b.id}`)
                 }
-                className="w-full bg-bg rounded-2xl p-5 text-left border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
+                className="w-full bg-bg rounded-[--radius-lg] p-5 text-left border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">

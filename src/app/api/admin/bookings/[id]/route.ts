@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllBookings, updateBooking } from "@/lib/sheets-db";
-import { validateToken } from "@/app/api/admin/auth/route";
+import { validateToken, getAdminFromToken } from "@/app/api/admin/auth/route";
+import { supabase } from "@/lib/supabase";
 import {
   sendQuoteConfirmed,
   sendStatusChanged,
   sendAdminMemoUpdated,
 } from "@/lib/slack-notify";
+import { sendStatusSms } from "@/lib/sms-notify";
 
 // 관리자용 getBookingById (취소된 건 포함)
 async function getBookingByIdAdmin(id: string) {
@@ -99,12 +101,45 @@ export async function PUT(
       } else {
         sendStatusChanged(updated, newStatus).catch(() => {});
       }
+      // SMS 알림 (fire-and-forget)
+      if (updated.phone) {
+        sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+      }
     }
 
     // 관리자 메모 변경 시 스레드 답글
     if (body.adminMemo !== undefined && body.adminMemo !== previousMemo && body.adminMemo) {
       sendAdminMemoUpdated(updated, body.adminMemo).catch(() => {});
     }
+
+    // Audit log (fire-and-forget)
+    const { adminId, adminEmail } = getAdminFromToken(req);
+    const action = newStatus && newStatus !== previousStatus
+      ? "status_change"
+      : body.items !== undefined
+        ? "items_update"
+        : "info_update";
+    const details: Record<string, unknown> = {};
+    if (newStatus && newStatus !== previousStatus) {
+      details.previousStatus = previousStatus;
+      details.newStatus = newStatus;
+    }
+    if (body.finalPrice !== undefined) details.finalPrice = body.finalPrice;
+    if (body.adminMemo !== undefined) details.adminMemo = body.adminMemo;
+    if (body.confirmedTime !== undefined) details.confirmedTime = body.confirmedTime;
+    if (body.items !== undefined) details.itemCount = body.items.length;
+
+    Promise.resolve(
+      supabase
+        .from("admin_audit_log")
+        .insert({
+          admin_id: adminId,
+          admin_email: adminEmail,
+          booking_id: id,
+          action,
+          details,
+        }),
+    ).catch(() => {});
 
     return NextResponse.json({ booking: updated });
   } catch (e) {

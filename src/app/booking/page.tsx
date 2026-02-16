@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { BookingItem } from "@/types/booking";
-import type { SpotArea } from "@/data/spot-areas";
+import { detectAreaFromAddress } from "@/data/spot-areas";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import DaumPostcodeEmbed from "react-daum-postcode";
@@ -15,7 +15,7 @@ import { ModalHeader } from "@/components/ui/ModalHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 
-const STEPS = ["고객 정보", "날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
+const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
 const PHOTO_REQUIRED_CATEGORIES = ["장롱", "침대", "소파"];
@@ -69,12 +69,11 @@ export default function BookingPage() {
   });
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  // Step 2: 지역
-  const [areas, setAreas] = useState<SpotArea[]>([]);
+  // 지역 (주소에서 자동 감지)
   const [selectedArea, setSelectedArea] = useState("");
-  const [areaSearch, setAreaSearch] = useState("");
+  const [areaError, setAreaError] = useState(false);
 
-  // Step 3: 품목 + 사진
+  // Step 2: 품목 + 사진
   const [categories, setCategories] = useState<SpotCategory[]>([]);
   const [openCat, setOpenCat] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<BookingItem[]>([]);
@@ -85,16 +84,16 @@ export default function BookingPage() {
   const [customItemName, setCustomItemName] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-  // Step 4: 작업 환경
+  // Step 3: 작업 환경
   const [hasElevator, setHasElevator] = useState<boolean | null>(null);
   const [hasParking, setHasParking] = useState<boolean | null>(null);
 
-  // Step 5: 사다리차
+  // Step 4: 사다리차
   const [needLadder, setNeedLadder] = useState(false);
   const [ladderType, setLadderType] = useState("10층 미만");
   const [ladderHours, setLadderHours] = useState(0);
 
-  // Step 6: 견적
+  // Step 5: 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [leadSaved, setLeadSaved] = useState(false);
 
@@ -143,9 +142,6 @@ export default function BookingPage() {
 
   // 데이터 로드
   useEffect(() => {
-    fetch("/api/areas")
-      .then((r) => r.json())
-      .then((d) => setAreas(d.areas || []));
     fetch("/api/items")
       .then((r) => r.json())
       .then((d) => setCategories(d.categories || []));
@@ -235,12 +231,12 @@ export default function BookingPage() {
 
   // 견적 확인 단계 진입 시 견적 계산
   useEffect(() => {
-    if (step === 6) calcQuote();
+    if (step === 5) calcQuote();
   }, [step, calcQuote]);
 
   // 리드 저장 (견적 확인 단계 진입 시 - 넛지용)
   useEffect(() => {
-    if (step === 6 && !leadSaved) {
+    if (step === 5 && !leadSaved) {
       setLeadSaved(true);
       fetch("/api/leads", {
         method: "POST",
@@ -360,13 +356,12 @@ export default function BookingPage() {
 
   // 스텝별 완료 조건
   const canNext = [
-    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address,  // Step 0: 고객 정보
+    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
     selectedDate && selectedTime,                        // Step 1: 날짜/시간
-    selectedArea,                                         // Step 2: 지역
-    selectedItems.length > 0 && (!hasPhotoRequiredItem || photos.length > 0), // Step 3: 품목/사진 (장롱/침대/소파 시 사진 필수)
-    hasElevator !== null && hasParking !== null,          // Step 4: 작업 환경
-    true,                                                 // Step 5: 사다리차
-    !!quote,                                              // Step 6: 견적 확인
+    selectedItems.length > 0 && (!hasPhotoRequiredItem || photos.length > 0), // Step 2: 품목/사진 (장롱/침대/소파 시 사진 필수)
+    hasElevator !== null && hasParking !== null,          // Step 3: 작업 환경
+    true,                                                 // Step 4: 사다리차
+    !!quote,                                              // Step 5: 견적 확인
   ];
 
   const today = new Date();
@@ -415,7 +410,7 @@ export default function BookingPage() {
 
       {/* Step 0: 고객 정보 */}
       {step === 0 && (
-        <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
           <p className="text-sm text-text-sub">
             수거 신청을 위해 기본 정보를 입력해 주세요
           </p>
@@ -452,6 +447,17 @@ export default function BookingPage() {
               {address || "주소를 검색하세요"}
             </button>
           </div>
+          {/* 지역 자동감지 결과 */}
+          {address && areaError && (
+            <p className="text-sm text-semantic-red font-medium">
+              현재 서비스 불가 지역입니다. 서울 전역, 경기, 인천 지역만 서비스 가능합니다.
+            </p>
+          )}
+          {address && selectedArea && !areaError && (
+            <p className="text-sm text-primary font-medium">
+              서비스 지역: {selectedArea}
+            </p>
+          )}
           <TextField
             label="상세주소"
             placeholder="동/호수를 입력하세요"
@@ -473,7 +479,7 @@ export default function BookingPage() {
       {step === 1 && (
         <div className="space-y-6">
           {/* 달력 */}
-          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
+          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() =>
@@ -518,7 +524,7 @@ export default function BookingPage() {
                     key={dateStr}
                     disabled={isPast}
                     onClick={() => setSelectedDate(dateStr)}
-                    className={`py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                    className={`py-2.5 rounded-[--radius-md] text-sm transition-all duration-200 ${
                       isPast
                         ? "text-text-muted/40 cursor-not-allowed"
                         : isSelected
@@ -535,8 +541,12 @@ export default function BookingPage() {
 
           {/* 시간대 선택 */}
           {selectedDate && (
-            <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
-              <h3 className="font-semibold mb-3">시간대 선택</h3>
+            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+              <h3 className="font-semibold mb-1">시간대 선택</h3>
+              <p className="text-sm text-text-sub mb-3">
+                쓰레기 수거량에 따라서 수거 시간대가 확정돼요.<br />
+                매니저가 신청 내용 확인 후 견적과 함께 확정 안내를 드려요.
+              </p>
               {slotsLoading ? (
                 <div className="flex justify-center py-4">
                   <LoadingSpinner />
@@ -551,7 +561,7 @@ export default function BookingPage() {
                         key={opt}
                         onClick={() => !isFull && setSelectedTime(opt)}
                         disabled={isFull}
-                        className={`py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                        className={`py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                           isFull
                             ? "bg-fill-tint text-text-muted cursor-not-allowed"
                             : opt === selectedTime
@@ -573,42 +583,12 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 2: 지역 */}
+      {/* Step 2: 품목 + 사진 업로드 */}
       {step === 2 && (
-        <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
-          <div className="mb-4">
-            <TextField
-              placeholder="지역 검색 (예: 강남구)"
-              value={areaSearch}
-              onChange={(e) => setAreaSearch(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-3 max-sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
-            {areas
-              .filter((a) => a.name.includes(areaSearch))
-              .map((a) => (
-                <button
-                  key={a.name}
-                  onClick={() => setSelectedArea(a.name)}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                    a.name === selectedArea
-                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                      : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
-                  }`}
-                >
-                  {a.name}
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: 품목 + 사진 업로드 */}
-      {step === 3 && (
         <div className="space-y-3">
           {/* 선택된 품목 요약 */}
           {selectedItems.length > 0 && (
-            <div className="bg-primary-bg rounded-2xl p-4 mb-1">
+            <div className="bg-primary-bg rounded-[--radius-lg] p-4 mb-1">
               <p className="text-sm font-semibold text-primary mb-2">
                 선택된 품목 ({selectedItems.length}종,{" "}
                 {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
@@ -650,8 +630,8 @@ export default function BookingPage() {
           )}
 
           {/* 인기 품목 */}
-          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4">
-            <h3 className="text-sm font-semibold mb-3">자주 선택하는 품목</h3>
+          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4">
+            <h3 className="text-sm font-semibold mb-3">인기 품목</h3>
             <div className="flex flex-wrap gap-2">
               {[
                 { cat: "장롱", name: "장롱 3자", displayName: "장롱 3자" },
@@ -671,7 +651,7 @@ export default function BookingPage() {
                   <button
                     key={`${pop.cat}-${pop.name}`}
                     onClick={() => updateItemQty(pop.cat, pop.name, itemData.displayName, itemData.price, 1)}
-                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                    className={`px-3 py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                       qty > 0
                         ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.2)]"
                         : "bg-bg-warm hover:bg-primary-bg"
@@ -727,7 +707,7 @@ export default function BookingPage() {
 
           {/* 검색 결과 또는 카테고리 아코디언 */}
           {itemSearch.trim() ? (
-            <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4 space-y-2">
+            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4 space-y-2">
               <p className="text-sm text-text-sub mb-2">
                 &quot;{itemSearch}&quot; 검색 결과
               </p>
@@ -785,7 +765,7 @@ export default function BookingPage() {
             .map((cat) => (
               <div
                 key={cat.name}
-                className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
+                className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
               >
                 <button
                   onClick={() =>
@@ -794,7 +774,7 @@ export default function BookingPage() {
                   className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-tint/50 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-[--radius-md] bg-primary-tint/50 flex items-center justify-center shrink-0">
                       {categoryIcons[cat.name] || defaultCategoryIcon}
                     </div>
                     <span className="font-medium">{cat.name}</span>
@@ -850,7 +830,7 @@ export default function BookingPage() {
           )}
 
           {/* 커스텀 품목 입력 */}
-          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4">
+          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4">
             <h3 className="text-sm font-semibold mb-3">원하는 품목이 없나요?</h3>
             <div className="flex gap-2">
               <div className="flex-1">
@@ -879,7 +859,7 @@ export default function BookingPage() {
           </div>
 
           {/* 사진 업로드 */}
-          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
             <div>
               <h3 className="font-semibold mb-1">품목 사진 첨부</h3>
               <p className="text-sm text-text-sub">
@@ -896,7 +876,7 @@ export default function BookingPage() {
             {photoPreviews.length > 0 && (
               <div className="grid grid-cols-3 gap-3">
                 {photoPreviews.map((url, i) => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-bg-warm">
+                  <div key={i} className="relative aspect-square rounded-[--radius-md] overflow-hidden bg-bg-warm">
                     <img
                       src={url}
                       alt={`사진 ${i + 1}`}
@@ -917,7 +897,7 @@ export default function BookingPage() {
             {photos.length < 5 && (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-border text-sm text-text-sub font-medium hover:border-primary hover:text-primary transition-colors"
+                className="w-full py-3 rounded-[--radius-md] border-2 border-dashed border-border text-sm text-text-sub font-medium hover:border-primary hover:text-primary transition-colors"
               >
                 사진 추가 ({photos.length}/5)
               </button>
@@ -934,15 +914,16 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 4: 작업 환경 */}
-      {step === 4 && (
-        <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-8">
+      {/* Step 3: 작업 환경 */}
+      {step === 3 && (
+        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-8">
+          <p className="text-sm text-text-sub">작업 환경을 알려주세요</p>
           <div>
             <p className="font-semibold mb-4">엘리베이터</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setHasElevator(true)}
-                className={`flex-1 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasElevator === true
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -952,7 +933,7 @@ export default function BookingPage() {
               </button>
               <button
                 onClick={() => setHasElevator(false)}
-                className={`flex-1 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasElevator === false
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -967,7 +948,7 @@ export default function BookingPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setHasParking(true)}
-                className={`flex-1 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasParking === true
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -977,7 +958,7 @@ export default function BookingPage() {
               </button>
               <button
                 onClick={() => setHasParking(false)}
-                className={`flex-1 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasParking === false
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -990,13 +971,14 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 5: 사다리차 */}
-      {step === 5 && (
-        <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-5">
+      {/* Step 4: 사다리차 */}
+      {step === 4 && (
+        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-5">
+          <p className="text-sm text-text-sub">사다리차 필요여부를 알려주세요</p>
           <Checkbox
             checked={needLadder}
             onChange={(e) => setNeedLadder(e.target.checked)}
-            label="사다리차가 필요합니다"
+            label="사다리차가 필요해요"
           />
 
           {needLadder && (
@@ -1008,7 +990,7 @@ export default function BookingPage() {
                     <button
                       key={t}
                       onClick={() => setLadderType(t)}
-                      className={`flex-1 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                         ladderType === t
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1035,7 +1017,7 @@ export default function BookingPage() {
                     <button
                       key={d}
                       onClick={() => setLadderHours(i)}
-                      className={`py-2.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                         ladderHours === i
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1051,12 +1033,12 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 6: 견적 확인 + 예약 확정 */}
-      {step === 6 && (
+      {/* Step 5: 견적 확인 + 예약 확정 */}
+      {step === 5 && (
         <div className="space-y-5">
           {/* 수거 신청 요약 */}
-          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
-            <h3 className="font-semibold mb-3">수거 신청 요약</h3>
+          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+            <h3 className="font-semibold mb-3">수거 신청내용을 확인해주세요</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-text-sub">고객명</span>
@@ -1111,7 +1093,7 @@ export default function BookingPage() {
 
           {/* 견적 상세 */}
           {quote ? (
-            <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
+            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
               <h3 className="font-semibold mb-3">견적 금액</h3>
               <div className="space-y-2 text-sm">
                 {quote.breakdown.map((b, i) => (
@@ -1160,7 +1142,7 @@ export default function BookingPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-8 flex flex-col items-center">
+            <div className="bg-bg rounded-[--radius-lg] shadow-sm border border-border-light p-8 flex flex-col items-center">
               <LoadingSpinner size="lg" />
               <p className="text-text-muted mt-4 text-sm">견적을 계산하고 있습니다...</p>
             </div>
@@ -1180,7 +1162,7 @@ export default function BookingPage() {
             이전
           </Button>
         )}
-        {step < 5 ? (
+        {step < 4 ? (
           <Button
             variant="primary"
             size="lg"
@@ -1190,12 +1172,12 @@ export default function BookingPage() {
           >
             다음
           </Button>
-        ) : step === 5 ? (
+        ) : step === 4 ? (
           <Button
             variant="primary"
             size="lg"
             fullWidth
-            onClick={() => setStep(6)}
+            onClick={() => setStep(5)}
           >
             견적 확인하기
           </Button>
@@ -1216,7 +1198,7 @@ export default function BookingPage() {
       {/* 주소 검색 팝업 */}
       {showPostcode && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4">
-          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-[28rem]">
+          <div className="bg-white rounded-[--radius-lg] overflow-hidden w-full max-w-[28rem]">
             <ModalHeader
               title="주소 검색"
               onClose={() => setShowPostcode(false)}
@@ -1225,6 +1207,15 @@ export default function BookingPage() {
               onComplete={(data) => {
                 setAddress(data.roadAddress || data.jibunAddress);
                 setShowPostcode(false);
+                // 서비스 지역 자동 감지
+                const detected = detectAreaFromAddress(data.sigungu, data.sido);
+                if (detected) {
+                  setSelectedArea(detected.name);
+                  setAreaError(false);
+                } else {
+                  setSelectedArea("");
+                  setAreaError(true);
+                }
               }}
               style={{ height: 400 }}
             />

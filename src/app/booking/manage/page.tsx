@@ -220,7 +220,7 @@ export default function BookingManagePage() {
             return (
               <div
                 key={b.id}
-                className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden"
+                className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light overflow-hidden"
               >
                 {/* 카드 헤더 */}
                 <button
@@ -254,7 +254,7 @@ export default function BookingManagePage() {
                 {isExpanded && (
                   <div className="px-6 pb-6 border-t border-border-light">
                     {/* 상태별 안내 메시지 */}
-                    <div className={`mt-4 mb-4 p-3 rounded-xl text-sm ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}>
+                    <div className={`mt-4 mb-4 p-3 rounded-[--radius-md] text-sm ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}>
                       <p className="font-medium">
                         {b.status === "quote_confirmed" && b.finalPrice
                           ? `${STATUS_MESSAGES[b.status]} 견적: ${formatPrice(b.finalPrice)}원`
@@ -285,7 +285,7 @@ export default function BookingManagePage() {
                                 key={slot}
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, timeSlot: slot })}
-                                className={`py-3 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                                className={`py-3 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                                   editForm.timeSlot === slot
                                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
