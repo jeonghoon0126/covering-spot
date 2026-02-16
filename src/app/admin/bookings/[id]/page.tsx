@@ -256,6 +256,8 @@ export default function AdminBookingDetailPage() {
   }
 
   const nextActions = NEXT_STATUS[booking.status] || [];
+  // 수거 시작(in_progress) 이후 상태에서는 견적/시간/품목 수정 불가
+  const isLocked = !["pending", "quote_confirmed"].includes(booking.status);
 
   return (
     <div className="min-h-screen bg-bg-warm">
@@ -376,7 +378,7 @@ export default function AdminBookingDetailPage() {
             <h3 className="text-sm font-semibold text-text-sub">
               품목 ({booking.items.length}종)
             </h3>
-            {booking.items.some((i) => i.price === 0) && !editingItems && (
+            {!isLocked && booking.items.some((i) => i.price === 0) && !editingItems && (
               <button
                 onClick={() => {
                   setEditingItems(true);
@@ -540,22 +542,24 @@ export default function AdminBookingDetailPage() {
             )}
           </div>
 
-          {/* 최종 견적 입력 */}
-          <div className="mt-4 pt-3 border-t border-border-light">
-            <TextField
-              label="최종 견적 (원)"
-              value={finalPriceInput}
-              onChange={(e) =>
-                setFinalPriceInput(e.target.value.replace(/[^0-9]/g, ""))
-              }
-              placeholder="금액 입력"
-            />
-            {finalPriceInput && (
-              <p className="text-xs text-text-muted mt-1">
-                {formatPrice(Number(finalPriceInput))}원
-              </p>
-            )}
-          </div>
+          {/* 최종 견적 입력 — 수거 시작 이후 잠금 */}
+          {!isLocked && (
+            <div className="mt-4 pt-3 border-t border-border-light">
+              <TextField
+                label="최종 견적 (원)"
+                value={finalPriceInput}
+                onChange={(e) =>
+                  setFinalPriceInput(e.target.value.replace(/[^0-9]/g, ""))
+                }
+                placeholder="금액 입력"
+              />
+              {finalPriceInput && (
+                <p className="text-xs text-text-muted mt-1">
+                  {formatPrice(Number(finalPriceInput))}원
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 수거 시간 확정 */}
@@ -568,34 +572,40 @@ export default function AdminBookingDetailPage() {
               확정: {booking.confirmedTime}
             </p>
           )}
-          <div className="grid grid-cols-4 max-sm:grid-cols-3 gap-2">
-            {Array.from({ length: 19 }, (_, i) => {
-              const hour = Math.floor(i / 2) + 9;
-              const min = i % 2 === 0 ? "00" : "30";
-              const slot = `${String(hour).padStart(2, "0")}:${min}`;
-              const info = slotAvailability[slot];
-              const isFull = info && !info.available;
-              return (
-                <button
-                  key={slot}
-                  onClick={() => !isFull && setConfirmedTimeInput(slot)}
-                  disabled={isFull}
-                  className={`py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
-                    isFull
-                      ? "bg-fill-tint text-text-muted cursor-not-allowed"
-                      : confirmedTimeInput === slot
-                        ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
-                        : "bg-bg-warm hover:bg-primary-bg"
-                  }`}
-                >
-                  {slot}
-                  {isFull && (
-                    <span className="block text-[10px] text-semantic-red/70">예약됨</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          {isLocked ? (
+            <p className="text-xs text-text-muted">
+              {booking.confirmedTime ? "수거 진행 중에는 시간을 변경할 수 없습니다" : "확정된 시간이 없습니다"}
+            </p>
+          ) : (
+            <div className="grid grid-cols-4 max-sm:grid-cols-3 gap-2">
+              {Array.from({ length: 19 }, (_, i) => {
+                const hour = Math.floor(i / 2) + 9;
+                const min = i % 2 === 0 ? "00" : "30";
+                const slot = `${String(hour).padStart(2, "0")}:${min}`;
+                const info = slotAvailability[slot];
+                const isFull = info && !info.available;
+                return (
+                  <button
+                    key={slot}
+                    onClick={() => !isFull && setConfirmedTimeInput(slot)}
+                    disabled={isFull}
+                    className={`py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
+                      isFull
+                        ? "bg-fill-tint text-text-muted cursor-not-allowed"
+                        : confirmedTimeInput === slot
+                          ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                          : "bg-bg-warm hover:bg-primary-bg"
+                    }`}
+                  >
+                    {slot}
+                    {isFull && (
+                      <span className="block text-[10px] text-semantic-red/70">예약됨</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* 관리자 메모 */}

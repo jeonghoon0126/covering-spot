@@ -2,6 +2,6 @@ export const KAKAO_CHAT_URL = "http://pf.kakao.com/_bxgWhX/chat";
 
 export const SITE_URL = "https://spot.covering.co.kr";
 export const SITE_NAME = "커버링 스팟";
-export const SITE_TITLE = "커버링 스팟 - 대형폐기물, 카톡 한 번이면 끝";
+export const SITE_TITLE = "커버링 스팟 | 대형폐기물 수거 예약 - 서울·경기·인천";
 export const SITE_DESC =
-  "대형/대량 폐기물, 카톡으로 견적부터 예약까지. 사전 견적 = 최종 금액, 추가 비용 없는 투명한 가격.";
+  "소파, 침대, 냉장고 등 대형폐기물 방문수거 전문. 온라인 즉시 견적, 추가비용 없는 확정가. 서울·경기·인천 전 지역 당일수거 가능.";
