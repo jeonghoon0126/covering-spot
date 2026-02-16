@@ -171,6 +171,26 @@ export default function AdminDashboardPage() {
           <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => router.push("/admin/calendar")}
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M1 5.5H13M4 1V3.5M10 1V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              캘린더
+            </button>
+            <button
+              onClick={() => router.push("/admin/driver")}
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M2 13C2 10.2 4.2 8 7 8C9.8 8 12 10.2 12 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              기사님
+            </button>
+            <button
               onClick={fetchBookings}
               className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200"
             >
