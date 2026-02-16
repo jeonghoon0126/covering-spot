@@ -13,6 +13,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 
 const STEPS = ["고객 정보", "날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -85,6 +86,49 @@ export default function BookingPage() {
   // Step 6: 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [leadSaved, setLeadSaved] = useState(false);
+
+  // localStorage 복원 (마운트 시 1회)
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("covering_spot_booking_draft");
+      if (!raw) { setDraftLoaded(true); return; }
+      const d = JSON.parse(raw);
+      if (d.customerName) setCustomerName(d.customerName);
+      if (d.phone) setPhone(d.phone);
+      if (d.address) setAddress(d.address);
+      if (d.addressDetail) setAddressDetail(d.addressDetail);
+      if (d.memo) setMemo(d.memo);
+      if (d.selectedDate) setSelectedDate(d.selectedDate);
+      if (d.selectedTime) setSelectedTime(d.selectedTime);
+      if (d.selectedArea) setSelectedArea(d.selectedArea);
+      if (d.selectedItems?.length) setSelectedItems(d.selectedItems);
+      if (d.hasElevator !== undefined) setHasElevator(d.hasElevator);
+      if (d.hasParking !== undefined) setHasParking(d.hasParking);
+      if (d.needLadder !== undefined) setNeedLadder(d.needLadder);
+      if (d.ladderType) setLadderType(d.ladderType);
+      if (d.ladderHours !== undefined) setLadderHours(d.ladderHours);
+      if (typeof d.step === "number" && d.step >= 0 && d.step < STEPS.length) setStep(d.step);
+    } catch { /* 파싱 실패 무시 */ }
+    setDraftLoaded(true);
+  }, []);
+
+  // localStorage 저장 (debounce 500ms)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!draftLoaded) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem("covering_spot_booking_draft", JSON.stringify({
+          customerName, phone, address, addressDetail, memo,
+          selectedDate, selectedTime, selectedArea, selectedItems,
+          hasElevator, hasParking, needLadder, ladderType, ladderHours, step,
+        }));
+      } catch { /* quota 초과 무시 */ }
+    }, 500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, needLadder, ladderType, ladderHours, step]);
 
   // 데이터 로드
   useEffect(() => {
@@ -265,6 +309,7 @@ export default function BookingPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        localStorage.removeItem("covering_spot_booking_draft");
         router.push(`/booking/complete?id=${data.booking.id}`);
       } else {
         alert(data.error || "신청 실패");
@@ -326,14 +371,9 @@ export default function BookingPage() {
           ))}
         </div>
         {/* 현재 스텝 정보 */}
-        <div className="flex items-baseline gap-3">
-          <span className="text-xs font-semibold text-primary tracking-wider">
-            STEP {step + 1}/{STEPS.length}
-          </span>
-          <h2 className="text-2xl font-bold tracking-[-0.5px]">
-            {STEPS[step]}
-          </h2>
-        </div>
+        <h2 className="text-2xl font-bold tracking-[-0.5px]">
+          {STEPS[step]}
+        </h2>
       </div>
 
       {/* Step 0: 고객 정보 */}
@@ -490,7 +530,7 @@ export default function BookingPage() {
               onChange={(e) => setAreaSearch(e.target.value)}
             />
           </div>
-          <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto">
+          <div className="grid grid-cols-3 max-sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
             {areas
               .filter((a) => a.name.includes(areaSearch))
               .map((a) => (
@@ -545,9 +585,14 @@ export default function BookingPage() {
                 onClick={() =>
                   setOpenCat(openCat === cat.name ? null : cat.name)
                 }
-                className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
+                className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
               >
-                <span className="font-medium">{cat.name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-tint/50 flex items-center justify-center shrink-0">
+                    {categoryIcons[cat.name] || defaultCategoryIcon}
+                  </div>
+                  <span className="font-medium">{cat.name}</span>
+                </div>
                 <span className="flex items-center gap-1 text-text-muted text-sm">
                   {cat.items.length}개
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className={`transition-transform duration-200 ${openCat === cat.name ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -752,7 +797,7 @@ export default function BookingPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold mb-3">예상 소요시간</p>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 max-sm:grid-cols-2 gap-2">
                   {[
                     "기본(1시간 미만)",
                     "1시간",
@@ -876,7 +921,7 @@ export default function BookingPage() {
                   </div>
                 )}
                 <div className="border-t-2 border-primary/20 pt-4 mt-3">
-                  <div className="flex justify-between text-xl font-extrabold text-primary">
+                  <div className="flex justify-between text-xl max-sm:text-lg font-extrabold text-primary">
                     <span>예상 견적</span>
                     <span>
                       {formatPrice(quote.estimateMin)} ~ {formatPrice(quote.estimateMax)}원

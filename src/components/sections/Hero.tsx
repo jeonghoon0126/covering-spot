@@ -308,7 +308,7 @@ export function Hero() {
               </div>
 
               {/* Chat Messages - Animated Sequence */}
-              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 h-[380px] max-sm:h-[350px]">
+              <div className="p-5 flex flex-col gap-3 bg-gradient-to-b from-white to-bg-warm/40 h-[420px] max-sm:h-[390px]">
                 {/* 1. User: 수거 문의 */}
                 <ChatMessage visible={step >= 1} align="right">
                   <span className="text-[11px] text-text-muted shrink-0">
