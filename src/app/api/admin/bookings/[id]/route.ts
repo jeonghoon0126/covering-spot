@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, updateBooking } from "@/lib/sheets-db";
+import { getAllBookings, updateBooking } from "@/lib/db";
 import { validateToken, getAdminFromToken } from "@/app/api/admin/auth/route";
 import { supabase } from "@/lib/supabase";
 import {

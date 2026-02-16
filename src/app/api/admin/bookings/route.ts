@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, getBookingsByStatus } from "@/lib/sheets-db";
+import { getAllBookings, getBookingsByStatus } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 
 export async function GET(req: NextRequest) {

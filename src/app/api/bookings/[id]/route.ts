@@ -3,7 +3,7 @@ import {
   getBookingById,
   updateBooking,
   deleteBooking,
-} from "@/lib/sheets-db";
+} from "@/lib/db";
 import {
   sendBookingUpdated,
   sendBookingDeleted,

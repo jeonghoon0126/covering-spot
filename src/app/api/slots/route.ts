@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookings } from "@/lib/sheets-db";
+import { getBookings } from "@/lib/db";
 
 const DEFAULT_SLOTS = [
   "09:00",

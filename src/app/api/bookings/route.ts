@@ -4,7 +4,7 @@ import {
   getBookingsByPhone,
   createBooking,
   updateBooking,
-} from "@/lib/sheets-db";
+} from "@/lib/db";
 import { sendBookingCreated } from "@/lib/slack-notify";
 import type { Booking } from "@/types/booking";
 
