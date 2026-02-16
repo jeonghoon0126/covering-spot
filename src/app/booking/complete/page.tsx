@@ -67,9 +67,11 @@ function BookingCompleteContent() {
     <div className="space-y-6">
       {/* 완료 헤더 */}
       <div className="text-center py-6">
-        <div className="w-16 h-16 bg-semantic-green-tint rounded-full flex items-center justify-center mx-auto mb-4 text-semantic-green">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="22" fill="#EDFCF6" />
+            <circle cx="24" cy="24" r="17" fill="#D1FAE5" />
+            <path d="M15 24l6 6L33 18" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <h1 className="text-2xl font-bold mb-2">수거 신청이 접수되었습니다</h1>
@@ -80,10 +82,12 @@ function BookingCompleteContent() {
 
       {/* 상태 표시 */}
       <div className="bg-semantic-orange-tint rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-semantic-orange/20 rounded-full flex items-center justify-center shrink-0 text-semantic-orange">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="16" fill="#FFF7E5" />
+            <circle cx="18" cy="18" r="13" fill="#FFEDD5" />
+            <path d="M18 10v8l4.5 2.5" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="18" cy="18" r="1.5" fill="#D97706" />
           </svg>
         </div>
         <div>

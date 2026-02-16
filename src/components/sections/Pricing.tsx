@@ -6,29 +6,35 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 
 const featureIcons: Record<string, React.ReactNode> = {
   chat: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <path d="M8 10h.01" />
-      <path d="M12 10h.01" />
-      <path d="M16 10h.01" />
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <path d="M5 6a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H11l-5 4V6z" fill="#DBEAFE" />
+      <path d="M6 7a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11.5l-4 3.5V7z" fill="#93C5FD" />
+      <circle cx="11" cy="13" r="1.5" fill="#3B82F6" />
+      <circle cx="16" cy="13" r="1.5" fill="#3B82F6" />
+      <circle cx="21" cy="13" r="1.5" fill="#3B82F6" />
     </svg>
   ),
   clock: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="13" fill="#DBEAFE" />
+      <circle cx="16" cy="16" r="11" fill="#EFF6FF" />
+      <path d="M16 8v8l5.5 3" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="16" r="2" fill="#3B82F6" />
     </svg>
   ),
   home: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <path d="M16 4L4 14v13a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V14L16 4z" fill="#DBEAFE" />
+      <path d="M16 4L4 14h24L16 4z" fill="#93C5FD" />
+      <rect x="12" y="18" width="8" height="11" rx="1" fill="#EFF6FF" />
+      <rect x="13.5" y="19.5" width="5" height="5" rx="0.5" fill="#3B82F6" opacity="0.3" />
     </svg>
   ),
   dollar: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-      <path d="M9 12l2 2 4-4" />
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="13" fill="#DBEAFE" />
+      <circle cx="16" cy="16" r="11" fill="#EFF6FF" />
+      <path d="M11 16l3.5 3.5L21 12" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };

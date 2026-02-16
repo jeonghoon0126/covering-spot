@@ -4,7 +4,7 @@ export const compareCards: CompareCard[] = [
   {
     type: "good",
     badge: "커버링",
-    method: "카톡으로 간편한 견적",
+    method: "합리적이고 투명한 견적",
     lines: [
       { icon: "check", text: "침대 세트: 50,000원" },
       { icon: "check", text: "책상: 37,000원" },

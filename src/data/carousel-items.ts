@@ -102,7 +102,7 @@ export const carouselItems: CarouselItem[] = [
     title: "피아노/악기",
     price: "3,000원~",
     image:
-      "https://images.unsplash.com/photo-1520523839897-bd563a27bbce?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1552422535-c45813c61732?w=640&h=400&fit=crop&q=80",
     alt: "피아노 악기 수거",
   },
   {

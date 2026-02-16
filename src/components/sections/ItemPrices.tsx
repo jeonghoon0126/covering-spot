@@ -220,13 +220,13 @@ export function ItemPrices({ categories }: Props) {
                   setActiveId(cat.id);
                   track("price_tab_select", { item: cat.id });
                 }}
-                className={`flex items-center gap-2 py-3 px-5 rounded-full font-semibold text-sm border cursor-pointer transition-all duration-300 ease-out whitespace-nowrap shrink-0 ${
+                className={`group flex items-center gap-2 py-3 px-5 rounded-full font-semibold text-sm border cursor-pointer transition-all duration-300 ease-out whitespace-nowrap shrink-0 hover:-translate-y-0.5 active:scale-[0.97] ${
                   cat.id === activeId
                     ? "bg-primary text-white border-primary shadow-[0_4px_16px_rgba(26,163,255,0.3)]"
-                    : "bg-bg text-text-primary border-border hover:border-primary/40 hover:shadow-sm"
+                    : "bg-bg text-text-primary border-border hover:border-primary/40 hover:shadow-md"
                 }`}
               >
-                <span className="flex items-center shrink-0">
+                <span className="flex items-center shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-125 group-active:scale-95">
                   {icons[cat.icon] || icons.etc}
                 </span>
                 {cat.title}
@@ -242,7 +242,7 @@ export function ItemPrices({ categories }: Props) {
             className="max-w-[640px] mx-auto bg-bg rounded-3xl p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
           >
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-primary-tint/50 flex items-center justify-center shrink-0 max-md:w-12 max-md:h-12">
+              <div className="w-14 h-14 rounded-2xl bg-primary-tint/50 flex items-center justify-center shrink-0 max-md:w-12 max-md:h-12 animate-[icon-pop_0.4s_ease-out]" key={active.id}>
                 {icons[active.icon] || icons.etc}
               </div>
               <div>

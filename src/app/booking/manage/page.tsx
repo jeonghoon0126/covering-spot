@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { TextArea } from "@/components/ui/TextArea";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -218,7 +220,7 @@ export default function BookingManagePage() {
             return (
               <div
                 key={b.id}
-                className="bg-white rounded-2xl shadow-sm overflow-hidden"
+                className="bg-bg rounded-2xl shadow-sm border border-border-light overflow-hidden"
               >
                 {/* 카드 헤더 */}
                 <button
@@ -245,9 +247,7 @@ export default function BookingManagePage() {
                         : `${formatPrice(b.totalPrice)}원`}
                     </p>
                   </div>
-                  <span className="text-text-muted text-sm shrink-0 ml-3">
-                    {isExpanded ? "▲" : "▼"}
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={`text-text-muted shrink-0 ml-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
 
                 {/* 상세 정보 */}
@@ -266,17 +266,17 @@ export default function BookingManagePage() {
                     {isEditing && editForm ? (
                       <div className="space-y-4 text-sm">
                         <div>
-                          <label className="block text-text-sub mb-1">수거 희망일</label>
+                          <label className="block text-sm font-semibold text-text-primary mb-2">수거 희망일</label>
                           <input
                             type="date"
                             min={today}
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="w-full px-3 py-2.5 border border-border-light rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-brand-300"
                           />
                         </div>
                         <div>
-                          <label className="block text-text-sub mb-1">시간대</label>
+                          <label className="block text-sm font-semibold text-text-primary mb-2">시간대</label>
                           <div className="grid grid-cols-2 gap-2">
                             {TIME_SLOTS.map((slot) => (
                               <button
@@ -295,7 +295,7 @@ export default function BookingManagePage() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-text-sub mb-1">상세 주소</label>
+                          <label className="block text-sm font-semibold text-text-primary mb-2">상세 주소</label>
                           <TextField
                             value={editForm.addressDetail}
                             onChange={(e) => setEditForm({ ...editForm, addressDetail: e.target.value })}
@@ -303,35 +303,24 @@ export default function BookingManagePage() {
                           />
                         </div>
                         <div className="flex gap-4">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editForm.hasElevator}
-                              onChange={(e) => setEditForm({ ...editForm, hasElevator: e.target.checked })}
-                              className="w-4 h-4 accent-primary"
-                            />
-                            <span>엘리베이터</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editForm.hasParking}
-                              onChange={(e) => setEditForm({ ...editForm, hasParking: e.target.checked })}
-                              className="w-4 h-4 accent-primary"
-                            />
-                            <span>주차 가능</span>
-                          </label>
-                        </div>
-                        <div>
-                          <label className="block text-text-sub mb-1">요청사항</label>
-                          <textarea
-                            value={editForm.memo}
-                            onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-2.5 border border-border-light rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                            placeholder="요청사항을 입력하세요"
+                          <Checkbox
+                            checked={editForm.hasElevator}
+                            onChange={(e) => setEditForm({ ...editForm, hasElevator: e.target.checked })}
+                            label="엘리베이터"
+                          />
+                          <Checkbox
+                            checked={editForm.hasParking}
+                            onChange={(e) => setEditForm({ ...editForm, hasParking: e.target.checked })}
+                            label="주차 가능"
                           />
                         </div>
+                        <TextArea
+                          label="요청사항"
+                          value={editForm.memo}
+                          onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
+                          rows={3}
+                          placeholder="요청사항을 입력하세요"
+                        />
                         <div className="flex gap-2">
                           <Button
                             variant="primary"

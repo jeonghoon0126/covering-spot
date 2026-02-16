@@ -346,7 +346,7 @@ export default function BookingPage() {
 
       {/* Step 0: 고객 정보 */}
       {step === 0 && (
-        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+        <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5 space-y-4">
           <p className="text-sm text-text-sub">
             수거 신청을 위해 기본 정보를 입력해 주세요
           </p>
@@ -404,7 +404,7 @@ export default function BookingPage() {
       {step === 1 && (
         <div className="space-y-6">
           {/* 달력 */}
-          <div className="bg-white rounded-2xl shadow-sm p-5">
+          <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() =>
@@ -415,7 +415,7 @@ export default function BookingPage() {
                 }
                 className="p-2 hover:bg-bg-warm rounded-lg"
               >
-                ‹
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
               <span className="font-semibold">
                 {calMonth.year}년 {calMonth.month + 1}월
@@ -429,7 +429,7 @@ export default function BookingPage() {
                 }
                 className="p-2 hover:bg-bg-warm rounded-lg"
               >
-                ›
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-sm">
@@ -466,7 +466,7 @@ export default function BookingPage() {
 
           {/* 시간대 선택 */}
           {selectedDate && (
-            <div className="bg-white rounded-2xl shadow-sm p-5">
+            <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5">
               <h3 className="font-semibold mb-3">시간대 선택</h3>
               <div className="grid grid-cols-3 gap-3">
                 {TIME_OPTIONS.map((opt) => (
@@ -490,7 +490,7 @@ export default function BookingPage() {
 
       {/* Step 2: 지역 */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl shadow-sm p-5">
+        <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5">
           <div className="mb-4">
             <TextField
               placeholder="지역 검색 (예: 강남구)"
@@ -547,7 +547,7 @@ export default function BookingPage() {
           {categories.map((cat) => (
             <div
               key={cat.name}
-              className="bg-white rounded-2xl shadow-sm overflow-hidden"
+              className="bg-bg rounded-2xl shadow-sm border border-border-light overflow-hidden"
             >
               <button
                 onClick={() =>
@@ -556,8 +556,9 @@ export default function BookingPage() {
                 className="w-full px-5 py-4 flex items-center justify-between text-left"
               >
                 <span className="font-medium">{cat.name}</span>
-                <span className="text-text-muted text-sm">
-                  {cat.items.length}개 {openCat === cat.name ? "▲" : "▼"}
+                <span className="flex items-center gap-1 text-text-muted text-sm">
+                  {cat.items.length}개
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className={`transition-transform duration-200 ${openCat === cat.name ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
               </button>
               {openCat === cat.name && (
@@ -617,7 +618,7 @@ export default function BookingPage() {
           ))}
 
           {/* 사진 업로드 */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5 space-y-4">
             <div>
               <h3 className="font-semibold mb-1">품목 사진 첨부</h3>
               <p className="text-sm text-text-sub">
@@ -674,7 +675,7 @@ export default function BookingPage() {
 
       {/* Step 4: 작업 환경 */}
       {step === 4 && (
-        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-6">
+        <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5 space-y-6">
           <div>
             <p className="font-medium mb-3">엘리베이터</p>
             <div className="flex gap-3">
@@ -730,7 +731,7 @@ export default function BookingPage() {
 
       {/* Step 5: 사다리차 */}
       {step === 5 && (
-        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-5">
+        <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5 space-y-5">
           <Checkbox
             checked={needLadder}
             onChange={(e) => setNeedLadder(e.target.checked)}
@@ -793,7 +794,7 @@ export default function BookingPage() {
       {step === 6 && (
         <div className="space-y-5">
           {/* 수거 신청 요약 */}
-          <div className="bg-white rounded-2xl shadow-sm p-5">
+          <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5">
             <h3 className="font-semibold mb-3">수거 신청 요약</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -849,7 +850,7 @@ export default function BookingPage() {
 
           {/* 견적 상세 */}
           {quote ? (
-            <div className="bg-white rounded-2xl shadow-sm p-5">
+            <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-5">
               <h3 className="font-semibold mb-3">견적 금액</h3>
               <div className="space-y-2 text-sm">
                 {quote.breakdown.map((b, i) => (
@@ -896,7 +897,7 @@ export default function BookingPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center">
+            <div className="bg-bg rounded-2xl shadow-sm border border-border-light p-8 flex flex-col items-center">
               <LoadingSpinner size="lg" />
               <p className="text-text-muted mt-4 text-sm">견적을 계산하고 있습니다...</p>
             </div>

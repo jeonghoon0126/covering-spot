@@ -117,6 +117,13 @@ body {
   30% { opacity: 1; transform: translateY(-4px); }
 }
 
+/* ═══ Icon pop animation ═══ */
+@keyframes icon-pop {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* ═══ Carousel grab cursor ═══ */
 .carousel-track {
   cursor: grab;
