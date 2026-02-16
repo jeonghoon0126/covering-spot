@@ -28,6 +28,7 @@ const FIELD_MAP: Record<string, string> = {
   photos: "photos",
   adminMemo: "admin_memo",
   confirmedTime: "confirmed_time",
+  slackThreadTs: "slack_thread_ts",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -61,6 +62,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     photos: (row.photos as string[]) || [],
     adminMemo: (row.admin_memo as string) || "",
     confirmedTime: (row.confirmed_time as string) || null,
+    slackThreadTs: (row.slack_thread_ts as string) || null,
   };
 }
 
@@ -93,6 +95,7 @@ function bookingToRow(b: Booking) {
     photos: b.photos,
     admin_memo: b.adminMemo,
     confirmed_time: b.confirmedTime ?? null,
+    slack_thread_ts: b.slackThreadTs ?? null,
   };
 }
 

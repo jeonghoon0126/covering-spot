@@ -61,6 +61,14 @@ export default function BookingPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
 
+  // 시간대별 슬롯 잔여
+  const [timeSlotCounts, setTimeSlotCounts] = useState<Record<string, number>>({
+    "오전 (09~12시)": 0,
+    "오후 (13~18시)": 0,
+    "종일 가능": 0,
+  });
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
   // Step 2: 지역
   const [areas, setAreas] = useState<SpotArea[]>([]);
   const [selectedArea, setSelectedArea] = useState("");
@@ -75,6 +83,7 @@ export default function BookingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [itemSearch, setItemSearch] = useState("");
   const [customItemName, setCustomItemName] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   // Step 4: 작업 환경
   const [hasElevator, setHasElevator] = useState<boolean | null>(null);
@@ -141,6 +150,32 @@ export default function BookingPage() {
       .then((r) => r.json())
       .then((d) => setCategories(d.categories || []));
   }, []);
+
+  // 날짜 선택 시 슬롯 가용성 조회
+  useEffect(() => {
+    if (!selectedDate) return;
+    setSlotsLoading(true);
+    fetch(`/api/slots?date=${selectedDate}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const slots = data.slots || [];
+        let am = 0;
+        let pm = 0;
+        for (const s of slots) {
+          if (!s.available) continue;
+          const h = parseInt(s.time.split(":")[0]);
+          if (h < 13) am++;
+          else pm++;
+        }
+        setTimeSlotCounts({
+          "오전 (09~12시)": am,
+          "오후 (13~18시)": pm,
+          "종일 가능": am + pm,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setSlotsLoading(false));
+  }, [selectedDate]);
 
   // 사진 선택 시 미리보기 생성
   useEffect(() => {
@@ -502,21 +537,37 @@ export default function BookingPage() {
           {selectedDate && (
             <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
               <h3 className="font-semibold mb-3">시간대 선택</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {TIME_OPTIONS.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setSelectedTime(opt)}
-                    className={`py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                      opt === selectedTime
-                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                        : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              {slotsLoading ? (
+                <div className="flex justify-center py-4">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {TIME_OPTIONS.map((opt) => {
+                    const count = timeSlotCounts[opt] || 0;
+                    const isFull = count === 0;
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => !isFull && setSelectedTime(opt)}
+                        disabled={isFull}
+                        className={`py-3.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                          isFull
+                            ? "bg-fill-tint text-text-muted cursor-not-allowed"
+                            : opt === selectedTime
+                              ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                              : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
+                        }`}
+                      >
+                        {opt}
+                        <span className={`block text-xs mt-0.5 ${isFull ? "text-semantic-red/70" : opt === selectedTime ? "text-white/70" : "text-text-muted"}`}>
+                          {isFull ? "마감" : `${count}건 가능`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -565,26 +616,73 @@ export default function BookingPage() {
               {selectedItems.map((item) => (
                 <div
                   key={`${item.category}-${item.name}`}
-                  className="flex justify-between text-sm py-1"
+                  className="flex items-center justify-between text-sm py-1.5"
                 >
-                  <span>
+                  <span className="truncate max-w-[50%]">
                     {item.category} - {item.name}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-text-sub">
-                      x{item.quantity}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
+                      className="w-6 h-6 rounded-md bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center font-semibold text-xs">
+                      {item.quantity}
                     </span>
                     <button
-                      onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -item.quantity)}
-                      className="text-text-muted hover:text-semantic-red text-xs"
+                      onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
+                      className="w-6 h-6 rounded-md bg-primary text-white text-xs font-bold flex items-center justify-center"
                     >
-                      삭제
+                      +
+                    </button>
+                    <button
+                      onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -item.quantity)}
+                      className="text-text-muted hover:text-semantic-red text-xs ml-1"
+                    >
+                      ✕
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
+
+          {/* 인기 품목 */}
+          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4">
+            <h3 className="text-sm font-semibold mb-3">자주 선택하는 품목</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { cat: "장롱", name: "장롱 3자", displayName: "장롱 3자" },
+                { cat: "침대", name: "침대 더블", displayName: "침대 더블" },
+                { cat: "소파", name: "소파 2인", displayName: "소파 2인" },
+                { cat: "가전", name: "냉장고", displayName: "냉장고" },
+                { cat: "가전", name: "세탁기", displayName: "세탁기" },
+                { cat: "가전", name: "에어컨 (실내기+실외기)", displayName: "에어컨" },
+                { cat: "식탁/의자", name: "식탁 4인", displayName: "식탁 4인" },
+                { cat: "서랍장", name: "서랍장 3단", displayName: "서랍장 3단" },
+              ].map((pop) => {
+                const qty = getItemQty(pop.cat, pop.name);
+                const catData = categories.find((c) => c.name === pop.cat);
+                const itemData = catData?.items.find((i) => i.name === pop.name);
+                if (!itemData) return null;
+                return (
+                  <button
+                    key={`${pop.cat}-${pop.name}`}
+                    onClick={() => updateItemQty(pop.cat, pop.name, itemData.displayName, itemData.price, 1)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                      qty > 0
+                        ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.2)]"
+                        : "bg-bg-warm hover:bg-primary-bg"
+                    }`}
+                  >
+                    {pop.displayName} {qty > 0 && `(${qty})`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* 품목 검색 */}
           <div className="mb-1">
@@ -594,6 +692,38 @@ export default function BookingPage() {
               onChange={(e) => setItemSearch(e.target.value)}
             />
           </div>
+
+          {/* 카테고리 필터 칩 */}
+          {!itemSearch.trim() && categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <button
+                onClick={() => setCategoryFilter(null)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                  categoryFilter === null
+                    ? "bg-primary text-white"
+                    : "bg-bg-warm text-text-sub hover:bg-primary-bg"
+                }`}
+              >
+                전체
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.name}
+                  onClick={() => {
+                    setCategoryFilter(cat.name);
+                    setOpenCat(cat.name);
+                  }}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                    categoryFilter === cat.name
+                      ? "bg-primary text-white"
+                      : "bg-bg-warm text-text-sub hover:bg-primary-bg"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* 검색 결과 또는 카테고리 아코디언 */}
           {itemSearch.trim() ? (
@@ -650,7 +780,9 @@ export default function BookingPage() {
               })()}
             </div>
           ) : (
-            categories.map((cat) => (
+            categories
+            .filter((cat) => !categoryFilter || cat.name === categoryFilter)
+            .map((cat) => (
               <div
                 key={cat.name}
                 className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"

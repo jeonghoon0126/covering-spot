@@ -266,13 +266,15 @@ export default function BookingManagePage() {
                     {isEditing && editForm ? (
                       <div className="space-y-4 text-sm">
                         <div>
-                          <label className="block text-sm font-semibold text-text-primary mb-2">수거 희망일</label>
+                          <label className="block text-sm font-semibold text-text-primary mb-2">
+                            수거 희망일<span className="ml-0.5 text-semantic-red">*</span>
+                          </label>
                           <input
                             type="date"
                             min={today}
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-brand-300"
+                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-brand-300 appearance-none"
                           />
                         </div>
                         <div>

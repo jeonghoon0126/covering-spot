@@ -4,6 +4,7 @@ import { validateToken } from "@/app/api/admin/auth/route";
 import {
   sendQuoteConfirmed,
   sendStatusChanged,
+  sendAdminMemoUpdated,
 } from "@/lib/slack-notify";
 
 // 관리자용 getBookingById (취소된 건 포함)
@@ -62,10 +63,11 @@ export async function PUT(
     if (body.finalPrice !== undefined) allowedUpdates.finalPrice = body.finalPrice;
     if (body.adminMemo !== undefined) allowedUpdates.adminMemo = body.adminMemo;
     if (body.confirmedTime !== undefined) allowedUpdates.confirmedTime = body.confirmedTime;
+    if (body.items !== undefined) allowedUpdates.items = body.items;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, items)" },
         { status: 400 },
       );
     }
@@ -79,6 +81,7 @@ export async function PUT(
     }
 
     const previousStatus = existing.status;
+    const previousMemo = existing.adminMemo;
     const updated = await updateBooking(id, allowedUpdates);
 
     if (!updated) {
@@ -96,6 +99,11 @@ export async function PUT(
       } else {
         sendStatusChanged(updated, newStatus).catch(() => {});
       }
+    }
+
+    // 관리자 메모 변경 시 스레드 답글
+    if (body.adminMemo !== undefined && body.adminMemo !== previousMemo && body.adminMemo) {
+      sendAdminMemoUpdated(updated, body.adminMemo).catch(() => {});
     }
 
     return NextResponse.json({ booking: updated });

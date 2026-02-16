@@ -61,6 +61,9 @@ export default function AdminBookingDetailPage() {
   const [adminMemoInput, setAdminMemoInput] = useState("");
   const [confirmedTimeInput, setConfirmedTimeInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [slotAvailability, setSlotAvailability] = useState<Record<string, { available: boolean; count: number }>>({});
+  const [editingItems, setEditingItems] = useState(false);
+  const [itemEdits, setItemEdits] = useState<{ price: string; category: string }[]>([]);
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
@@ -72,6 +75,21 @@ export default function AdminBookingDetailPage() {
     }
     setToken(t);
   }, [router]);
+
+  // 슬롯 가용성 조회
+  useEffect(() => {
+    if (!booking) return;
+    fetch(`/api/slots?date=${booking.date}&excludeId=${booking.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const map: Record<string, { available: boolean; count: number }> = {};
+        for (const s of data.slots || []) {
+          map[s.time] = { available: s.available, count: s.count };
+        }
+        setSlotAvailability(map);
+      })
+      .catch(() => {});
+  }, [booking]);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -326,21 +344,119 @@ export default function AdminBookingDetailPage() {
 
         {/* 품목 */}
         <div className="bg-bg rounded-2xl p-5 border border-border-light">
-          <h3 className="text-sm font-semibold text-text-sub mb-3">
-            품목 ({booking.items.length}종)
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-text-sub">
+              품목 ({booking.items.length}종)
+            </h3>
+            {booking.items.some((i) => i.price === 0) && !editingItems && (
+              <button
+                onClick={() => {
+                  setEditingItems(true);
+                  setItemEdits(
+                    booking.items.map((i) => ({
+                      price: String(i.price),
+                      category: i.category,
+                    })),
+                  );
+                }}
+                className="text-xs text-primary font-medium"
+              >
+                가격 편집
+              </button>
+            )}
+          </div>
           <div className="space-y-1.5">
             {booking.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-sm">
-                <span className="text-text-sub truncate max-w-[65%]">
-                  {item.category} - {item.name} x{item.quantity}
-                </span>
-                <span className="font-medium">
-                  {formatPrice(item.price * item.quantity)}원
-                </span>
+              <div key={idx}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-sub truncate max-w-[65%]">
+                    {item.category === "직접입력" ? (
+                      <span className="text-semantic-orange">직접입력</span>
+                    ) : (
+                      item.category
+                    )}
+                    {" - "}{item.name} x{item.quantity}
+                  </span>
+                  <span className={`font-medium ${item.price === 0 ? "text-semantic-orange" : ""}`}>
+                    {item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}
+                  </span>
+                </div>
+                {editingItems && (
+                  <div className="flex gap-2 mt-1.5 ml-2">
+                    <input
+                      type="text"
+                      placeholder="가격"
+                      value={itemEdits[idx]?.price || ""}
+                      onChange={(e) => {
+                        const next = [...itemEdits];
+                        next[idx] = { ...next[idx], price: e.target.value.replace(/[^0-9]/g, "") };
+                        setItemEdits(next);
+                      }}
+                      className="w-24 px-2 py-1 text-xs rounded-lg border border-border bg-bg-warm"
+                    />
+                    <select
+                      value={itemEdits[idx]?.category || item.category}
+                      onChange={(e) => {
+                        const next = [...itemEdits];
+                        next[idx] = { ...next[idx], category: e.target.value };
+                        setItemEdits(next);
+                      }}
+                      className="px-2 py-1 text-xs rounded-lg border border-border bg-bg-warm"
+                    >
+                      {["장롱", "침대", "소파", "가전", "식탁/의자", "서랍장", "수납장", "기타 가구", "운동기구", "직접입력"].map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          {editingItems && (
+            <div className="flex gap-2 mt-3 pt-3 border-t border-border-light">
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    const updatedItems = booking.items.map((item, idx) => ({
+                      ...item,
+                      price: Number(itemEdits[idx]?.price || item.price),
+                      category: itemEdits[idx]?.category || item.category,
+                    }));
+                    const res = await fetch(`/api/admin/bookings/${booking.id}`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ items: updatedItems }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setBooking(data.booking);
+                      setEditingItems(false);
+                    }
+                  } catch {
+                    alert("저장 실패");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                저장
+              </Button>
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={() => setEditingItems(false)}
+              >
+                취소
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 사진 */}
@@ -429,17 +545,25 @@ export default function AdminBookingDetailPage() {
               const hour = Math.floor(i / 2) + 9;
               const min = i % 2 === 0 ? "00" : "30";
               const slot = `${String(hour).padStart(2, "0")}:${min}`;
+              const info = slotAvailability[slot];
+              const isFull = info && !info.available;
               return (
                 <button
                   key={slot}
-                  onClick={() => setConfirmedTimeInput(slot)}
+                  onClick={() => !isFull && setConfirmedTimeInput(slot)}
+                  disabled={isFull}
                   className={`py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
-                    confirmedTimeInput === slot
-                      ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
-                      : "bg-bg-warm hover:bg-primary-bg"
+                    isFull
+                      ? "bg-fill-tint text-text-muted cursor-not-allowed"
+                      : confirmedTimeInput === slot
+                        ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg"
                   }`}
                 >
                   {slot}
+                  {isFull && (
+                    <span className="block text-[10px] text-semantic-red/70">예약됨</span>
+                  )}
                 </button>
               );
             })}

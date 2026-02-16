@@ -63,10 +63,10 @@ export default function AdminDashboardPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const statusParam = activeTab === "all" ? "" : `&status=${activeTab}`;
-      const res = await fetch(
-        `/api/admin/bookings?token=${token}${statusParam}`,
-      );
+      const statusParam = activeTab === "all" ? "" : `?status=${activeTab}`;
+      const res = await fetch(`/api/admin/bookings${statusParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.status === 401) {
         sessionStorage.removeItem("admin_token");
         router.push("/admin");

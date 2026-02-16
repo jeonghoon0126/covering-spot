@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   getBookingsByPhone,
   createBooking,
+  updateBooking,
 } from "@/lib/sheets-db";
 import { sendBookingCreated } from "@/lib/slack-notify";
 import type { Booking } from "@/types/booking";
@@ -59,12 +60,19 @@ export async function POST(req: NextRequest) {
       photos: body.photos || [],
       adminMemo: "",
       confirmedTime: null,
+      slackThreadTs: null,
     };
 
     await createBooking(booking);
 
-    // Slack 알림 (실패해도 예약은 성공)
-    sendBookingCreated(booking).catch(() => {});
+    // Slack 알림 → thread_ts 저장 (실패해도 예약은 성공)
+    sendBookingCreated(booking)
+      .then((threadTs) => {
+        if (threadTs) {
+          updateBooking(booking.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (e) {
