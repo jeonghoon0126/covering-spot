@@ -220,17 +220,17 @@ export default function BookingManagePage() {
             return (
               <div
                 key={b.id}
-                className="bg-bg rounded-2xl shadow-sm border border-border-light overflow-hidden"
+                className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden"
               >
                 {/* 카드 헤더 */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : b.id)}
-                  className="w-full px-5 py-4 flex items-center justify-between text-left"
+                  className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-bg-warm/40 transition-colors duration-200"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}
                       >
                         {STATUS_LABELS[b.status] || b.status}
                       </span>
@@ -238,10 +238,10 @@ export default function BookingManagePage() {
                         #{b.id.slice(0, 8)}
                       </span>
                     </div>
-                    <p className="font-medium text-sm">
+                    <p className="font-semibold text-sm">
                       {b.date} {b.timeSlot} | {b.area}
                     </p>
-                    <p className="text-sm text-primary font-semibold">
+                    <p className="text-[15px] text-primary font-bold mt-0.5">
                       {b.estimateMin > 0 && b.estimateMax > 0
                         ? `${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}원`
                         : `${formatPrice(b.totalPrice)}원`}
@@ -252,7 +252,7 @@ export default function BookingManagePage() {
 
                 {/* 상세 정보 */}
                 {isExpanded && (
-                  <div className="px-5 pb-5 border-t border-border-light">
+                  <div className="px-6 pb-6 border-t border-border-light">
                     {/* 상태별 안내 메시지 */}
                     <div className={`mt-4 mb-4 p-3 rounded-xl text-sm ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}>
                       <p className="font-medium">
