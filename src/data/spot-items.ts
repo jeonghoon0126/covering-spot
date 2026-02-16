@@ -464,9 +464,9 @@ export const SPOT_CATEGORIES: SpotCategory[] = [
       { category: "잡동사니", name: "CD/DVD 박스", displayName: "잡동사니 - CD/DVD 박스 - 40X30X30 무게: 8kg 2000원", price: 2000 },
       { category: "잡동사니", name: "앨범/사진 박스", displayName: "잡동사니 - 앨범/사진 박스 - 40X30X25 무게: 6kg 1500원", price: 1500 },
       { category: "잡동사니", name: "서류/서적 박스", displayName: "잡동사니 - 서류/서적 박스 - 45X35X30 무게: 10kg 2500원", price: 2500 },
-      { category: "잡동사니", name: "비품 잡동사니(대)", displayName: "잡동사니 - 비품 잡동사니(대) - 70X50X50 무게: 15kg 9000원", price: 9000 },
-      { category: "잡동사니", name: "비품 잡동사니(중)", displayName: "잡동사니 - 비품 잡동사니(중) - 50X40X40 무게: 8kg 4000원", price: 4000 },
-      { category: "잡동사니", name: "비품 잡동사니(소)", displayName: "잡동사니 - 비품 잡동사니(소) - 40X30X30 무게: 4kg 2000원", price: 2000 },
+      { category: "잡동사니", name: "비품 잡동사니 (80L)", displayName: "잡동사니 - 비품 잡동사니 (80L) - 70X50X50 무게: 15kg 9000원", price: 9000 },
+      { category: "잡동사니", name: "비품 잡동사니 (40L)", displayName: "잡동사니 - 비품 잡동사니 (40L) - 50X40X40 무게: 8kg 4000원", price: 4000 },
+      { category: "잡동사니", name: "비품 잡동사니 (20L)", displayName: "잡동사니 - 비품 잡동사니 (20L) - 40X30X30 무게: 4kg 2000원", price: 2000 },
     ],
   },
 ];

@@ -42,6 +42,7 @@ export interface Booking {
   finalPrice: number | null;
   photos: string[];
   adminMemo: string;
+  confirmedTime: string | null;
 }
 
 export interface TimeSlot {

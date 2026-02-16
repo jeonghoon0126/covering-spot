@@ -27,6 +27,7 @@ const FIELD_MAP: Record<string, string> = {
   finalPrice: "final_price",
   photos: "photos",
   adminMemo: "admin_memo",
+  confirmedTime: "confirmed_time",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -59,6 +60,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
       row.final_price != null ? (row.final_price as number) : null,
     photos: (row.photos as string[]) || [],
     adminMemo: (row.admin_memo as string) || "",
+    confirmedTime: (row.confirmed_time as string) || null,
   };
 }
 
@@ -90,6 +92,7 @@ function bookingToRow(b: Booking) {
     final_price: b.finalPrice,
     photos: b.photos,
     admin_memo: b.adminMemo,
+    confirmed_time: b.confirmedTime ?? null,
   };
 }
 

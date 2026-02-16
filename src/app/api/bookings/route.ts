@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       finalPrice: null,
       photos: body.photos || [],
       adminMemo: "",
+      confirmedTime: null,
     };
 
     await createBooking(booking);

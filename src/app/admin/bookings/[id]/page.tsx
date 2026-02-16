@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { TextArea } from "@/components/ui/TextArea";
 import type { Booking } from "@/types/booking";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -49,36 +51,37 @@ function formatPrice(n: number): string {
 }
 
 export default function AdminBookingDetailPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-bg-warm flex items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      }
-    >
-      <AdminBookingDetailContent />
-    </Suspense>
-  );
-}
-
-function AdminBookingDetailContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const [token, setToken] = useState("");
   const id = typeof window !== "undefined" ? window.location.pathname.split("/").pop() : "";
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [finalPriceInput, setFinalPriceInput] = useState("");
   const [adminMemoInput, setAdminMemoInput] = useState("");
+  const [confirmedTimeInput, setConfirmedTimeInput] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // sessionStorage에서 token 가져오기
+  useEffect(() => {
+    const t = sessionStorage.getItem("admin_token");
+    if (!t) {
+      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      router.push("/admin");
+      return;
+    }
+    setToken(t);
+  }, [router]);
 
   useEffect(() => {
     if (!token || !id) return;
-    fetch(`/api/admin/bookings/${id}?token=${token}`)
+    fetch(`/api/admin/bookings/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((r) => {
         if (r.status === 401) {
+          sessionStorage.removeItem("admin_token");
+          sessionStorage.setItem("admin_return_url", window.location.pathname);
           router.push("/admin");
           return null;
         }
@@ -93,6 +96,9 @@ function AdminBookingDetailContent() {
           if (data.booking.adminMemo) {
             setAdminMemoInput(data.booking.adminMemo);
           }
+          if (data.booking.confirmedTime) {
+            setConfirmedTimeInput(data.booking.confirmedTime);
+          }
         }
       })
       .finally(() => setLoading(false));
@@ -106,6 +112,12 @@ function AdminBookingDetailContent() {
       alert("최종 견적을 입력해주세요");
       return;
     }
+    const needsTime =
+      newStatus === "quote_confirmed" && !confirmedTimeInput;
+    if (needsTime) {
+      alert("수거 시간을 확정해주세요");
+      return;
+    }
 
     const confirmMsg =
       `상태를 "${STATUS_LABELS[newStatus]}"(으)로 변경하시겠습니까?`;
@@ -115,13 +127,15 @@ function AdminBookingDetailContent() {
     try {
       const body: Record<string, unknown> = {
         status: newStatus,
-        token,
       };
       if (finalPriceInput.trim()) {
         body.finalPrice = Number(finalPriceInput.replace(/[^0-9]/g, ""));
       }
       if (adminMemoInput.trim()) {
         body.adminMemo = adminMemoInput;
+      }
+      if (confirmedTimeInput) {
+        body.confirmedTime = confirmedTimeInput;
       }
 
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
@@ -152,10 +166,12 @@ function AdminBookingDetailContent() {
     try {
       const body: Record<string, unknown> = {
         adminMemo: adminMemoInput,
-        token,
       };
       if (finalPriceInput.trim()) {
         body.finalPrice = Number(finalPriceInput.replace(/[^0-9]/g, ""));
+      }
+      if (confirmedTimeInput) {
+        body.confirmedTime = confirmedTimeInput;
       }
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
@@ -382,17 +398,13 @@ function AdminBookingDetailContent() {
 
           {/* 최종 견적 입력 */}
           <div className="mt-4 pt-3 border-t border-border-light">
-            <label className="text-sm text-text-sub block mb-1.5">
-              최종 견적 입력 (원)
-            </label>
-            <input
-              type="text"
+            <TextField
+              label="최종 견적 (원)"
               value={finalPriceInput}
               onChange={(e) =>
                 setFinalPriceInput(e.target.value.replace(/[^0-9]/g, ""))
               }
               placeholder="금액 입력"
-              className="w-full px-3 py-2.5 rounded-xl border border-border-light bg-bg-warm text-sm focus:outline-none focus:border-primary transition-colors duration-200"
             />
             {finalPriceInput && (
               <p className="text-xs text-text-muted mt-1">
@@ -402,25 +414,60 @@ function AdminBookingDetailContent() {
           </div>
         </div>
 
+        {/* 수거 시간 확정 */}
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">
+            수거 시간 확정
+          </h3>
+          {booking.confirmedTime && (
+            <p className="text-sm text-primary font-semibold mb-3">
+              확정: {booking.confirmedTime}
+            </p>
+          )}
+          <div className="grid grid-cols-4 max-sm:grid-cols-3 gap-2">
+            {Array.from({ length: 19 }, (_, i) => {
+              const hour = Math.floor(i / 2) + 9;
+              const min = i % 2 === 0 ? "00" : "30";
+              const slot = `${String(hour).padStart(2, "0")}:${min}`;
+              return (
+                <button
+                  key={slot}
+                  onClick={() => setConfirmedTimeInput(slot)}
+                  className={`py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                    confirmedTimeInput === slot
+                      ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                      : "bg-bg-warm hover:bg-primary-bg"
+                  }`}
+                >
+                  {slot}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* 관리자 메모 */}
         <div className="bg-bg rounded-2xl p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             관리자 메모
           </h3>
-          <textarea
+          <TextArea
             value={adminMemoInput}
             onChange={(e) => setAdminMemoInput(e.target.value)}
             placeholder="내부 메모 (고객에게 노출되지 않음)"
             rows={3}
-            className="w-full px-3 py-2.5 rounded-xl border border-border-light bg-bg-warm text-sm focus:outline-none focus:border-primary transition-colors duration-200 resize-none"
           />
-          <button
-            onClick={handleSaveMemo}
-            disabled={saving}
-            className="mt-2 px-4 py-2.5 rounded-xl bg-bg-warm text-text-neutral text-sm font-medium hover:bg-bg-warm2 transition-colors duration-200 disabled:opacity-40"
-          >
-            {saving ? "저장 중..." : "메모 저장"}
-          </button>
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleSaveMemo}
+              disabled={saving}
+              loading={saving}
+            >
+              메모 저장
+            </Button>
+          </div>
         </div>
 
         {/* 상태 변경 버튼 */}
@@ -431,18 +478,17 @@ function AdminBookingDetailContent() {
                 action.status !== "cancelled" &&
                 action.status !== "rejected";
               return (
-                <button
+                <Button
                   key={action.status}
+                  variant={isPrimary ? "primary" : "tertiary"}
+                  size="lg"
+                  fullWidth
                   onClick={() => handleStatusChange(action.status)}
                   disabled={saving}
-                  className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
-                    isPrimary
-                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)] hover:shadow-[0_6px_20px_rgba(26,163,255,0.4)] active:scale-[0.98]"
-                      : "border border-semantic-red/30 text-semantic-red bg-semantic-red-tint hover:bg-semantic-red/10"
-                  }`}
+                  className={!isPrimary ? "border border-semantic-red/30 text-semantic-red bg-semantic-red-tint hover:bg-semantic-red/10" : ""}
                 >
                   {action.label}
-                </button>
+                </Button>
               );
             })}
           </div>

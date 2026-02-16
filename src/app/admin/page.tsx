@@ -25,7 +25,9 @@ export default function AdminLoginPage() {
       const data = await res.json();
       if (res.ok && data.token) {
         sessionStorage.setItem("admin_token", data.token);
-        router.push("/admin/dashboard");
+        const returnUrl = sessionStorage.getItem("admin_return_url");
+        sessionStorage.removeItem("admin_return_url");
+        router.push(returnUrl || "/admin/dashboard");
       } else {
         setError(data.error || "인증 실패");
       }

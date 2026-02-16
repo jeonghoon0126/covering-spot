@@ -18,7 +18,7 @@ import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 const STEPS = ["고객 정보", "날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
-const PHOTO_RECOMMEND_CATEGORIES = ["장롱", "침대", "소파"];
+const PHOTO_REQUIRED_CATEGORIES = ["장롱", "침대", "소파"];
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -73,6 +73,8 @@ export default function BookingPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [itemSearch, setItemSearch] = useState("");
+  const [customItemName, setCustomItemName] = useState("");
 
   // Step 4: 작업 환경
   const [hasElevator, setHasElevator] = useState<boolean | null>(null);
@@ -169,9 +171,9 @@ export default function BookingPage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // 사진 권장 카테고리가 선택되었는지 확인
-  const hasPhotoRecommendItem = selectedItems.some((item) =>
-    PHOTO_RECOMMEND_CATEGORIES.includes(item.category),
+  // 사진 필수 카테고리(장롱, 침대, 소파) 선택 여부
+  const hasPhotoRequiredItem = selectedItems.some((item) =>
+    PHOTO_REQUIRED_CATEGORIES.includes(item.category),
   );
 
   // 견적 계산
@@ -326,7 +328,7 @@ export default function BookingPage() {
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address,  // Step 0: 고객 정보
     selectedDate && selectedTime,                        // Step 1: 날짜/시간
     selectedArea,                                         // Step 2: 지역
-    selectedItems.length > 0,                            // Step 3: 품목/사진
+    selectedItems.length > 0 && (!hasPhotoRequiredItem || photos.length > 0), // Step 3: 품목/사진 (장롱/침대/소파 시 사진 필수)
     hasElevator !== null && hasParking !== null,          // Step 4: 작업 환경
     true,                                                 // Step 5: 사다리차
     !!quote,                                              // Step 6: 견적 확인
@@ -553,9 +555,9 @@ export default function BookingPage() {
       {/* Step 3: 품목 + 사진 업로드 */}
       {step === 3 && (
         <div className="space-y-3">
-          {/* 선택된 품목 요약 (가격 미표시) */}
+          {/* 선택된 품목 요약 */}
           {selectedItems.length > 0 && (
-            <div className="bg-primary-bg rounded-2xl p-4 mb-4">
+            <div className="bg-primary-bg rounded-2xl p-4 mb-1">
               <p className="text-sm font-semibold text-primary mb-2">
                 선택된 품목 ({selectedItems.length}종,{" "}
                 {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
@@ -568,91 +570,181 @@ export default function BookingPage() {
                   <span>
                     {item.category} - {item.name}
                   </span>
-                  <span className="font-medium text-text-sub">
-                    x{item.quantity}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-text-sub">
+                      x{item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -item.quantity)}
+                      className="text-text-muted hover:text-semantic-red text-xs"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
-          {/* 카테고리 아코디언 */}
-          {categories.map((cat) => (
-            <div
-              key={cat.name}
-              className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
-            >
-              <button
-                onClick={() =>
-                  setOpenCat(openCat === cat.name ? null : cat.name)
+
+          {/* 품목 검색 */}
+          <div className="mb-1">
+            <TextField
+              placeholder="품목 검색 (예: 침대, 소파, 냉장고)"
+              value={itemSearch}
+              onChange={(e) => setItemSearch(e.target.value)}
+            />
+          </div>
+
+          {/* 검색 결과 또는 카테고리 아코디언 */}
+          {itemSearch.trim() ? (
+            <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4 space-y-2">
+              <p className="text-sm text-text-sub mb-2">
+                &quot;{itemSearch}&quot; 검색 결과
+              </p>
+              {(() => {
+                const results = categories.flatMap((cat) =>
+                  cat.items
+                    .filter((item) =>
+                      item.name.includes(itemSearch) || cat.name.includes(itemSearch),
+                    )
+                    .map((item) => ({ ...item, category: cat.name })),
+                );
+                if (results.length === 0) {
+                  return (
+                    <p className="text-sm text-text-muted py-4 text-center">
+                      검색 결과가 없습니다. 아래에서 직접 입력해 주세요.
+                    </p>
+                  );
                 }
-                className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-tint/50 flex items-center justify-center shrink-0">
-                    {categoryIcons[cat.name] || defaultCategoryIcon}
-                  </div>
-                  <span className="font-medium">{cat.name}</span>
-                </div>
-                <span className="flex items-center gap-1 text-text-muted text-sm">
-                  {cat.items.length}개
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className={`transition-transform duration-200 ${openCat === cat.name ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-              </button>
-              {openCat === cat.name && (
-                <div className="px-6 pb-5 space-y-2">
-                  {cat.items.map((item) => {
-                    const qty = getItemQty(cat.name, item.name);
-                    return (
-                      <div
-                        key={item.name}
-                        className="flex items-center justify-between py-2 border-b border-border-light last:border-0"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {item.name}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <button
-                            onClick={() =>
-                              updateItemQty(
-                                cat.name,
-                                item.name,
-                                item.displayName,
-                                item.price,
-                                -1,
-                              )
-                            }
-                            disabled={qty === 0}
-                            className="w-8 h-8 rounded-lg bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
-                          >
-                            −
-                          </button>
-                          <span className="w-6 text-center text-sm font-semibold">
-                            {qty}
-                          </span>
-                          <button
-                            onClick={() =>
-                              updateItemQty(
-                                cat.name,
-                                item.name,
-                                item.displayName,
-                                item.price,
-                                1,
-                              )
-                            }
-                            className="w-8 h-8 rounded-lg bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
-                          >
-                            +
-                          </button>
-                        </div>
+                return results.map((item) => {
+                  const qty = getItemQty(item.category, item.name);
+                  return (
+                    <div
+                      key={`${item.category}-${item.name}`}
+                      className="flex items-center justify-between py-2 border-b border-border-light last:border-0"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          <span className="text-text-muted">{item.category}</span> {item.name}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                      <div className="flex items-center gap-2 ml-3">
+                        <button
+                          onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
+                          disabled={qty === 0}
+                          className="w-8 h-8 rounded-lg bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center text-sm font-semibold">{qty}</span>
+                        <button
+                          onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
+                          className="w-8 h-8 rounded-lg bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
-          ))}
+          ) : (
+            categories.map((cat) => (
+              <div
+                key={cat.name}
+                className="bg-bg rounded-2xl shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
+              >
+                <button
+                  onClick={() =>
+                    setOpenCat(openCat === cat.name ? null : cat.name)
+                  }
+                  className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary-tint/50 flex items-center justify-center shrink-0">
+                      {categoryIcons[cat.name] || defaultCategoryIcon}
+                    </div>
+                    <span className="font-medium">{cat.name}</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-text-muted text-sm">
+                    {cat.items.length}개
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className={`transition-transform duration-200 ${openCat === cat.name ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                </button>
+                {openCat === cat.name && (
+                  <div className="px-6 pb-5 space-y-2">
+                    {cat.items.map((item) => {
+                      const qty = getItemQty(cat.name, item.name);
+                      return (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between py-2 border-b border-border-light last:border-0"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {item.name}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            <button
+                              onClick={() =>
+                                updateItemQty(cat.name, item.name, item.displayName, item.price, -1)
+                              }
+                              disabled={qty === 0}
+                              className="w-8 h-8 rounded-lg bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                            >
+                              −
+                            </button>
+                            <span className="w-6 text-center text-sm font-semibold">
+                              {qty}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateItemQty(cat.name, item.name, item.displayName, item.price, 1)
+                              }
+                              className="w-8 h-8 rounded-lg bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+
+          {/* 커스텀 품목 입력 */}
+          <div className="bg-bg rounded-2xl shadow-md border border-border-light p-5 max-sm:p-4">
+            <h3 className="text-sm font-semibold mb-3">원하는 품목이 없나요?</h3>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <TextField
+                  placeholder="품목명 입력 (예: 대형 거울)"
+                  value={customItemName}
+                  onChange={(e) => setCustomItemName(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="secondary"
+                size="md"
+                disabled={!customItemName.trim()}
+                onClick={() => {
+                  if (!customItemName.trim()) return;
+                  updateItemQty("직접입력", customItemName.trim(), customItemName.trim(), 0, 1);
+                  setCustomItemName("");
+                }}
+              >
+                추가
+              </Button>
+            </div>
+            <p className="text-xs text-text-muted mt-2">
+              직접 입력한 품목은 매니저 확인 후 가격이 책정됩니다
+            </p>
+          </div>
 
           {/* 사진 업로드 */}
           <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
@@ -661,9 +753,9 @@ export default function BookingPage() {
               <p className="text-sm text-text-sub">
                 대형 품목(침대, 장롱, 소파 등)은 사진 첨부 시 정확한 견적 산정이 가능합니다
               </p>
-              {hasPhotoRecommendItem && photos.length === 0 && (
-                <p className="text-sm text-semantic-orange mt-1 font-medium">
-                  선택하신 품목은 사진 첨부를 권장합니다
+              {hasPhotoRequiredItem && photos.length === 0 && (
+                <p className="text-sm text-semantic-red mt-1 font-medium">
+                  선택하신 품목(장롱, 침대, 소파)은 정확한 견적을 위해 사진 첨부가 필수입니다
                 </p>
               )}
             </div>
@@ -895,7 +987,9 @@ export default function BookingPage() {
                     <span className="text-text-sub truncate max-w-[60%]">
                       {b.name} x{b.quantity}
                     </span>
-                    <span>{formatPrice(b.subtotal)}원</span>
+                    <span>
+                      {b.unitPrice === 0 ? "가격 미정" : `${formatPrice(b.subtotal)}원`}
+                    </span>
                   </div>
                 ))}
                 <div className="border-t border-border-light pt-2 flex justify-between">
@@ -928,7 +1022,7 @@ export default function BookingPage() {
                     </span>
                   </div>
                   <p className="text-xs text-text-muted mt-2">
-                    정확한 금액은 담당자 확인 후 안내드립니다
+                    수거 신청 후 즉시 매니저가 확인하여 일정과 견적을 확정합니다
                   </p>
                 </div>
               </div>

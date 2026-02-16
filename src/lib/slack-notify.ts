@@ -145,9 +145,7 @@ export async function sendBookingCreated(b: Booking): Promise<void> {
         ]
       : []),
     actionsBlock([
-      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "견적 확정", url: `${BASE_URL}/admin?action=quote&id=${b.id}` },
-      { text: "예약 취소", url: `${BASE_URL}/admin?action=cancel&id=${b.id}` },
+      { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
     ]),
   ];
 
@@ -179,8 +177,7 @@ export async function sendBookingUpdated(b: Booking): Promise<void> {
       ],
     },
     actionsBlock([
-      { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
-      { text: "예약 취소", url: `${BASE_URL}/admin?action=cancel&id=${b.id}` },
+      { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
     ]),
   ];
 

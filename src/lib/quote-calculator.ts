@@ -8,7 +8,7 @@ const DISASSEMBLY_CATEGORIES = ["장롱", "침대", "소파", "장식장", "거�
 export function calculateQuote(input: QuoteInput): QuoteResult {
   // 1. 품목별 소계 계산
   const breakdown = input.items.map((item) => ({
-    name: item.displayName || `${item.category} - ${item.name}`,
+    name: `${item.category} - ${item.name}`,
     quantity: item.quantity,
     unitPrice: item.price,
     subtotal: item.price * item.quantity,

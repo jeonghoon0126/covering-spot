@@ -61,6 +61,7 @@ export async function PUT(
     if (body.status !== undefined) allowedUpdates.status = body.status;
     if (body.finalPrice !== undefined) allowedUpdates.finalPrice = body.finalPrice;
     if (body.adminMemo !== undefined) allowedUpdates.adminMemo = body.adminMemo;
+    if (body.confirmedTime !== undefined) allowedUpdates.confirmedTime = body.confirmedTime;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
