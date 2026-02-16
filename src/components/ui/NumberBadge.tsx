@@ -21,7 +21,7 @@ const sizeStyles: Record<Size, string> = {
 /* ─── Variant styles ─── */
 const variantStyles: Record<Variant, string> = {
   primary: "bg-brand-400 text-white",
-  negative: "bg-[#FF3358] text-white",
+  negative: "bg-semantic-red text-white",
 };
 
 /* ─── Component ─── */

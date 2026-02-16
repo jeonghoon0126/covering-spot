@@ -7,7 +7,7 @@ export default function BookingLayout({
 }) {
   return (
     <div className="min-h-screen bg-bg-warm">
-      <header className="sticky top-0 z-50 bg-white border-b border-border">
+      <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[42rem] mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/images/logo.png" alt="커버링" className="w-7 h-7 rounded-[8px]" />
@@ -15,7 +15,7 @@ export default function BookingLayout({
           </Link>
           <Link
             href="/booking/manage"
-            className="text-sm text-text-sub hover:text-text-primary"
+            className="text-sm font-medium text-text-sub hover:text-text-primary transition-colors duration-200"
           >
             신청 조회
           </Link>

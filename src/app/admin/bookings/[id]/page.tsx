@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -17,14 +18,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-orange-100 text-orange-600",
-  quote_confirmed: "bg-blue-100 text-blue-600",
-  in_progress: "bg-purple-100 text-purple-600",
-  completed: "bg-green-100 text-green-600",
-  payment_requested: "bg-yellow-100 text-yellow-700",
-  payment_completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-600",
-  rejected: "bg-gray-100 text-gray-600",
+  pending: "bg-semantic-orange-tint text-semantic-orange",
+  quote_confirmed: "bg-primary-tint text-primary",
+  in_progress: "bg-primary-tint text-primary-dark",
+  completed: "bg-semantic-green-tint text-semantic-green",
+  payment_requested: "bg-semantic-orange-tint text-semantic-orange",
+  payment_completed: "bg-semantic-green-tint text-semantic-green",
+  cancelled: "bg-semantic-red-tint text-semantic-red",
+  rejected: "bg-fill-tint text-text-muted",
 };
 
 // 다음 상태 전이 맵
@@ -51,8 +52,8 @@ export default function AdminBookingDetailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+        <div className="min-h-screen bg-bg-warm flex items-center justify-center">
+          <LoadingSpinner size="lg" />
         </div>
       }
     >
@@ -178,16 +179,16 @@ function AdminBookingDetailContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-bg-warm flex items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
-        <p className="text-gray-500">예약을 찾을 수 없습니다</p>
+      <div className="min-h-screen bg-bg-warm flex items-center justify-center">
+        <p className="text-text-muted">예약을 찾을 수 없습니다</p>
       </div>
     );
   }
@@ -195,15 +196,17 @@ function AdminBookingDetailContent() {
   const nextActions = NEXT_STATUS[booking.status] || [];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-bg-warm">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.push(`/admin/dashboard`)}
-            className="text-gray-500 hover:text-gray-800"
+            className="text-text-sub hover:text-text-primary transition-colors duration-200"
           >
-            ← 목록
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
           <h1 className="text-lg font-bold">신청 상세</h1>
         </div>
@@ -211,38 +214,38 @@ function AdminBookingDetailContent() {
 
       <div className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
         {/* 상태 + ID */}
-        <div className="bg-white rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light flex items-center justify-between">
           <span
             className={`text-sm font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[booking.status] || STATUS_COLORS.pending}`}
           >
             {STATUS_LABELS[booking.status] || booking.status}
           </span>
-          <span className="text-xs text-gray-400 font-mono">
+          <span className="text-xs text-text-muted font-mono">
             #{booking.id.slice(0, 12)}
           </span>
         </div>
 
         {/* 고객 정보 */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">
             고객 정보
           </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">이름</span>
+          <div className="space-y-0 text-sm">
+            <div className="flex justify-between py-2.5 border-b border-border-light">
+              <span className="text-text-sub">이름</span>
               <span className="font-medium">{booking.customerName}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">전화번호</span>
+            <div className="flex justify-between py-2.5 border-b border-border-light">
+              <span className="text-text-sub">전화번호</span>
               <a
                 href={`tel:${booking.phone}`}
-                className="font-medium text-[#2563EB]"
+                className="font-medium text-primary"
               >
                 {booking.phone}
               </a>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">주소</span>
+            <div className="flex justify-between py-2.5">
+              <span className="text-text-sub">주소</span>
               <span className="font-medium text-right max-w-[60%]">
                 {booking.address} {booking.addressDetail}
               </span>
@@ -251,23 +254,23 @@ function AdminBookingDetailContent() {
         </div>
 
         {/* 수거 정보 */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 정보
           </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">희망일</span>
+          <div className="space-y-0 text-sm">
+            <div className="flex justify-between py-2.5 border-b border-border-light">
+              <span className="text-text-sub">희망일</span>
               <span className="font-medium">
                 {booking.date} {booking.timeSlot}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">지역</span>
+            <div className="flex justify-between py-2.5 border-b border-border-light">
+              <span className="text-text-sub">지역</span>
               <span className="font-medium">{booking.area}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">엘리베이터</span>
+            <div className="flex justify-between py-2.5 border-b border-border-light">
+              <span className="text-text-sub">엘리베이터</span>
               <span className="font-medium">
                 {booking.hasElevator === true
                   ? "사용 가능"
@@ -276,8 +279,8 @@ function AdminBookingDetailContent() {
                     : "-"}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">주차</span>
+            <div className={`flex justify-between py-2.5 ${booking.needLadder || booking.memo ? "border-b border-border-light" : ""}`}>
+              <span className="text-text-sub">주차</span>
               <span className="font-medium">
                 {booking.hasParking === true
                   ? "가능"
@@ -287,16 +290,16 @@ function AdminBookingDetailContent() {
               </span>
             </div>
             {booking.needLadder && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">사다리차</span>
+              <div className={`flex justify-between py-2.5 ${booking.memo ? "border-b border-border-light" : ""}`}>
+                <span className="text-text-sub">사다리차</span>
                 <span className="font-medium">
                   {booking.ladderType} | {formatPrice(booking.ladderPrice)}원
                 </span>
               </div>
             )}
             {booking.memo && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">요청사항</span>
+              <div className="flex justify-between py-2.5">
+                <span className="text-text-sub">요청사항</span>
                 <span className="font-medium text-right max-w-[60%]">
                   {booking.memo}
                 </span>
@@ -306,14 +309,14 @@ function AdminBookingDetailContent() {
         </div>
 
         {/* 품목 */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">
             품목 ({booking.items.length}종)
           </h3>
           <div className="space-y-1.5">
             {booking.items.map((item, idx) => (
               <div key={idx} className="flex justify-between text-sm">
-                <span className="text-gray-700 truncate max-w-[65%]">
+                <span className="text-text-sub truncate max-w-[65%]">
                   {item.category} - {item.name} x{item.quantity}
                 </span>
                 <span className="font-medium">
@@ -326,8 +329,8 @@ function AdminBookingDetailContent() {
 
         {/* 사진 */}
         {booking.photos && booking.photos.length > 0 && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">
+          <div className="bg-bg rounded-2xl p-5 border border-border-light">
+            <h3 className="text-sm font-semibold text-text-sub mb-3">
               사진 ({booking.photos.length}장)
             </h3>
             <div className="grid grid-cols-3 gap-2">
@@ -337,7 +340,7 @@ function AdminBookingDetailContent() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="aspect-square bg-gray-100 rounded-lg overflow-hidden"
+                  className="aspect-square bg-bg-warm rounded-xl overflow-hidden"
                 >
                   <img
                     src={url}
@@ -351,26 +354,26 @@ function AdminBookingDetailContent() {
         )}
 
         {/* 견적 */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">견적</h3>
-          <div className="space-y-2 text-sm">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">견적</h3>
+          <div className="space-y-0 text-sm">
             {booking.estimateMin != null && booking.estimateMax != null && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">예상 견적</span>
+              <div className="flex justify-between py-2.5 border-b border-border-light">
+                <span className="text-text-sub">예상 견적</span>
                 <span className="font-medium">
                   {formatPrice(booking.estimateMin)} ~{" "}
                   {formatPrice(booking.estimateMax)}원
                 </span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-500">자동 산정</span>
+            <div className={`flex justify-between py-2.5 ${booking.finalPrice != null ? "border-b border-border-light" : ""}`}>
+              <span className="text-text-sub">자동 산정</span>
               <span className="font-medium">
                 {formatPrice(booking.totalPrice)}원 ({booking.crewSize}명)
               </span>
             </div>
             {booking.finalPrice != null && (
-              <div className="flex justify-between text-[#2563EB] font-bold">
+              <div className="flex justify-between py-2.5 text-primary font-bold">
                 <span>최종 견적</span>
                 <span>{formatPrice(booking.finalPrice)}원</span>
               </div>
@@ -378,8 +381,8 @@ function AdminBookingDetailContent() {
           </div>
 
           {/* 최종 견적 입력 */}
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <label className="text-sm text-gray-500 block mb-1.5">
+          <div className="mt-4 pt-3 border-t border-border-light">
+            <label className="text-sm text-text-sub block mb-1.5">
               최종 견적 입력 (원)
             </label>
             <input
@@ -389,10 +392,10 @@ function AdminBookingDetailContent() {
                 setFinalPriceInput(e.target.value.replace(/[^0-9]/g, ""))
               }
               placeholder="금액 입력"
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#2563EB]"
+              className="w-full px-3 py-2.5 rounded-xl border border-border-light bg-bg-warm text-sm focus:outline-none focus:border-primary transition-colors duration-200"
             />
             {finalPriceInput && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-text-muted mt-1">
                 {formatPrice(Number(finalPriceInput))}원
               </p>
             )}
@@ -400,8 +403,8 @@ function AdminBookingDetailContent() {
         </div>
 
         {/* 관리자 메모 */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">
+        <div className="bg-bg rounded-2xl p-5 border border-border-light">
+          <h3 className="text-sm font-semibold text-text-sub mb-3">
             관리자 메모
           </h3>
           <textarea
@@ -409,12 +412,12 @@ function AdminBookingDetailContent() {
             onChange={(e) => setAdminMemoInput(e.target.value)}
             placeholder="내부 메모 (고객에게 노출되지 않음)"
             rows={3}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+            className="w-full px-3 py-2.5 rounded-xl border border-border-light bg-bg-warm text-sm focus:outline-none focus:border-primary transition-colors duration-200 resize-none"
           />
           <button
             onClick={handleSaveMemo}
             disabled={saving}
-            className="mt-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 disabled:opacity-40"
+            className="mt-2 px-4 py-2.5 rounded-xl bg-bg-warm text-text-neutral text-sm font-medium hover:bg-bg-warm2 transition-colors duration-200 disabled:opacity-40"
           >
             {saving ? "저장 중..." : "메모 저장"}
           </button>
@@ -432,10 +435,10 @@ function AdminBookingDetailContent() {
                   key={action.status}
                   onClick={() => handleStatusChange(action.status)}
                   disabled={saving}
-                  className={`w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-40 ${
+                  className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
                     isPrimary
-                      ? "bg-[#2563EB] text-white"
-                      : "border border-red-300 text-red-500 hover:bg-red-50"
+                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)] hover:shadow-[0_6px_20px_rgba(26,163,255,0.4)] active:scale-[0.98]"
+                      : "border border-semantic-red/30 text-semantic-red bg-semantic-red-tint hover:bg-semantic-red/10"
                   }`}
                 >
                   {action.label}

@@ -23,7 +23,7 @@ export const OptionButton = forwardRef<HTMLButtonElement, OptionButtonProps>(
     ref,
   ) {
     const stateClass = disabled
-      ? "bg-bg-warm2 border-[#DEE3ED] text-disable-strong cursor-not-allowed"
+      ? "bg-bg-warm2 border-disable-alt text-disable-strong cursor-not-allowed"
       : selected
         ? "bg-brand-50 border-brand-400 text-brand-700"
         : "bg-white border-border text-text-primary hover:border-brand-300";

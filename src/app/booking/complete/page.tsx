@@ -97,7 +97,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 신청 요약 */}
-      <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
         <h2 className="font-semibold text-lg">신청 정보</h2>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between py-2 border-b border-border-light">
@@ -144,7 +144,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 품목 내역 */}
-      <div className="bg-white rounded-2xl shadow-sm p-5">
+      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">품목 내역</h2>
         <div className="space-y-2 text-sm">
           {booking.items.map((item, i) => (
@@ -176,7 +176,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 안내 */}
-      <div className="bg-white rounded-2xl shadow-sm p-5">
+      <div className="bg-bg rounded-2xl shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">안내 사항</h2>
         <ul className="space-y-2 text-sm text-text-sub">
           <li className="flex gap-2">

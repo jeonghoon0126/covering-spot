@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 
 const STATUS_TABS = [
@@ -27,14 +28,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-orange-100 text-orange-600",
-  quote_confirmed: "bg-blue-100 text-blue-600",
-  in_progress: "bg-purple-100 text-purple-600",
-  completed: "bg-green-100 text-green-600",
-  payment_requested: "bg-yellow-100 text-yellow-700",
-  payment_completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-600",
-  rejected: "bg-gray-100 text-gray-600",
+  pending: "bg-semantic-orange-tint text-semantic-orange",
+  quote_confirmed: "bg-primary-tint text-primary",
+  in_progress: "bg-primary-tint text-primary-dark",
+  completed: "bg-semantic-green-tint text-semantic-green",
+  payment_requested: "bg-semantic-orange-tint text-semantic-orange",
+  payment_completed: "bg-semantic-green-tint text-semantic-green",
+  cancelled: "bg-semantic-red-tint text-semantic-red",
+  rejected: "bg-fill-tint text-text-muted",
 };
 
 function formatPrice(n: number): string {
@@ -88,15 +89,15 @@ export default function AdminDashboardPage() {
   const totalCount = Object.values(counts).reduce((s, n) => s + n, 0);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-bg-warm">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
           <div className="flex items-center gap-3">
             <button
               onClick={fetchBookings}
-              className="text-sm text-gray-500 hover:text-gray-800"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200"
             >
               새로고침
             </button>
@@ -105,7 +106,7 @@ export default function AdminDashboardPage() {
                 sessionStorage.removeItem("admin_token");
                 router.push("/admin");
               }}
-              className="text-sm text-red-500"
+              className="text-sm text-semantic-red"
             >
               로그아웃
             </button>
@@ -124,14 +125,14 @@ export default function AdminDashboardPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-[#2563EB] text-white"
-                    : "bg-white text-gray-600 border border-gray-200"
+                    ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                    : "bg-bg text-text-sub border border-border-light hover:border-primary/30"
                 }`}
               >
                 {tab.label}{" "}
-                <span className={isActive ? "text-white/70" : "text-gray-400"}>
+                <span className={isActive ? "text-white/70" : "text-text-muted"}>
                   {count}
                 </span>
               </button>
@@ -142,10 +143,10 @@ export default function AdminDashboardPage() {
         {/* 목록 */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto" />
+            <LoadingSpinner size="lg" />
           </div>
         ) : bookings.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 text-sm">
+          <div className="text-center py-12 text-text-muted text-sm">
             해당 상태의 신청이 없습니다
           </div>
         ) : (
@@ -156,7 +157,7 @@ export default function AdminDashboardPage() {
                 onClick={() =>
                   router.push(`/admin/bookings/${b.id}?token=${token}`)
                 }
-                className="w-full bg-white rounded-xl p-4 text-left hover:shadow-md transition-shadow border border-gray-100"
+                className="w-full bg-bg rounded-2xl p-5 text-left border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -165,11 +166,11 @@ export default function AdminDashboardPage() {
                     >
                       {STATUS_LABELS[b.status] || b.status}
                     </span>
-                    <span className="text-xs text-gray-400 font-mono">
+                    <span className="text-xs text-text-muted font-mono">
                       #{b.id.slice(0, 8)}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-text-muted">
                     {new Date(b.createdAt).toLocaleDateString("ko-KR")}
                   </span>
                 </div>
@@ -179,7 +180,7 @@ export default function AdminDashboardPage() {
                     <p className="text-sm font-medium">
                       {b.customerName} | {b.area}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-text-sub mt-0.5">
                       {b.date} {b.timeSlot} | 품목 {b.items.length}종
                       {b.photos && b.photos.length > 0 &&
                         ` | 사진 ${b.photos.length}장`}
@@ -187,16 +188,16 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="text-right">
                     {b.finalPrice != null ? (
-                      <p className="text-sm font-bold text-[#2563EB]">
+                      <p className="text-sm font-bold text-primary">
                         {formatPrice(b.finalPrice)}원
                       </p>
                     ) : b.estimateMin && b.estimateMax ? (
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-text-neutral">
                         {formatPrice(b.estimateMin)}~
                         {formatPrice(b.estimateMax)}원
                       </p>
                     ) : (
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-text-neutral">
                         {formatPrice(b.totalPrice)}원
                       </p>
                     )}

@@ -10,7 +10,7 @@ interface DividerProps {
 
 /* ─── Height → thickness & color ─── */
 const heightStyles: Record<Height, string> = {
-  xs: "h-px bg-[#DEE3ED]",
+  xs: "h-px bg-bg-warm3",
   sm: "h-1 bg-bg-warm2",
   md: "h-2 bg-bg-warm2",
   lg: "h-3 bg-bg-warm2",

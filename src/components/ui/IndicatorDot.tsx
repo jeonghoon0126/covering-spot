@@ -41,7 +41,7 @@ export function IndicatorDot({
               "transition-all duration-200 ease-out",
               isActive
                 ? "w-4 h-1.5 bg-brand-400"
-                : "w-1.5 h-1.5 bg-border hover:bg-[#8A96A8]",
+                : "w-1.5 h-1.5 bg-border hover:bg-fill-assistive",
               onChange ? "cursor-pointer" : "cursor-default",
             ]
               .filter(Boolean)

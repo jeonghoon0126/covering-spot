@@ -283,10 +283,10 @@ export default function BookingManagePage() {
                                 key={slot}
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, timeSlot: slot })}
-                                className={`px-3 py-2 rounded-xl border text-sm transition-colors ${
+                                className={`py-3 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                                   editForm.timeSlot === slot
-                                    ? "bg-primary text-white border-primary"
-                                    : "border-border-light hover:border-primary/50"
+                                    ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                                    : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
                                 }`}
                               >
                                 {slot}
@@ -345,31 +345,28 @@ export default function BookingManagePage() {
                       </div>
                     ) : (
                       /* 읽기 모드 */
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
+                      <div className="space-y-0 text-sm">
+                        <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">주소</span>
                           <span className="font-medium text-right max-w-[60%]">
                             {b.address} {b.addressDetail}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">인력</span>
-                          <span>{b.crewSize}명</span>
+                          <span className="font-medium">{b.crewSize}명</span>
                         </div>
-
-                        {/* 작업 환경 */}
-                        <div className="flex justify-between">
+                        <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">엘리베이터</span>
-                          <span>{b.hasElevator ? "사용 가능" : "사용 불가"}</span>
+                          <span className="font-medium">{b.hasElevator ? "사용 가능" : "사용 불가"}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">주차</span>
-                          <span>{b.hasParking ? "가능" : "불가능"}</span>
+                          <span className="font-medium">{b.hasParking ? "가능" : "불가능"}</span>
                         </div>
 
-                        {/* 예상 견적 */}
                         {b.estimateMin > 0 && b.estimateMax > 0 && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub">예상 견적</span>
                             <span className="font-medium">
                               {formatPrice(b.estimateMin)} ~ {formatPrice(b.estimateMax)}원
@@ -377,9 +374,8 @@ export default function BookingManagePage() {
                           </div>
                         )}
 
-                        {/* 최종 견적 (확정된 경우만) */}
                         {b.finalPrice !== null && b.finalPrice !== undefined && b.finalPrice > 0 && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub font-semibold">최종 견적</span>
                             <span className="font-bold text-primary">
                               {formatPrice(b.finalPrice)}원
@@ -388,40 +384,39 @@ export default function BookingManagePage() {
                         )}
 
                         {b.needLadder && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub">사다리차</span>
-                            <span>
+                            <span className="font-medium">
                               {b.ladderType} ({formatPrice(b.ladderPrice)}원)
                             </span>
                           </div>
                         )}
 
-                        {/* 사진 수 */}
                         {b.photos && b.photos.length > 0 && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub">첨부 사진</span>
-                            <span>{b.photos.length}장</span>
+                            <span className="font-medium">{b.photos.length}장</span>
                           </div>
                         )}
 
                         {b.memo && (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub">메모</span>
-                            <span className="text-right max-w-[60%]">
+                            <span className="font-medium text-right max-w-[60%]">
                               {b.memo}
                             </span>
                           </div>
                         )}
 
                         {/* 품목 목록 */}
-                        <div className="pt-2 border-t border-border-light">
-                          <p className="text-text-sub mb-2">품목</p>
+                        <div className="pt-3">
+                          <p className="text-text-sub font-medium mb-2">품목</p>
                           {b.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between py-1">
+                            <div key={idx} className="flex justify-between py-1.5">
                               <span className="truncate max-w-[60%]">
                                 {item.category} - {item.name} x{item.quantity}
                               </span>
-                              <span>{formatPrice(item.price * item.quantity)}원</span>
+                              <span className="font-medium">{formatPrice(item.price * item.quantity)}원</span>
                             </div>
                           ))}
                         </div>

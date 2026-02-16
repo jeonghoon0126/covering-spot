@@ -13,7 +13,7 @@ const links = [
 
 export function Footer() {
   return (
-    <footer className="bg-[#0F172A] text-[#94A3B8] pt-16 pb-10">
+    <footer className="bg-brand-900 text-text-muted pt-16 pb-10">
       <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5">
         {/* Top */}
         <div className="flex justify-between items-start gap-12 pb-10 border-b border-white/10 max-md:flex-col max-md:gap-10">
@@ -87,11 +87,11 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="pt-8 flex justify-between items-end gap-8 max-md:flex-col max-md:items-start max-md:gap-4">
-          <div className="text-[12px] leading-[1.8] text-[#64748B]">
+          <div className="text-[12px] leading-[1.8] text-text-sub">
             서울특별시 종로구 새문안로5길 13, 1104호<br />
             사업자등록번호 621-87-01772 | 통신판매업 제 2024-서울중구-1863 호
           </div>
-          <div className="text-[12px] text-[#64748B]">
+          <div className="text-[12px] text-text-sub">
             Copyright &copy; 2024 Covering Co. Ltd. | 누구나 처리를 간편하게
           </div>
         </div>

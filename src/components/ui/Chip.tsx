@@ -28,7 +28,7 @@ const variantStyles: Record<Variant, { base: string; selected: string }> = {
     selected: "bg-brand-50 text-brand-700",
   },
   outline: {
-    base: "bg-transparent border border-border text-[#16191D]",
+    base: "bg-transparent border border-border text-text-primary",
     selected: "border-brand-400 text-brand-700 bg-brand-50",
   },
 };

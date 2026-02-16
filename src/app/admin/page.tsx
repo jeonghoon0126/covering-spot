@@ -37,11 +37,11 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg-warm flex items-center justify-center p-4">
       <div className="w-full max-w-[24rem]">
-        <div className="bg-white rounded-2xl shadow-sm p-8">
+        <div className="bg-bg rounded-2xl shadow-md border border-border-light p-8">
           <h1 className="text-xl font-bold text-center mb-1">커버링 스팟</h1>
-          <p className="text-sm text-gray-500 text-center mb-8">관리자 로그인</p>
+          <p className="text-sm text-text-sub text-center mb-8">관리자 로그인</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <TextField
