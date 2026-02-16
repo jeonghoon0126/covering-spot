@@ -67,8 +67,8 @@ function BookingCompleteContent() {
     <div className="space-y-6">
       {/* 완료 헤더 */}
       <div className="text-center py-6">
-        <div className="w-16 h-16 bg-[#22C55E]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-16 h-16 bg-semantic-green-tint rounded-full flex items-center justify-center mx-auto mb-4 text-semantic-green">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
@@ -79,15 +79,15 @@ function BookingCompleteContent() {
       </div>
 
       {/* 상태 표시 */}
-      <div className="bg-[#F97316]/10 rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#F97316]/20 rounded-full flex items-center justify-center shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="bg-semantic-orange-tint rounded-2xl p-4 flex items-center gap-3">
+        <div className="w-10 h-10 bg-semantic-orange/20 rounded-full flex items-center justify-center shrink-0 text-semantic-orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#F97316]">견적 산정 중</p>
+          <p className="text-sm font-semibold text-semantic-orange">견적 산정 중</p>
           <p className="text-xs text-text-sub mt-0.5">담당자가 품목을 확인하고 있습니다</p>
         </div>
       </div>

@@ -75,12 +75,6 @@ export function Pricing() {
               </div>
             ))}
 
-            {/* 하단 안내 */}
-            <div className="px-10 py-5 bg-primary-bg border-t border-primary/8 max-sm:px-6">
-              <p className="text-[13px] text-primary font-medium leading-relaxed">
-                카톡으로 품목만 알려주시면 10분 내 견적을 안내드려요
-              </p>
-            </div>
           </div>
         </ScrollReveal>
 

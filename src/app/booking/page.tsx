@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-const STEPS = ["날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "신청 확인"];
+const STEPS = ["고객 정보", "날짜/시간", "지역", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
 const PHOTO_RECOMMEND_CATEGORIES = ["장롱", "침대", "소파"];
@@ -44,37 +44,7 @@ export default function BookingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Step 0: 날짜/시간
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [calMonth, setCalMonth] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() };
-  });
-
-  // Step 1: 지역
-  const [areas, setAreas] = useState<SpotArea[]>([]);
-  const [selectedArea, setSelectedArea] = useState("");
-  const [areaSearch, setAreaSearch] = useState("");
-
-  // Step 2: 품목 + 사진
-  const [categories, setCategories] = useState<SpotCategory[]>([]);
-  const [openCat, setOpenCat] = useState<string | null>(null);
-  const [selectedItems, setSelectedItems] = useState<BookingItem[]>([]);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Step 3: 작업 환경 (NEW)
-  const [hasElevator, setHasElevator] = useState<boolean | null>(null);
-  const [hasParking, setHasParking] = useState<boolean | null>(null);
-
-  // Step 4: 사다리차
-  const [needLadder, setNeedLadder] = useState(false);
-  const [ladderType, setLadderType] = useState("10층 미만");
-  const [ladderHours, setLadderHours] = useState(0);
-
-  // Step 5: 고객정보
+  // Step 0: 고객정보
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -82,8 +52,39 @@ export default function BookingPage() {
   const [memo, setMemo] = useState("");
   const [showPostcode, setShowPostcode] = useState(false);
 
-  // 견적
+  // Step 1: 날짜/시간
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [calMonth, setCalMonth] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  });
+
+  // Step 2: 지역
+  const [areas, setAreas] = useState<SpotArea[]>([]);
+  const [selectedArea, setSelectedArea] = useState("");
+  const [areaSearch, setAreaSearch] = useState("");
+
+  // Step 3: 품목 + 사진
+  const [categories, setCategories] = useState<SpotCategory[]>([]);
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<BookingItem[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Step 4: 작업 환경
+  const [hasElevator, setHasElevator] = useState<boolean | null>(null);
+  const [hasParking, setHasParking] = useState<boolean | null>(null);
+
+  // Step 5: 사다리차
+  const [needLadder, setNeedLadder] = useState(false);
+  const [ladderType, setLadderType] = useState("10층 미만");
+  const [ladderHours, setLadderHours] = useState(0);
+
+  // Step 6: 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
+  const [leadSaved, setLeadSaved] = useState(false);
 
   // 데이터 로드
   useEffect(() => {
@@ -114,9 +115,8 @@ export default function BookingPage() {
     const newFiles = Array.from(files);
     setPhotos((prev) => {
       const combined = [...prev, ...newFiles];
-      return combined.slice(0, 5); // 최대 5장
+      return combined.slice(0, 5);
     });
-    // input 초기화 (같은 파일 다시 선택 가능하게)
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -152,9 +152,37 @@ export default function BookingPage() {
     }
   }, [selectedArea, selectedItems, needLadder, ladderType, ladderHours]);
 
+  // 견적 확인 단계 진입 시 견적 계산
   useEffect(() => {
-    if (step === 5) calcQuote();
+    if (step === 6) calcQuote();
   }, [step, calcQuote]);
+
+  // 리드 저장 (견적 확인 단계 진입 시 - 넛지용)
+  useEffect(() => {
+    if (step === 6 && !leadSaved) {
+      setLeadSaved(true);
+      fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName,
+          phone,
+          address,
+          addressDetail,
+          memo,
+          date: selectedDate,
+          timeSlot: selectedTime,
+          area: selectedArea,
+          items: selectedItems,
+          hasElevator,
+          hasParking,
+          needLadder,
+        }),
+      }).catch(() => {
+        /* 리드 저장 실패는 무시 */
+      });
+    }
+  }, [step, leadSaved, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, needLadder]);
 
   // 품목 수량 변경
   function updateItemQty(
@@ -188,7 +216,7 @@ export default function BookingPage() {
     );
   }
 
-  // 수거 신청 제출
+  // 수거 신청 확정
   async function handleSubmit() {
     if (!quote) return;
     setLoading(true);
@@ -250,12 +278,13 @@ export default function BookingPage() {
 
   // 스텝별 완료 조건
   const canNext = [
-    selectedDate && selectedTime,                        // Step 0
-    selectedArea,                                         // Step 1
-    selectedItems.length > 0,                            // Step 2
-    hasElevator !== null && hasParking !== null,          // Step 3 (NEW)
-    true,                                                 // Step 4 (사다리차)
-    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address,  // Step 5
+    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address,  // Step 0: 고객 정보
+    selectedDate && selectedTime,                        // Step 1: 날짜/시간
+    selectedArea,                                         // Step 2: 지역
+    selectedItems.length > 0,                            // Step 3: 품목/사진
+    hasElevator !== null && hasParking !== null,          // Step 4: 작업 환경
+    true,                                                 // Step 5: 사다리차
+    !!quote,                                              // Step 6: 견적 확인
   ];
 
   const today = new Date();
@@ -265,7 +294,6 @@ export default function BookingPage() {
     <div>
       {/* 스텝 인디케이터 */}
       <div className="mb-8">
-        {/* 프로그레스 바 + 스텝 번호 */}
         <div className="flex items-center gap-1 mb-3">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-1 flex-1">
@@ -294,7 +322,6 @@ export default function BookingPage() {
             </div>
           ))}
         </div>
-        {/* 스텝명 라벨 (데스크톱: 전체 표시, 모바일: 현재 스텝만) */}
         <div className="hidden sm:flex items-center gap-1 mb-3">
           {STEPS.map((s, i) => (
             <div key={`label-${s}`} className="flex items-center gap-1 flex-1">
@@ -317,8 +344,64 @@ export default function BookingPage() {
         </h2>
       </div>
 
-      {/* Step 0: 날짜/시간 */}
+      {/* Step 0: 고객 정보 */}
       {step === 0 && (
+        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+          <p className="text-sm text-text-sub">
+            수거 신청을 위해 기본 정보를 입력해 주세요
+          </p>
+          <TextField
+            label="이름"
+            required
+            placeholder="이름을 입력하세요"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            error={customerName.length > 0 && customerName.trim().length < 2}
+            helperText={customerName.length > 0 && customerName.trim().length < 2 ? "2글자 이상 입력하세요" : undefined}
+          />
+          <TextField
+            label="전화번호"
+            required
+            type="tel"
+            placeholder="010-1234-5678"
+            value={phone}
+            onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+            error={phone.length > 0 && phone.replace(/-/g, "").length < 10}
+            helperText={phone.length > 0 && phone.replace(/-/g, "").length < 10 ? "올바른 전화번호를 입력하세요" : undefined}
+          />
+          <div className="flex flex-col">
+            <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
+              주소<span className="ml-0.5 text-semantic-red">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowPostcode(true)}
+              className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 ${
+                address ? "text-text-primary" : "text-text-muted"
+              }`}
+            >
+              {address || "주소를 검색하세요"}
+            </button>
+          </div>
+          <TextField
+            label="상세주소"
+            placeholder="동/호수를 입력하세요"
+            value={addressDetail}
+            onChange={(e) => setAddressDetail(e.target.value)}
+          />
+          <TextArea
+            label="요청사항"
+            placeholder="요청사항을 입력하세요 (선택)"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            rows={3}
+            maxLength={200}
+          />
+        </div>
+      )}
+
+      {/* Step 1: 날짜/시간 */}
+      {step === 1 && (
         <div className="space-y-6">
           {/* 달력 */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
@@ -405,8 +488,8 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 1: 지역 */}
-      {step === 1 && (
+      {/* Step 2: 지역 */}
+      {step === 2 && (
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <div className="mb-4">
             <TextField
@@ -432,35 +515,18 @@ export default function BookingPage() {
                 </button>
               ))}
           </div>
-          {selectedArea && (
-            <div className="mt-4 p-3 bg-primary-bg rounded-xl">
-              <p className="text-sm font-medium text-primary">
-                {selectedArea} 인력 단가
-              </p>
-              {(() => {
-                const a = areas.find((a) => a.name === selectedArea);
-                if (!a) return null;
-                return (
-                  <div className="flex gap-4 mt-1 text-sm text-text-sub">
-                    <span>1명: {formatPrice(a.price1)}원</span>
-                    <span>2명: {formatPrice(a.price2)}원</span>
-                    <span>3명: {formatPrice(a.price3)}원</span>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
         </div>
       )}
 
-      {/* Step 2: 품목 + 사진 업로드 */}
-      {step === 2 && (
+      {/* Step 3: 품목 + 사진 업로드 */}
+      {step === 3 && (
         <div className="space-y-3">
-          {/* 선택된 품목 요약 */}
+          {/* 선택된 품목 요약 (가격 미표시) */}
           {selectedItems.length > 0 && (
             <div className="bg-primary-bg rounded-2xl p-4 mb-4">
               <p className="text-sm font-semibold text-primary mb-2">
-                선택된 품목 ({selectedItems.length}종)
+                선택된 품목 ({selectedItems.length}종,{" "}
+                {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
               </p>
               {selectedItems.map((item) => (
                 <div
@@ -468,25 +534,13 @@ export default function BookingPage() {
                   className="flex justify-between text-sm py-1"
                 >
                   <span>
-                    {item.category} - {item.name} x{item.quantity}
+                    {item.category} - {item.name}
                   </span>
-                  <span className="font-medium">
-                    {formatPrice(item.price * item.quantity)}원
+                  <span className="font-medium text-text-sub">
+                    x{item.quantity}
                   </span>
                 </div>
               ))}
-              <div className="border-t border-primary/20 mt-2 pt-2 flex justify-between font-semibold text-sm">
-                <span>합계</span>
-                <span>
-                  {formatPrice(
-                    selectedItems.reduce(
-                      (s, i) => s + i.price * i.quantity,
-                      0,
-                    ),
-                  )}
-                  원
-                </span>
-              </div>
             </div>
           )}
           {/* 카테고리 아코디언 */}
@@ -518,9 +572,6 @@ export default function BookingPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
                             {item.name}
-                          </p>
-                          <p className="text-xs text-text-muted">
-                            {formatPrice(item.price)}원
                           </p>
                         </div>
                         <div className="flex items-center gap-2 ml-3">
@@ -573,7 +624,7 @@ export default function BookingPage() {
                 대형 품목(침대, 장롱, 소파 등)은 사진 첨부 시 정확한 견적 산정이 가능합니다
               </p>
               {hasPhotoRecommendItem && photos.length === 0 && (
-                <p className="text-sm text-[#F97316] mt-1 font-medium">
+                <p className="text-sm text-semantic-orange mt-1 font-medium">
                   선택하신 품목은 사진 첨부를 권장합니다
                 </p>
               )}
@@ -621,8 +672,8 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 3: 작업 환경 (NEW) */}
-      {step === 3 && (
+      {/* Step 4: 작업 환경 */}
+      {step === 4 && (
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-6">
           <div>
             <p className="font-medium mb-3">엘리베이터</p>
@@ -677,8 +728,8 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 4: 사다리차 */}
-      {step === 4 && (
+      {/* Step 5: 사다리차 */}
+      {step === 5 && (
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-5">
           <Checkbox
             checked={needLadder}
@@ -738,13 +789,27 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Step 5: 수거 신청 확인 + 고객정보 */}
-      {step === 5 && (
+      {/* Step 6: 견적 확인 + 예약 확정 */}
+      {step === 6 && (
         <div className="space-y-5">
           {/* 수거 신청 요약 */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
             <h3 className="font-semibold mb-3">수거 신청 요약</h3>
             <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-text-sub">고객명</span>
+                <span className="font-medium">{customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub">연락처</span>
+                <span className="font-medium">{phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub">주소</span>
+                <span className="font-medium text-right max-w-[60%]">
+                  {address} {addressDetail}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-text-sub">날짜</span>
                 <span className="font-medium">{selectedDate}</span>
@@ -783,7 +848,7 @@ export default function BookingPage() {
           </div>
 
           {/* 견적 상세 */}
-          {quote && (
+          {quote ? (
             <div className="bg-white rounded-2xl shadow-sm p-5">
               <h3 className="font-semibold mb-3">견적 금액</h3>
               <div className="space-y-2 text-sm">
@@ -830,59 +895,12 @@ export default function BookingPage() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* 고객 정보 */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
-            <h3 className="font-semibold">고객 정보</h3>
-            <TextField
-              label="이름"
-              required
-              placeholder="이름을 입력하세요"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              error={customerName.length > 0 && customerName.trim().length < 2}
-              helperText={customerName.length > 0 && customerName.trim().length < 2 ? "2글자 이상 입력하세요" : undefined}
-            />
-            <TextField
-              label="전화번호"
-              required
-              type="tel"
-              placeholder="010-1234-5678"
-              value={phone}
-              onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
-              error={phone.length > 0 && phone.replace(/-/g, "").length < 10}
-              helperText={phone.length > 0 && phone.replace(/-/g, "").length < 10 ? "올바른 전화번호를 입력하세요" : undefined}
-            />
-            <div className="flex flex-col">
-              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
-                주소<span className="ml-0.5 text-semantic-red">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPostcode(true)}
-                className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 ${
-                  address ? "text-text-primary" : "text-text-muted"
-                }`}
-              >
-                {address || "주소를 검색하세요"}
-              </button>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center">
+              <LoadingSpinner size="lg" />
+              <p className="text-text-muted mt-4 text-sm">견적을 계산하고 있습니다...</p>
             </div>
-            <TextField
-              label="상세주소"
-              placeholder="동/호수를 입력하세요"
-              value={addressDetail}
-              onChange={(e) => setAddressDetail(e.target.value)}
-            />
-            <TextArea
-              label="요청사항"
-              placeholder="요청사항을 입력하세요 (선택)"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              rows={3}
-              maxLength={200}
-            />
-          </div>
+          )}
         </div>
       )}
 
@@ -908,6 +926,15 @@ export default function BookingPage() {
           >
             다음
           </Button>
+        ) : step === 5 ? (
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={() => setStep(6)}
+          >
+            견적 확인하기
+          </Button>
         ) : (
           <Button
             variant="primary"
@@ -917,7 +944,7 @@ export default function BookingPage() {
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? "" : "수거 신청하기"}
+            {loading ? "" : "수거 신청 확정하기"}
           </Button>
         )}
       </div>

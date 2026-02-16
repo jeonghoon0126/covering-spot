@@ -68,7 +68,7 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "tv",
     title: "TV/모니터",
-    price: "1,000원~",
+    price: "500원~",
     image:
       "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=640&h=400&fit=crop&q=80",
     alt: "TV 모니터 수거",
@@ -78,7 +78,7 @@ export const carouselItems: CarouselItem[] = [
     title: "서랍장/캐비닛",
     price: "18,000원~",
     image:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=640&h=400&fit=crop&q=80",
     alt: "서랍장 캐비닛 수거",
   },
   {

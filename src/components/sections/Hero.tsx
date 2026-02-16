@@ -207,7 +207,7 @@ export function Hero() {
                     : "none",
                 }}
               >
-                대형/대량 폐기물,
+                냉장고, 장롱, 이사 쓰레기도,
               </span>
               <span
                 className="block overflow-hidden"

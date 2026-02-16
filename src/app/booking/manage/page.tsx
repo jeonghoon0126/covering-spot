@@ -17,6 +17,14 @@ function formatPhoneNumber(value: string): string {
   return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
+/** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
+function canEdit(b: Booking): boolean {
+  if (b.status !== "pending") return false;
+  const pickupDate = new Date(b.date + "T00:00:00+09:00");
+  const deadline = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+  return new Date() < deadline;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
@@ -29,14 +37,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-[#F97316]/10 text-[#F97316]",
-  quote_confirmed: "bg-[#3B82F6]/10 text-[#3B82F6]",
-  in_progress: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
-  completed: "bg-[#22C55E]/10 text-[#22C55E]",
-  payment_requested: "bg-[#EAB308]/10 text-[#EAB308]",
-  payment_completed: "bg-[#059669]/10 text-[#059669]",
-  cancelled: "bg-[#EF4444]/10 text-[#EF4444]",
-  rejected: "bg-[#6B7280]/10 text-[#6B7280]",
+  pending: "bg-semantic-orange-tint text-semantic-orange",
+  quote_confirmed: "bg-primary-tint text-primary",
+  in_progress: "bg-primary-tint text-primary-dark",
+  completed: "bg-semantic-green-tint text-semantic-green",
+  payment_requested: "bg-semantic-orange-tint text-semantic-orange",
+  payment_completed: "bg-semantic-green-tint text-semantic-green",
+  cancelled: "bg-semantic-red-tint text-semantic-red",
+  rejected: "bg-fill-tint text-text-muted",
 };
 
 const STATUS_MESSAGES: Record<string, string> = {
@@ -50,6 +58,22 @@ const STATUS_MESSAGES: Record<string, string> = {
   rejected: "수거가 불가한 건입니다",
 };
 
+const TIME_SLOTS = [
+  "오전 (9~12시)",
+  "오후 (12~18시)",
+  "저녁 (18~21시)",
+  "시간 협의",
+];
+
+interface EditForm {
+  date: string;
+  timeSlot: string;
+  addressDetail: string;
+  hasElevator: boolean;
+  hasParking: boolean;
+  memo: string;
+}
+
 export default function BookingManagePage() {
   const [phone, setPhone] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -57,6 +81,9 @@ export default function BookingManagePage() {
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +121,53 @@ export default function BookingManagePage() {
       setCancelling(null);
     }
   }
+
+  function startEdit(b: Booking) {
+    setEditingId(b.id);
+    setEditForm({
+      date: b.date,
+      timeSlot: b.timeSlot,
+      addressDetail: b.addressDetail,
+      hasElevator: b.hasElevator,
+      hasParking: b.hasParking,
+      memo: b.memo,
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm(null);
+  }
+
+  async function handleSave(id: string) {
+    if (!editForm) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookings((prev) =>
+          prev.map((b) => (b.id === id ? data.booking : b)),
+        );
+        setEditingId(null);
+        setEditForm(null);
+      } else {
+        const err = await res.json();
+        alert(err.error || "수정 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // 오늘 날짜 (date input min 값용)
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="space-y-6">
@@ -139,6 +213,8 @@ export default function BookingManagePage() {
         <div className="space-y-4">
           {bookings.map((b) => {
             const isExpanded = expandedId === b.id;
+            const isEditing = editingId === b.id;
+            const editable = canEdit(b);
             return (
               <div
                 key={b.id}
@@ -186,106 +262,212 @@ export default function BookingManagePage() {
                       </p>
                     </div>
 
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-text-sub">주소</span>
-                        <span className="font-medium text-right max-w-[60%]">
-                          {b.address} {b.addressDetail}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-sub">인력</span>
-                        <span>{b.crewSize}명</span>
-                      </div>
-
-                      {/* 작업 환경 */}
-                      <div className="flex justify-between">
-                        <span className="text-text-sub">엘리베이터</span>
-                        <span>{b.hasElevator ? "사용 가능" : "사용 불가"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-sub">주차</span>
-                        <span>{b.hasParking ? "가능" : "불가능"}</span>
-                      </div>
-
-                      {/* 예상 견적 */}
-                      {b.estimateMin > 0 && b.estimateMax > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-text-sub">예상 견적</span>
-                          <span className="font-medium">
-                            {formatPrice(b.estimateMin)} ~ {formatPrice(b.estimateMax)}원
-                          </span>
+                    {/* 수정 모드 */}
+                    {isEditing && editForm ? (
+                      <div className="space-y-4 text-sm">
+                        <div>
+                          <label className="block text-text-sub mb-1">수거 희망일</label>
+                          <input
+                            type="date"
+                            min={today}
+                            value={editForm.date}
+                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-border-light rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
                         </div>
-                      )}
-
-                      {/* 최종 견적 (확정된 경우만) */}
-                      {b.finalPrice !== null && b.finalPrice !== undefined && b.finalPrice > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-text-sub font-semibold">최종 견적</span>
-                          <span className="font-bold text-primary">
-                            {formatPrice(b.finalPrice)}원
-                          </span>
-                        </div>
-                      )}
-
-                      {b.needLadder && (
-                        <div className="flex justify-between">
-                          <span className="text-text-sub">사다리차</span>
-                          <span>
-                            {b.ladderType} ({formatPrice(b.ladderPrice)}원)
-                          </span>
-                        </div>
-                      )}
-
-                      {/* 사진 수 */}
-                      {b.photos && b.photos.length > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-text-sub">첨부 사진</span>
-                          <span>{b.photos.length}장</span>
-                        </div>
-                      )}
-
-                      {b.memo && (
-                        <div className="flex justify-between">
-                          <span className="text-text-sub">메모</span>
-                          <span className="text-right max-w-[60%]">
-                            {b.memo}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* 품목 목록 */}
-                      <div className="pt-2 border-t border-border-light">
-                        <p className="text-text-sub mb-2">품목</p>
-                        {b.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-1">
-                            <span className="truncate max-w-[60%]">
-                              {item.category} - {item.name} x{item.quantity}
-                            </span>
-                            <span>{formatPrice(item.price * item.quantity)}원</span>
+                        <div>
+                          <label className="block text-text-sub mb-1">시간대</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {TIME_SLOTS.map((slot) => (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => setEditForm({ ...editForm, timeSlot: slot })}
+                                className={`px-3 py-2 rounded-xl border text-sm transition-colors ${
+                                  editForm.timeSlot === slot
+                                    ? "bg-primary text-white border-primary"
+                                    : "border-border-light hover:border-primary/50"
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            ))}
                           </div>
-                        ))}
+                        </div>
+                        <div>
+                          <label className="block text-text-sub mb-1">상세 주소</label>
+                          <TextField
+                            value={editForm.addressDetail}
+                            onChange={(e) => setEditForm({ ...editForm, addressDetail: e.target.value })}
+                            placeholder="동/호수"
+                          />
+                        </div>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editForm.hasElevator}
+                              onChange={(e) => setEditForm({ ...editForm, hasElevator: e.target.checked })}
+                              className="w-4 h-4 accent-primary"
+                            />
+                            <span>엘리베이터</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editForm.hasParking}
+                              onChange={(e) => setEditForm({ ...editForm, hasParking: e.target.checked })}
+                              className="w-4 h-4 accent-primary"
+                            />
+                            <span>주차 가능</span>
+                          </label>
+                        </div>
+                        <div>
+                          <label className="block text-text-sub mb-1">요청사항</label>
+                          <textarea
+                            value={editForm.memo}
+                            onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-2.5 border border-border-light rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                            placeholder="요청사항을 입력하세요"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="primary"
+                            size="md"
+                            fullWidth
+                            onClick={() => handleSave(b.id)}
+                            disabled={saving}
+                            loading={saving}
+                          >
+                            저장
+                          </Button>
+                          <Button
+                            variant="tertiary"
+                            size="md"
+                            fullWidth
+                            onClick={cancelEdit}
+                            disabled={saving}
+                          >
+                            취소
+                          </Button>
+                        </div>
                       </div>
+                    ) : (
+                      /* 읽기 모드 */
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-text-sub">주소</span>
+                          <span className="font-medium text-right max-w-[60%]">
+                            {b.address} {b.addressDetail}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-sub">인력</span>
+                          <span>{b.crewSize}명</span>
+                        </div>
 
-                      {/* 취소 버튼 */}
-                      {b.status !== "cancelled" &&
-                        b.status !== "completed" &&
-                        b.status !== "rejected" &&
-                        b.status !== "payment_requested" &&
-                        b.status !== "payment_completed" && (
-                        <Button
-                          variant="danger"
-                          size="md"
-                          fullWidth
-                          className="mt-3"
-                          onClick={() => handleCancel(b.id)}
-                          disabled={cancelling === b.id}
-                          loading={cancelling === b.id}
-                        >
-                          {cancelling === b.id ? "" : "신청 취소"}
-                        </Button>
-                      )}
-                    </div>
+                        {/* 작업 환경 */}
+                        <div className="flex justify-between">
+                          <span className="text-text-sub">엘리베이터</span>
+                          <span>{b.hasElevator ? "사용 가능" : "사용 불가"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-sub">주차</span>
+                          <span>{b.hasParking ? "가능" : "불가능"}</span>
+                        </div>
+
+                        {/* 예상 견적 */}
+                        {b.estimateMin > 0 && b.estimateMax > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-text-sub">예상 견적</span>
+                            <span className="font-medium">
+                              {formatPrice(b.estimateMin)} ~ {formatPrice(b.estimateMax)}원
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 최종 견적 (확정된 경우만) */}
+                        {b.finalPrice !== null && b.finalPrice !== undefined && b.finalPrice > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-text-sub font-semibold">최종 견적</span>
+                            <span className="font-bold text-primary">
+                              {formatPrice(b.finalPrice)}원
+                            </span>
+                          </div>
+                        )}
+
+                        {b.needLadder && (
+                          <div className="flex justify-between">
+                            <span className="text-text-sub">사다리차</span>
+                            <span>
+                              {b.ladderType} ({formatPrice(b.ladderPrice)}원)
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 사진 수 */}
+                        {b.photos && b.photos.length > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-text-sub">첨부 사진</span>
+                            <span>{b.photos.length}장</span>
+                          </div>
+                        )}
+
+                        {b.memo && (
+                          <div className="flex justify-between">
+                            <span className="text-text-sub">메모</span>
+                            <span className="text-right max-w-[60%]">
+                              {b.memo}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 품목 목록 */}
+                        <div className="pt-2 border-t border-border-light">
+                          <p className="text-text-sub mb-2">품목</p>
+                          {b.items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between py-1">
+                              <span className="truncate max-w-[60%]">
+                                {item.category} - {item.name} x{item.quantity}
+                              </span>
+                              <span>{formatPrice(item.price * item.quantity)}원</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 수정/취소 버튼 */}
+                        {b.status !== "cancelled" &&
+                          b.status !== "completed" &&
+                          b.status !== "rejected" &&
+                          b.status !== "payment_requested" &&
+                          b.status !== "payment_completed" && (
+                          <div className="flex gap-2 mt-3">
+                            {editable && (
+                              <Button
+                                variant="secondary"
+                                size="md"
+                                fullWidth
+                                onClick={() => startEdit(b)}
+                              >
+                                수정
+                              </Button>
+                            )}
+                            <Button
+                              variant="danger"
+                              size="md"
+                              fullWidth
+                              onClick={() => handleCancel(b.id)}
+                              disabled={cancelling === b.id}
+                              loading={cancelling === b.id}
+                            >
+                              {cancelling === b.id ? "" : "신청 취소"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
