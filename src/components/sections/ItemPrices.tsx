@@ -9,121 +9,156 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { track } from "@/lib/analytics";
 
-/* ── SVG 아이콘 (Toss-level minimal line icons) ── */
+/* ── SVG 아이콘 (Illustrated duotone style) ── */
 const icons: Record<string, React.ReactNode> = {
   sofa: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 11V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3" />
-      <path d="M3 14a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-1Z" />
-      <path d="M5 16v2m14-2v2" />
-      <path d="M7 12V9" /><path d="M17 12V9" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="10" width="24" height="10" rx="3" fill="#DBEAFE" />
+      <path d="M6 14c0-3.3 2.7-6 6-6h8c3.3 0 6 2.7 6 6" fill="#93C5FD" />
+      <rect x="3" y="16" width="26" height="5" rx="2.5" fill="#3B82F6" />
+      <rect x="6" y="21" width="3" height="3" rx="1" fill="#1E40AF" />
+      <rect x="23" y="21" width="3" height="3" rx="1" fill="#1E40AF" />
+      <path d="M8 16v-3a1 1 0 0 1 1-1h0a1 1 0 0 1 1 1v3" fill="#60A5FA" />
+      <path d="M22 16v-3a1 1 0 0 1 1-1h0a1 1 0 0 1 1 1v3" fill="#60A5FA" />
     </svg>
   ),
   bed: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7v10" /><path d="M21 7v10" />
-      <path d="M3 17h18" />
-      <path d="M3 11h18" />
-      <rect x="5" y="7" width="5" height="4" rx="1.5" />
-      <path d="M12 11V8a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="3" y="18" width="26" height="4" rx="2" fill="#3B82F6" />
+      <rect x="5" y="12" width="22" height="6" rx="2" fill="#93C5FD" />
+      <rect x="6" y="9" width="7" height="5" rx="2.5" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="1" />
+      <rect x="15" y="9" width="7" height="5" rx="2.5" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="1" />
+      <rect x="5" y="22" width="2" height="3" rx="1" fill="#1E40AF" />
+      <rect x="25" y="22" width="2" height="3" rx="1" fill="#1E40AF" />
     </svg>
   ),
   wardrobe: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="3" width="16" height="17" rx="2" />
-      <path d="M12 3v17" />
-      <path d="M4 20h16" />
-      <circle cx="10" cy="11" r="0.75" fill="currentColor" />
-      <circle cx="14" cy="11" r="0.75" fill="currentColor" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="5" y="4" width="22" height="23" rx="3" fill="#93C5FD" />
+      <rect x="6" y="5" width="10" height="21" rx="2" fill="#DBEAFE" />
+      <rect x="16" y="5" width="10" height="21" rx="2" fill="#EFF6FF" />
+      <line x1="16" y1="5" x2="16" y2="26" stroke="#3B82F6" strokeWidth="1.5" />
+      <circle cx="13" cy="15" r="1.2" fill="#3B82F6" />
+      <circle cx="19" cy="15" r="1.2" fill="#3B82F6" />
+      <rect x="7" y="27" width="4" height="2" rx="1" fill="#1E40AF" />
+      <rect x="21" y="27" width="4" height="2" rx="1" fill="#1E40AF" />
     </svg>
   ),
   table: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="7" width="18" height="3" rx="1.5" />
-      <path d="M5 10v9" /><path d="M19 10v9" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="3" y="10" width="26" height="4" rx="2" fill="#3B82F6" />
+      <rect x="4" y="9" width="24" height="3" rx="1.5" fill="#60A5FA" />
+      <rect x="6" y="14" width="3" height="12" rx="1.5" fill="#93C5FD" />
+      <rect x="23" y="14" width="3" height="12" rx="1.5" fill="#93C5FD" />
+      <path d="M6 26h6M20 26h6" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
   desk: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="7" width="18" height="2.5" rx="1" />
-      <path d="M5 9.5v9" /><path d="M19 9.5v9" />
-      <rect x="13" y="9.5" width="6" height="6" rx="1" />
-      <path d="M13 12.5h6" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="3" y="10" width="26" height="3.5" rx="1.5" fill="#3B82F6" />
+      <rect x="5" y="13.5" width="3" height="12" rx="1.5" fill="#93C5FD" />
+      <rect x="24" y="13.5" width="3" height="12" rx="1.5" fill="#93C5FD" />
+      <rect x="17" y="13.5" width="10" height="5" rx="1.5" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="1" />
+      <rect x="17" y="18.5" width="10" height="5" rx="1.5" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="1" />
+      <circle cx="22" cy="16" r="0.8" fill="#3B82F6" />
+      <circle cx="22" cy="21" r="0.8" fill="#3B82F6" />
     </svg>
   ),
   fridge: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="2" width="14" height="20" rx="2.5" />
-      <path d="M5 10h14" />
-      <path d="M9 6v2" /><path d="M9 13v4" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="7" y="2" width="18" height="28" rx="3" fill="#93C5FD" />
+      <rect x="8" y="3" width="16" height="11" rx="2" fill="#DBEAFE" />
+      <rect x="8" y="15" width="16" height="14" rx="2" fill="#EFF6FF" />
+      <line x1="8" y1="14.5" x2="24" y2="14.5" stroke="#3B82F6" strokeWidth="1.5" />
+      <rect x="11" y="7" width="1.5" height="4" rx="0.75" fill="#3B82F6" />
+      <rect x="11" y="18" width="1.5" height="6" rx="0.75" fill="#3B82F6" />
     </svg>
   ),
   washer: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="2" width="16" height="20" rx="2.5" />
-      <circle cx="12" cy="13" r="5" />
-      <circle cx="12" cy="13" r="2" />
-      <circle cx="8" cy="5.5" r="0.75" fill="currentColor" />
-      <circle cx="11" cy="5.5" r="0.75" fill="currentColor" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="5" y="3" width="22" height="27" rx="3" fill="#93C5FD" />
+      <rect x="6" y="4" width="20" height="6" rx="2" fill="#DBEAFE" />
+      <circle cx="16" cy="19" r="7" fill="#EFF6FF" />
+      <circle cx="16" cy="19" r="5" fill="#DBEAFE" stroke="#3B82F6" strokeWidth="1" />
+      <path d="M13 17c1-1.5 2.5-1.5 3 0s2 1.5 3 0" stroke="#3B82F6" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="10" cy="7" r="1.2" fill="#3B82F6" />
+      <circle cx="14" cy="7" r="1.2" fill="#60A5FA" />
     </svg>
   ),
   aircon: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="9" rx="2.5" />
-      <path d="M7 8.5h10" />
-      <path d="M8 13v3c0 1.5 1.5 2.5 3 1" />
-      <path d="M12 13v4" />
-      <path d="M16 13v3c0 1.5-1.5 2.5-3 1" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="3" y="5" width="26" height="12" rx="3" fill="#93C5FD" />
+      <rect x="4" y="6" width="24" height="10" rx="2" fill="#DBEAFE" />
+      <rect x="6" y="12" width="20" height="2" rx="1" fill="#3B82F6" opacity="0.6" />
+      <path d="M10 17v4c0 2 2 3 3.5 1.5" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M16 17v5" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M22 17v4c0 2-2 3-3.5 1.5" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
   tv: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="13" rx="2" />
-      <path d="M9 20h6" /><path d="M12 17v3" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="3" y="5" width="26" height="17" rx="2.5" fill="#1E40AF" />
+      <rect x="4.5" y="6.5" width="23" height="14" rx="1.5" fill="#DBEAFE" />
+      <path d="M5 7l22 13M5 20l22-13" stroke="#EFF6FF" strokeWidth="0.5" opacity="0.5" />
+      <rect x="13" y="22" width="6" height="3" rx="1" fill="#93C5FD" />
+      <rect x="10" y="25" width="12" height="2" rx="1" fill="#3B82F6" />
     </svg>
   ),
   kitchen: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3v6a3 3 0 0 0 3 3v0a3 3 0 0 0 3-3V3" />
-      <path d="M9 12v9" />
-      <path d="M18 3v0a4 4 0 0 0-4 4v5a2 2 0 0 0 2 2h2V3Zm0 0v18" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="7" y="14" width="4" height="14" rx="2" fill="#93C5FD" />
+      <path d="M8 4v6a3 3 0 0 0 3 3v0" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M11 4v6" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M14 4v6a3 3 0 0 1-3 3" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="20" y="4" width="6" height="24" rx="3" fill="#DBEAFE" />
+      <path d="M23 4c-2.8 0-5 2.2-5 5v5a3 3 0 0 0 3 3h2" fill="#93C5FD" />
+      <rect x="22" y="8" width="1.5" height="5" rx="0.75" fill="#3B82F6" />
     </svg>
   ),
   storage: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="3" width="16" height="6" rx="1.5" />
-      <rect x="4" y="11" width="16" height="6" rx="1.5" />
-      <path d="M10 6h4" /><path d="M10 14h4" />
-      <path d="M6 19h12" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="5" y="3" width="22" height="9" rx="2" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="1" />
+      <rect x="5" y="13" width="22" height="9" rx="2" fill="#EFF6FF" stroke="#93C5FD" strokeWidth="1" />
+      <rect x="13" y="6.5" width="6" height="2" rx="1" fill="#3B82F6" />
+      <rect x="13" y="16.5" width="6" height="2" rx="1" fill="#3B82F6" />
+      <rect x="5" y="23" width="22" height="3" rx="1.5" fill="#93C5FD" />
+      <rect x="8" y="26" width="3" height="2" rx="1" fill="#1E40AF" />
+      <rect x="21" y="26" width="3" height="2" rx="1" fill="#1E40AF" />
     </svg>
   ),
   fitness: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 7v10" /><path d="M18 7v10" />
-      <path d="M6 12h12" />
-      <rect x="2" y="9" width="4" height="6" rx="1" />
-      <rect x="18" y="9" width="4" height="6" rx="1" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="2" y="11" width="6" height="10" rx="2" fill="#3B82F6" />
+      <rect x="24" y="11" width="6" height="10" rx="2" fill="#3B82F6" />
+      <rect x="6" y="13" width="4" height="6" rx="1.5" fill="#60A5FA" />
+      <rect x="22" y="13" width="4" height="6" rx="1.5" fill="#60A5FA" />
+      <rect x="10" y="14.5" width="12" height="3" rx="1.5" fill="#93C5FD" />
     </svg>
   ),
   music: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18V5l12-2v13" />
-      <circle cx="6" cy="18" r="3" />
-      <circle cx="18" cy="16" r="3" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M12 22V7l14-3v15" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="8" cy="23" r="4" fill="#DBEAFE" stroke="#3B82F6" strokeWidth="1.5" />
+      <circle cx="22" cy="20" r="4" fill="#DBEAFE" stroke="#3B82F6" strokeWidth="1.5" />
+      <path d="M12 12l14-3" stroke="#3B82F6" strokeWidth="1.5" />
     </svg>
   ),
   appliance: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5Z" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 8v4l2.5 1.5" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="4" width="24" height="24" rx="4" fill="#DBEAFE" />
+      <rect x="5" y="5" width="22" height="22" rx="3" fill="#EFF6FF" />
+      <circle cx="16" cy="16" r="6" fill="#93C5FD" />
+      <circle cx="16" cy="16" r="3" fill="#DBEAFE" />
+      <path d="M16 10v6l4 2" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   etc: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      <path d="M3.27 6.96 12 12.01l8.73-5.05" />
-      <path d="M12 22.08V12" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M16 3L28 10v12l-12 7L4 22V10l12-7z" fill="#DBEAFE" />
+      <path d="M16 3L28 10v12l-12 7L4 22V10l12-7z" stroke="#93C5FD" strokeWidth="1.5" />
+      <path d="M4 10l12 7 12-7" stroke="#3B82F6" strokeWidth="1.5" />
+      <path d="M16 29V17" stroke="#3B82F6" strokeWidth="1.5" />
+      <circle cx="16" cy="14" r="3" fill="#60A5FA" opacity="0.5" />
     </svg>
   ),
 };
@@ -191,7 +226,7 @@ export function ItemPrices({ categories }: Props) {
                     : "bg-bg text-text-primary border-border hover:border-primary/40 hover:shadow-sm"
                 }`}
               >
-                <span className={cat.id === activeId ? "text-white" : "text-primary"}>
+                <span className="flex items-center shrink-0">
                   {icons[cat.icon] || icons.etc}
                 </span>
                 {cat.title}
@@ -207,7 +242,7 @@ export function ItemPrices({ categories }: Props) {
             className="max-w-[640px] mx-auto bg-bg rounded-3xl p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
           >
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-primary-tint flex items-center justify-center shrink-0 text-primary max-md:w-12 max-md:h-12">
+              <div className="w-14 h-14 rounded-2xl bg-primary-tint/50 flex items-center justify-center shrink-0 max-md:w-12 max-md:h-12">
                 {icons[active.icon] || icons.etc}
               </div>
               <div>
