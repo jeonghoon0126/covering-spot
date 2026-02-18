@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { subscribeToPush } from "@/lib/push-subscription";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -31,6 +32,7 @@ function BookingCompleteContent() {
   const id = searchParams.get("id");
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState("");
+  const [pushSubscribed, setPushSubscribed] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -177,6 +179,41 @@ function BookingCompleteContent() {
           정확한 금액은 담당자 확인 후 안내드립니다
         </p>
       </div>
+
+      {/* 푸시 알림 */}
+      {!pushSubscribed && typeof window !== "undefined" && "Notification" in window && Notification.permission !== "denied" && (
+        <div className="bg-primary-bg rounded-[--radius-lg] border border-primary/20 p-5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1AA3FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">진행 상황 알림 받기</p>
+            <p className="text-xs text-text-sub">견적 확정, 수거 완료 등 알림을 받으세요</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (booking) {
+                const ok = await subscribeToPush(booking.id);
+                if (ok) setPushSubscribed(true);
+              }
+            }}
+            className="shrink-0 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-[--radius-md]"
+          >
+            허용
+          </button>
+        </div>
+      )}
+      {pushSubscribed && (
+        <div className="bg-semantic-green-tint rounded-[--radius-lg] p-4 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <p className="text-sm text-semantic-green font-medium">알림이 설정되었습니다</p>
+        </div>
+      )}
 
       {/* 안내 */}
       <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">

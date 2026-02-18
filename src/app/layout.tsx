@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
+import { ExperimentProvider } from "@/contexts/ExperimentContext";
+import { PWAInstaller } from "@/components/PWAInstaller";
 import { SITE_TITLE, SITE_DESC, SITE_URL, SITE_NAME } from "@/lib/constants";
 import "./globals.css";
 
@@ -69,9 +71,19 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   alternates: { canonical: SITE_URL },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE_NAME,
+  },
   verification: {
     google: "google-site-verification-placeholder",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1AA3FF",
 };
 
 export default function RootLayout({
@@ -185,7 +197,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <AnalyticsProvider>{children}</AnalyticsProvider>
+        <ExperimentProvider>
+          <AnalyticsProvider>{children}</AnalyticsProvider>
+          <PWAInstaller />
+        </ExperimentProvider>
       </body>
     </html>
   );

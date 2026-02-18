@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useExperiment } from "@/contexts/ExperimentContext";
 import type { Booking } from "@/types/booking";
 
 const STATUS_TABS = [
@@ -52,6 +53,7 @@ function formatPrice(n: number): string {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { experimentName, variant } = useExperiment();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState("all");
@@ -168,7 +170,14 @@ export default function AdminDashboardPage() {
       {/* 헤더 */}
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
+            {experimentName && (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-semantic-orange-tint text-semantic-orange">
+                {experimentName}: {variant || "미할당"}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/admin/calendar")}

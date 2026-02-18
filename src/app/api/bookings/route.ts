@@ -6,6 +6,7 @@ import {
   updateBooking,
 } from "@/lib/db";
 import { sendBookingCreated } from "@/lib/slack-notify";
+import { isDateBookable } from "@/lib/booking-utils";
 import type { Booking } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -30,6 +31,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // 전날 12시 마감 정책 검증
+    if (!isDateBookable(body.date)) {
+      return NextResponse.json(
+        { error: "예약 마감된 날짜입니다. 전날 12시까지 신청 가능합니다." },
+        { status: 400 },
+      );
+    }
 
     const now = new Date().toISOString();
     const booking: Booking = {

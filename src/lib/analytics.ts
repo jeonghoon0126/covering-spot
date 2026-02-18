@@ -30,6 +30,13 @@ declare global {
   }
 }
 
+function getExperimentVariant(): Record<string, string> {
+  if (typeof document === "undefined") return {};
+  const match = document.cookie.match(/ab_([^=]+)=([^;]+)/);
+  if (!match) return {};
+  return { experiment: match[1], variant: match[2] };
+}
+
 export function track<T extends EventName>(
   event: T,
   properties?: T extends keyof EventProps ? EventProps[T] : never
@@ -38,6 +45,7 @@ export function track<T extends EventName>(
 
   const props = {
     ...properties,
+    ...getExperimentVariant(),
     timestamp: Date.now(),
     url: window.location.href,
   };

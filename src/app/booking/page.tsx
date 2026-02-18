@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { BookingItem } from "@/types/booking";
 import { detectAreaFromAddress } from "@/data/spot-areas";
+import { getEarliestBookableDate, isDateBookable } from "@/lib/booking-utils";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import DaumPostcodeEmbed from "react-daum-postcode";
@@ -18,7 +19,8 @@ import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
-const PHOTO_REQUIRED_CATEGORIES = ["장롱", "침대", "소파"];
+// 견적 미리보기 debounce용
+const QUOTE_PREVIEW_DEBOUNCE = 800;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -202,10 +204,33 @@ export default function BookingPage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // 사진 필수 카테고리(장롱, 침대, 소파) 선택 여부
-  const hasPhotoRequiredItem = selectedItems.some((item) =>
-    PHOTO_REQUIRED_CATEGORIES.includes(item.category),
-  );
+  // 품목 선택 시 견적 미리보기
+  const [previewQuote, setPreviewQuote] = useState<QuoteResult | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (step !== 2 || selectedItems.length === 0 || !selectedArea) {
+      setPreviewQuote(null);
+      return;
+    }
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            area: selectedArea,
+            items: selectedItems,
+            needLadder: false,
+          }),
+        });
+        const data = await res.json();
+        setPreviewQuote(data);
+      } catch { /* 미리보기 실패 무시 */ }
+    }, QUOTE_PREVIEW_DEBOUNCE);
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
+  }, [step, selectedItems, selectedArea]);
 
   // 견적 계산
   const calcQuote = useCallback(async () => {
@@ -358,14 +383,13 @@ export default function BookingPage() {
   const canNext = [
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
     selectedDate && selectedTime,                        // Step 1: 날짜/시간
-    selectedItems.length > 0 && (!hasPhotoRequiredItem || photos.length > 0), // Step 2: 품목/사진 (장롱/침대/소파 시 사진 필수)
+    selectedItems.length > 0,                            // Step 2: 품목 (사진은 선택)
     hasElevator !== null && hasParking !== null,          // Step 3: 작업 환경
     true,                                                 // Step 4: 사다리차
     !!quote,                                              // Step 5: 견적 확인
   ];
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const earliestBookable = getEarliestBookableDate();
 
   return (
     <div>
@@ -478,6 +502,12 @@ export default function BookingPage() {
       {/* Step 1: 날짜/시간 */}
       {step === 1 && (
         <div className="space-y-6">
+          {/* 마감 안내 */}
+          <div className="bg-primary-tint/30 rounded-[--radius-md] px-4 py-3 border border-primary/20">
+            <p className="text-sm text-primary font-medium">
+              수거 희망일 전날 낮 12시까지 신청 가능합니다
+            </p>
+          </div>
           {/* 달력 */}
           <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
             <div className="flex items-center justify-between mb-4">
@@ -517,7 +547,7 @@ export default function BookingPage() {
                 if (day === null)
                   return <div key={`empty-${i}`} />;
                 const dateStr = `${calMonth.year}-${String(calMonth.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const isPast = dateStr < todayStr;
+                const isPast = !isDateBookable(dateStr);
                 const isSelected = dateStr === selectedDate;
                 return (
                   <button
@@ -858,18 +888,28 @@ export default function BookingPage() {
             </p>
           </div>
 
+          {/* 견적 미리보기 */}
+          {previewQuote && selectedItems.length > 0 && (
+            <div className="bg-primary-bg rounded-[--radius-lg] border border-primary/20 p-5 max-sm:p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-primary">예상 견적 (사다리차 별도)</p>
+                <p className="text-lg font-bold text-primary">
+                  {formatPrice(previewQuote.estimateMin)}~{formatPrice(previewQuote.estimateMax)}원
+                </p>
+              </div>
+              <p className="text-xs text-text-muted mt-1">
+                품목 기준 예상 금액이며, 최종 견적은 매니저 확인 후 확정됩니다
+              </p>
+            </div>
+          )}
+
           {/* 사진 업로드 */}
           <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
             <div>
-              <h3 className="font-semibold mb-1">품목 사진 첨부</h3>
+              <h3 className="font-semibold mb-1">품목 사진 첨부 <span className="text-xs font-normal text-text-muted">(선택)</span></h3>
               <p className="text-sm text-text-sub">
-                대형 품목(침대, 장롱, 소파 등)은 사진 첨부 시 정확한 견적 산정이 가능합니다
+                사진을 첨부하시면 더 정확한 견적을 받으실 수 있습니다
               </p>
-              {hasPhotoRequiredItem && photos.length === 0 && (
-                <p className="text-sm text-semantic-red mt-1 font-medium">
-                  선택하신 품목(장롱, 침대, 소파)은 정확한 견적을 위해 사진 첨부가 필수입니다
-                </p>
-              )}
             </div>
 
             {/* 미리보기 그리드 */}

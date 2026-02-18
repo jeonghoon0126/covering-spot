@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBookings } from "@/lib/db";
+import { isDateBookable } from "@/lib/booking-utils";
 
 const DEFAULT_SLOTS = [
   "09:00",
@@ -32,6 +33,14 @@ export async function GET(req: NextRequest) {
     if (!date) {
       return NextResponse.json(
         { error: "date 파라미터가 필요합니다" },
+        { status: 400 },
+      );
+    }
+
+    // 전날 12시 마감 정책 검증
+    if (!isDateBookable(date)) {
+      return NextResponse.json(
+        { error: "예약 가능 기간이 아닙니다. 전날 12시까지 신청 가능합니다." },
         { status: 400 },
       );
     }

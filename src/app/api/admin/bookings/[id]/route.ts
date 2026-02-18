@@ -105,6 +105,25 @@ export async function PUT(
       if (updated.phone) {
         sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
       }
+      // 푸시 알림 (fire-and-forget)
+      const STATUS_MSG: Record<string, string> = {
+        quote_confirmed: "견적이 확정되었습니다",
+        in_progress: "수거가 시작되었습니다",
+        completed: "수거가 완료되었습니다",
+        payment_completed: "정산이 완료되었습니다",
+      };
+      if (STATUS_MSG[newStatus]) {
+        fetch(new URL("/api/push/send", req.url), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId: id,
+            title: "커버링 스팟",
+            message: STATUS_MSG[newStatus],
+            url: `/booking/manage?id=${id}`,
+          }),
+        }).catch(() => {});
+      }
     }
 
     // 관리자 메모 변경 시 스레드 답글
