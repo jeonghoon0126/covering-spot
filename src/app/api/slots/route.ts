@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookings } from "@/lib/db";
+import { getBookings, getBlockedSlots } from "@/lib/db";
 import { isDateBookable } from "@/lib/booking-utils";
 
 const DEFAULT_SLOTS = [
@@ -50,12 +50,24 @@ export async function GET(req: NextRequest) {
 
     // 해당 날짜의 활성 예약 조회 (cancelled 제외)
     let confirmedCounts: Record<string, number> = {};
+    let blockedTimes: Set<string> = new Set();
     try {
       const bookings = await getBookings(date);
       for (const b of bookings) {
         if (b.confirmedTime && (!excludeId || b.id !== excludeId)) {
           confirmedCounts[b.confirmedTime] =
             (confirmedCounts[b.confirmedTime] || 0) + 1;
+        }
+      }
+
+      // 차단된 슬롯 조회
+      const blocked = await getBlockedSlots(date);
+      for (const bs of blocked) {
+        // timeStart ~ timeEnd 범위에 해당하는 모든 슬롯을 차단
+        for (const slot of DEFAULT_SLOTS) {
+          if (slot >= bs.timeStart && slot < bs.timeEnd) {
+            blockedTimes.add(slot);
+          }
         }
       }
     } catch {
@@ -76,17 +88,20 @@ export async function GET(req: NextRequest) {
       const slotMinutes = h * 60 + m;
       const isPast = isToday && slotMinutes <= kstMinutes;
       const count = confirmedCounts[time] || 0;
+      const isBlocked = blockedTimes.has(time);
       return {
         time,
-        available: count < MAX_PER_SLOT && !isPast,
+        available: count < MAX_PER_SLOT && !isPast && !isBlocked,
         count,
+        blocked: isBlocked,
       };
     });
 
     return NextResponse.json({ slots });
   } catch (e) {
+    console.error("[slots/GET]", e);
     return NextResponse.json(
-      { error: "슬롯 조회 실패", detail: String(e) },
+      { error: "슬롯 조회 실패" },
       { status: 500 },
     );
   }

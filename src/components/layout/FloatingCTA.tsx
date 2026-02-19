@@ -16,7 +16,9 @@ export function FloatingCTA() {
 
       const heroGone = hero.getBoundingClientRect().bottom < 0;
       const ctaVisible = cta.getBoundingClientRect().top < window.innerHeight;
-      setShow(heroGone && !ctaVisible);
+      // 페이지 하단 300px 이내면 숨김 (푸터/앱다운로드 영역)
+      const nearBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight < 300;
+      setShow(heroGone && !ctaVisible && !nearBottom);
     };
 
     window.addEventListener("scroll", handle, { passive: true });

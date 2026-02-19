@@ -108,8 +108,8 @@ function WaveLayer({
 }
 
 export function Hero() {
-  const { ref: leftRef, visible: leftVisible } = useScrollReveal(0);
-  const { ref: rightRef, visible: rightVisible } = useScrollReveal(0);
+  const { ref: leftRef, visible: leftVisible } = useScrollReveal(0, true);
+  const { ref: rightRef, visible: rightVisible } = useScrollReveal(0, true);
 
   /* ── 텍스트 등장 애니메이션 ── */
   const [textReady, setTextReady] = useState(false);

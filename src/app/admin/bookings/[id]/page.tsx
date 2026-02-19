@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -66,8 +66,9 @@ function formatPrice(n: number): string {
 
 export default function AdminBookingDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const [token, setToken] = useState("");
-  const id = typeof window !== "undefined" ? window.location.pathname.split("/").pop() : "";
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,9 @@ export default function AdminBookingDetailPage() {
   const [itemEdits, setItemEdits] = useState<{ price: string; category: string }[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [confirmedDurationInput, setConfirmedDurationInput] = useState<number | null>(null);
+  const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
@@ -133,6 +137,12 @@ export default function AdminBookingDetailPage() {
           if (data.booking.confirmedTime) {
             setConfirmedTimeInput(data.booking.confirmedTime);
           }
+          if (data.booking.confirmedDuration != null) {
+            setConfirmedDurationInput(data.booking.confirmedDuration);
+          }
+          if (data.booking.completionPhotos?.length) {
+            setCompletionPhotos(data.booking.completionPhotos);
+          }
         }
       })
       .finally(() => setLoading(false));
@@ -153,6 +163,25 @@ export default function AdminBookingDetailPage() {
       return;
     }
 
+    // 슬롯 충돌 경고: 견적 확정 시 시간대 가용 여부 재확인
+    if (newStatus === "quote_confirmed" && confirmedTimeInput) {
+      try {
+        const slotRes = await fetch(`/api/slots?date=${booking.date}&excludeId=${booking.id}`);
+        const slotData = await slotRes.json();
+        const slotInfo = (slotData.slots || []).find(
+          (s: { time: string; available: boolean }) => s.time === confirmedTimeInput
+        );
+        if (slotInfo && !slotInfo.available) {
+          const proceed = confirm(
+            "선택한 시간대가 이미 마감되었습니다. 그래도 확정하시겠습니까?"
+          );
+          if (!proceed) return;
+        }
+      } catch {
+        // 슬롯 조회 실패 시 그냥 진행
+      }
+    }
+
     const confirmMsg =
       `상태를 "${STATUS_LABELS[newStatus]}"(으)로 변경하시겠습니까?`;
     if (!confirm(confirmMsg)) return;
@@ -171,6 +200,13 @@ export default function AdminBookingDetailPage() {
       if (confirmedTimeInput) {
         body.confirmedTime = confirmedTimeInput;
       }
+      if (confirmedDurationInput != null) {
+        body.confirmedDuration = confirmedDurationInput;
+      }
+      if (newStatus === "completed" && completionPhotos.length > 0) {
+        body.completionPhotos = completionPhotos;
+      }
+      body.expectedUpdatedAt = booking.updatedAt;
 
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
@@ -207,6 +243,10 @@ export default function AdminBookingDetailPage() {
       if (confirmedTimeInput) {
         body.confirmedTime = confirmedTimeInput;
       }
+      if (confirmedDurationInput != null) {
+        body.confirmedDuration = confirmedDurationInput;
+      }
+      body.expectedUpdatedAt = booking.updatedAt;
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
         headers: {
@@ -462,7 +502,7 @@ export default function AdminBookingDetailPage() {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                       },
-                      body: JSON.stringify({ items: updatedItems }),
+                      body: JSON.stringify({ items: updatedItems, expectedUpdatedAt: booking.updatedAt }),
                     });
                     const data = await res.json();
                     if (res.ok) {
@@ -551,13 +591,32 @@ export default function AdminBookingDetailPage() {
                 onChange={(e) =>
                   setFinalPriceInput(e.target.value.replace(/[^0-9]/g, ""))
                 }
-                placeholder="금액 입력"
+                placeholder={
+                  booking.estimateMin != null && booking.estimateMax != null
+                    ? `${formatPrice(booking.estimateMin)} ~ ${formatPrice(booking.estimateMax)}`
+                    : "금액 입력"
+                }
               />
-              {finalPriceInput && (
-                <p className="text-xs text-text-muted mt-1">
-                  {formatPrice(Number(finalPriceInput))}원
-                </p>
-              )}
+              <div className="flex items-center gap-2 mt-1">
+                {finalPriceInput && (
+                  <p className="text-xs text-text-muted">
+                    {formatPrice(Number(finalPriceInput))}원
+                  </p>
+                )}
+                {!finalPriceInput && booking.estimateMin != null && booking.estimateMax != null && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFinalPriceInput(
+                        String(Math.round((booking.estimateMin! + booking.estimateMax!) / 2))
+                      )
+                    }
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    예상 견적 적용
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -589,7 +648,7 @@ export default function AdminBookingDetailPage() {
                     key={slot}
                     onClick={() => !isFull && setConfirmedTimeInput(slot)}
                     disabled={isFull}
-                    className={`py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
+                    className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
                       isFull
                         ? "bg-fill-tint text-text-muted cursor-not-allowed"
                         : confirmedTimeInput === slot
@@ -604,6 +663,43 @@ export default function AdminBookingDetailPage() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* 소요시간 선택 — 수거 시작 이후 잠금 */}
+          {!isLocked && (
+            <div className="mt-4 pt-3 border-t border-border-light">
+              <p className="text-xs font-medium text-text-sub mb-2">예상 소요시간</p>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { label: "30분", value: 30 },
+                  { label: "1시간", value: 60 },
+                  { label: "1시간30분", value: 90 },
+                  { label: "2시간", value: 120 },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setConfirmedDurationInput(opt.value)}
+                    className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
+                      confirmedDurationInput === opt.value
+                        ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {isLocked && booking.confirmedDuration != null && (
+            <div className="mt-4 pt-3 border-t border-border-light">
+              <p className="text-xs font-medium text-text-sub mb-1">예상 소요시간</p>
+              <p className="text-sm font-medium">
+                {booking.confirmedDuration >= 60
+                  ? `${Math.floor(booking.confirmedDuration / 60)}시간${booking.confirmedDuration % 60 ? `${booking.confirmedDuration % 60}분` : ""}`
+                  : `${booking.confirmedDuration}분`}
+              </p>
             </div>
           )}
         </div>
@@ -631,6 +727,102 @@ export default function AdminBookingDetailPage() {
             </Button>
           </div>
         </div>
+
+        {/* 수거 완료 사진 — 수거 진행 중일 때 업로드, 완료 이후 읽기 전용 */}
+        {booking.status === "in_progress" && (
+          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+            <h3 className="text-sm font-semibold text-text-sub mb-3">
+              수거 완료 사진
+            </h3>
+            {completionPhotos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {completionPhotos.map((url, idx) => (
+                  <div key={idx} className="relative aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden">
+                    <img
+                      src={url}
+                      alt={`완료 사진 ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCompletionPhotos((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/50 text-white text-xs flex items-center justify-center"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label
+              className={`flex items-center justify-center gap-2 py-3 rounded-[--radius-md] border border-dashed border-border text-sm text-text-sub cursor-pointer hover:bg-bg-warm transition-colors duration-200 ${uploadingPhotos ? "opacity-50 pointer-events-none" : ""}`}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              {uploadingPhotos ? "업로드 중..." : "사진 추가"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  setUploadingPhotos(true);
+                  try {
+                    const formData = new FormData();
+                    for (let i = 0; i < files.length; i++) {
+                      formData.append("photos", files[i]);
+                    }
+                    const res = await fetch("/api/upload", {
+                      method: "POST",
+                      body: formData,
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.urls) {
+                      setCompletionPhotos((prev) => [...prev, ...data.urls]);
+                    } else {
+                      alert(data.error || "업로드 실패");
+                    }
+                  } catch {
+                    alert("업로드 실패");
+                  } finally {
+                    setUploadingPhotos(false);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+          </div>
+        )}
+        {["completed", "payment_requested", "payment_completed"].includes(booking.status) &&
+          completionPhotos.length > 0 && (
+          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+            <h3 className="text-sm font-semibold text-text-sub mb-3">
+              수거 완료 사진 ({completionPhotos.length}장)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {completionPhotos.map((url, idx) => (
+                <a
+                  key={idx}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden"
+                >
+                  <img
+                    src={url}
+                    alt={`완료 사진 ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 상태 변경 버튼 */}
         {nextActions.length > 0 && (

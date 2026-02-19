@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { ExperimentProvider } from "@/contexts/ExperimentContext";
-import { PWAInstaller } from "@/components/PWAInstaller";
+
 import { SITE_TITLE, SITE_DESC, SITE_URL, SITE_NAME } from "@/lib/constants";
 import "./globals.css";
 
@@ -62,12 +62,21 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "커버링 스팟 - 대형폐기물 수거 예약",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "대형폐기물 수거 예약 | 커버링 스팟",
     description:
       "소파·침대·냉장고 등 온라인 즉시 견적, 추가비용 없는 확정가. 서울·경기·인천.",
+    images: ["/api/og"],
   },
   robots: { index: true, follow: true },
   alternates: { canonical: SITE_URL },
@@ -199,7 +208,6 @@ export default function RootLayout({
       <body className="antialiased">
         <ExperimentProvider>
           <AnalyticsProvider>{children}</AnalyticsProvider>
-          <PWAInstaller />
         </ExperimentProvider>
       </body>
     </html>

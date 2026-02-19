@@ -10,6 +10,7 @@ export interface SpotArea {
  * - 서울: sigungu 직접 매칭 (예: "강남구")
  * - 경기: sigungu에서 시 이름 추출 (예: "고양시 덕양구" → "고양")
  * - 인천: sido로 매칭
+ * - 충남: sigungu에서 시 이름 추출 (예: "천안시 동남구" → "천안")
  * @returns SpotArea 또는 null (서비스 불가 지역)
  */
 export function detectAreaFromAddress(
@@ -30,6 +31,13 @@ export function detectAreaFromAddress(
   // 3. 인천광역시 → "인천"
   if (sido.startsWith("인천")) {
     return SPOT_AREAS.find((a) => a.name === "인천") || null;
+  }
+
+  // 4. 충청남도 시 매칭: "천안시 동남구" → "천안", "아산시" → "아산"
+  if (sido.startsWith("충청남")) {
+    const cityName = sigungu.split("시")[0];
+    const cityMatch = SPOT_AREAS.find((a) => a.name === cityName);
+    if (cityMatch) return cityMatch;
   }
 
   return null;
@@ -92,4 +100,7 @@ export const SPOT_AREAS: SpotArea[] = [
   { name: "광명", price1: 61000, price2: 92000, price3: 138000 },
   { name: "인천", price1: 72000, price2: 108000, price3: 162000 },
   { name: "시흥", price1: 65000, price2: 98000, price3: 147000 },
+  // 충청남도
+  { name: "천안", price1: 90000, price2: 135000, price3: 203000 },
+  { name: "아산", price1: 92000, price2: 138000, price3: 207000 },
 ];

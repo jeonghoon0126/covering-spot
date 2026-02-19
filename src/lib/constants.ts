@@ -1,4 +1,4 @@
-export const KAKAO_CHAT_URL = "http://pf.kakao.com/_bxgWhX/chat";
+export const KAKAO_CHAT_URL = "https://pf.kakao.com/_bxgWhX/chat";
 
 export const SITE_URL = "https://spot.covering.co.kr";
 export const SITE_NAME = "커버링 스팟";

@@ -43,7 +43,11 @@ export interface Booking {
   photos: string[];
   adminMemo: string;
   confirmedTime: string | null;
+  confirmedDuration?: number | null;
+  completionPhotos?: string[];
   slackThreadTs: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
 }
 
 export interface TimeSlot {

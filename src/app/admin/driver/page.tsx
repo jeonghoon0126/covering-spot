@@ -213,7 +213,7 @@ export default function AdminDriverPage() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setShowDate("today")}
-            className={`flex-1 py-2 rounded-[--radius-md] text-sm font-medium transition-all ${
+            className={`flex-1 py-3 rounded-[--radius-md] text-sm font-medium transition-all ${
               showDate === "today"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                 : "bg-bg text-text-sub border border-border-light"
@@ -223,7 +223,7 @@ export default function AdminDriverPage() {
           </button>
           <button
             onClick={() => setShowDate("tomorrow")}
-            className={`flex-1 py-2 rounded-[--radius-md] text-sm font-medium transition-all ${
+            className={`flex-1 py-3 rounded-[--radius-md] text-sm font-medium transition-all ${
               showDate === "tomorrow"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                 : "bg-bg text-text-sub border border-border-light"
@@ -242,7 +242,7 @@ export default function AdminDriverPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                className={`px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                     : "bg-bg text-text-sub border border-border-light"

@@ -51,6 +51,25 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function getWeekStart(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDay(); // 0=일, 1=월, ...
+  const diff = day === 0 ? -6 : 1 - day; // 월요일로 이동
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getWeekDays(mondayStr: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDays(mondayStr, i));
+}
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+
 export default function AdminCalendarPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -58,6 +77,12 @@ export default function AdminCalendarPage() {
   const [token, setToken] = useState("");
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [slotInfo, setSlotInfo] = useState<Record<string, { available: boolean; count: number }>>({});
+  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
+  const [weeklyBookings, setWeeklyBookings] = useState<Record<string, Booking[]>>({});
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+
+  const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
+  const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
 
   useEffect(() => {
     const t = sessionStorage.getItem("admin_token");
@@ -108,6 +133,35 @@ export default function AdminCalendarPage() {
       })
       .catch(() => {});
   }, [selectedDate]);
+
+  // 주간뷰: 7일치 예약 병렬 조회
+  useEffect(() => {
+    if (viewMode !== "weekly" || !token) return;
+    setWeeklyLoading(true);
+    Promise.all(
+      weekDays.map((day) =>
+        fetch(`/api/admin/bookings?date=${day}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((r) => r.json())
+          .then((data) => ({ day, bookings: (data.bookings || []) as Booking[] }))
+          .catch(() => ({ day, bookings: [] as Booking[] })),
+      ),
+    ).then((results) => {
+      const map: Record<string, Booking[]> = {};
+      for (const { day, bookings: dayB } of results) {
+        map[day] = dayB
+          .filter((b) => b.date === day && b.status !== "cancelled" && b.status !== "rejected")
+          .sort((a, b) => {
+            const ta = a.confirmedTime || a.timeSlot || "99:99";
+            const tb = b.confirmedTime || b.timeSlot || "99:99";
+            return ta.localeCompare(tb);
+          });
+      }
+      setWeeklyBookings(map);
+      setWeeklyLoading(false);
+    });
+  }, [viewMode, weekStart, token, weekDays]);
 
   // 선택한 날짜의 예약만 필터 + 취소/수거불가 제외
   const dayBookings = useMemo(() => {
@@ -166,12 +220,34 @@ export default function AdminCalendarPage() {
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold">일간 캘린더</h1>
+            <h1 className="text-lg font-bold">{viewMode === "daily" ? "일간" : "주간"} 캘린더</h1>
+            <div className="flex rounded-[--radius-md] border border-border-light overflow-hidden">
+              <button
+                onClick={() => setViewMode("daily")}
+                className={`text-xs px-3 py-1 font-medium transition-colors ${
+                  viewMode === "daily"
+                    ? "bg-primary text-white"
+                    : "bg-bg text-text-sub hover:bg-bg-warm"
+                }`}
+              >
+                일간
+              </button>
+              <button
+                onClick={() => setViewMode("weekly")}
+                className={`text-xs px-3 py-1 font-medium transition-colors ${
+                  viewMode === "weekly"
+                    ? "bg-primary text-white"
+                    : "bg-bg text-text-sub hover:bg-bg-warm"
+                }`}
+              >
+                주간
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => router.push("/admin/dashboard")}
-              className="text-sm text-text-sub hover:text-text-primary transition-colors flex items-center gap-1"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors flex items-center gap-1 px-2 py-2"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M2 4H14M2 8H14M2 12H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -180,7 +256,7 @@ export default function AdminCalendarPage() {
             </button>
             <button
               onClick={() => router.push("/admin/driver")}
-              className="text-sm text-text-sub hover:text-text-primary transition-colors flex items-center gap-1"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors flex items-center gap-1 px-2 py-2"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M2 12L6 4L10 9L14 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -195,7 +271,9 @@ export default function AdminCalendarPage() {
         {/* 날짜 네비게이션 */}
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+            onClick={() =>
+              setSelectedDate(addDays(selectedDate, viewMode === "daily" ? -1 : -7))
+            }
             className="p-2 rounded-full hover:bg-bg transition-colors"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -203,18 +281,33 @@ export default function AdminCalendarPage() {
             </svg>
           </button>
           <div className="text-center">
-            <p className="text-base font-bold">{formatDate(selectedDate)}</p>
-            <p className="text-xs text-text-muted mt-0.5">
-              {dayBookings.length}건
-              {Object.entries(summary).map(([status, count]) => (
-                <span key={status} className="ml-1.5">
-                  {STATUS_LABELS[status]} {count}
-                </span>
-              ))}
-            </p>
+            {viewMode === "daily" ? (
+              <>
+                <p className="text-base font-bold">{formatDate(selectedDate)}</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {dayBookings.length}건
+                  {Object.entries(summary).map(([status, count]) => (
+                    <span key={status} className="ml-1.5">
+                      {STATUS_LABELS[status]} {count}
+                    </span>
+                  ))}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-bold">
+                  {formatShortDate(weekDays[0])} ~ {formatShortDate(weekDays[6])}
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  총 {Object.values(weeklyBookings).reduce((sum, arr) => sum + arr.length, 0)}건
+                </p>
+              </>
+            )}
           </div>
           <button
-            onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+            onClick={() =>
+              setSelectedDate(addDays(selectedDate, viewMode === "daily" ? 1 : 7))
+            }
             className="p-2 rounded-full hover:bg-bg transition-colors"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -235,106 +328,182 @@ export default function AdminCalendarPage() {
           </div>
         )}
 
-        {/* 타임라인 */}
-        {loading ? (
-          <div className="text-center py-12">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : (
-          <div className="space-y-0">
-            {TIME_SLOTS.map((slot) => {
-              const items = slotMap[slot];
-              const info = slotInfo[slot];
-              const isFull = info && !info.available;
-              const count = info?.count || 0;
+        {/* 일간 타임라인 */}
+        {viewMode === "daily" && (
+          <>
+            {loading ? (
+              <div className="text-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {TIME_SLOTS.map((slot) => {
+                  const items = slotMap[slot];
+                  const info = slotInfo[slot];
+                  const isFull = info && !info.available;
+                  const count = info?.count || 0;
 
-              return (
-                <div
-                  key={slot}
-                  className={`flex border-b border-border-light/50 ${
-                    isFull ? "bg-semantic-red-tint/30" : ""
-                  }`}
-                >
-                  {/* 시간 라벨 */}
-                  <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
-                    <span className={`text-xs font-medium ${
-                      items.length > 0 ? "text-text-primary" : "text-text-muted"
-                    }`}>
-                      {slot}
-                    </span>
-                    {count > 0 && (
-                      <span className={`block text-[10px] ${isFull ? "text-semantic-red" : "text-text-muted"}`}>
-                        {count}/2
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 예약 카드 영역 */}
-                  <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
-                    {items.map((b) => (
-                      <button
-                        key={b.id}
-                        onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                        className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left max-w-full"
-                      >
-                        <span
-                          className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
-                        >
-                          {STATUS_LABELS[b.status]}
-                        </span>
-                        <span className="text-xs font-medium truncate">
-                          {b.customerName}
-                        </span>
-                        <span className="text-[10px] text-text-muted shrink-0">
-                          {b.area}
-                        </span>
-                        <span className="text-[10px] text-text-muted shrink-0">
-                          {b.items.length}종
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* 시간 미정 */}
-            {slotMap["미정"].length > 0 && (
-              <div className="flex border-b border-border-light/50 bg-semantic-orange-tint/20">
-                <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
-                  <span className="text-xs font-medium text-semantic-orange">미정</span>
-                </div>
-                <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
-                  {slotMap["미정"].map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                      className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover transition-all duration-200 text-left"
+                  return (
+                    <div
+                      key={slot}
+                      className={`flex border-b border-border-light/50 ${
+                        isFull ? "bg-semantic-red-tint/30" : ""
+                      }`}
                     >
-                      <span
-                        className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
-                      >
-                        {STATUS_LABELS[b.status]}
-                      </span>
-                      <span className="text-xs font-medium truncate">
-                        {b.customerName}
-                      </span>
-                      <span className="text-[10px] text-text-muted shrink-0">
-                        {b.area} | {b.items.length}종
-                      </span>
-                    </button>
-                  ))}
+                      {/* 시간 라벨 */}
+                      <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
+                        <span className={`text-xs font-medium ${
+                          items.length > 0 ? "text-text-primary" : "text-text-muted"
+                        }`}>
+                          {slot}
+                        </span>
+                        {count > 0 && (
+                          <span className={`block text-[10px] ${isFull ? "text-semantic-red" : "text-text-muted"}`}>
+                            {count}/2
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 예약 카드 영역 */}
+                      <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
+                        {items.map((b) => (
+                          <button
+                            key={b.id}
+                            onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                            className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left max-w-full"
+                          >
+                            <span
+                              className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
+                            >
+                              {STATUS_LABELS[b.status]}
+                            </span>
+                            <span className="text-xs font-medium truncate">
+                              {b.customerName}
+                            </span>
+                            <span className="text-[10px] text-text-muted shrink-0">
+                              {b.area}
+                            </span>
+                            <span className="text-[10px] text-text-muted shrink-0">
+                              {b.items.length}종
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 시간 미정 */}
+                {slotMap["미정"].length > 0 && (
+                  <div className="flex border-b border-border-light/50 bg-semantic-orange-tint/20">
+                    <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
+                      <span className="text-xs font-medium text-semantic-orange">미정</span>
+                    </div>
+                    <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
+                      {slotMap["미정"].map((b) => (
+                        <button
+                          key={b.id}
+                          onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                          className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover transition-all duration-200 text-left"
+                        >
+                          <span
+                            className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
+                          >
+                            {STATUS_LABELS[b.status]}
+                          </span>
+                          <span className="text-xs font-medium truncate">
+                            {b.customerName}
+                          </span>
+                          <span className="text-[10px] text-text-muted shrink-0">
+                            {b.area} | {b.items.length}종
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 빈 상태 */}
+            {!loading && dayBookings.length === 0 && (
+              <div className="text-center py-12 text-text-muted text-sm">
+                이 날짜에 예약이 없습니다
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 주간 뷰 */}
+        {viewMode === "weekly" && (
+          <>
+            {weeklyLoading ? (
+              <div className="text-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 px-4">
+                <div className="grid grid-cols-7 gap-2 min-w-[700px]">
+                  {weekDays.map((day, i) => {
+                    const dayB = weeklyBookings[day] || [];
+                    const isCurrentDay = day === getToday();
+                    return (
+                      <div key={day} className="flex flex-col">
+                        {/* 컬럼 헤더 */}
+                        <div
+                          className={`text-center py-2 rounded-t-[--radius-md] border border-border-light ${
+                            isCurrentDay
+                              ? "bg-primary text-white"
+                              : "bg-bg"
+                          }`}
+                        >
+                          <p className={`text-xs font-bold ${isCurrentDay ? "" : "text-text-primary"}`}>
+                            {WEEKDAY_LABELS[i]}
+                          </p>
+                          <p className={`text-[10px] ${isCurrentDay ? "text-white/80" : "text-text-muted"}`}>
+                            {formatShortDate(day)}
+                          </p>
+                        </div>
+
+                        {/* 예약 카드 리스트 */}
+                        <div className="flex-1 border border-t-0 border-border-light rounded-b-[--radius-md] bg-bg p-1.5 space-y-1.5 min-h-[120px]">
+                          {dayB.length === 0 && (
+                            <p className="text-[10px] text-text-muted text-center pt-4">없음</p>
+                          )}
+                          {dayB.map((b) => (
+                            <button
+                              key={b.id}
+                              onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                              className="w-full text-left bg-bg-warm rounded-[--radius-md] px-2 py-1.5 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
+                            >
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <span className="text-[10px] font-medium text-text-sub">
+                                  {b.confirmedTime || b.timeSlot || "미정"}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-semibold px-1 py-px rounded-full ${STATUS_COLORS[b.status]}`}
+                                >
+                                  {STATUS_LABELS[b.status]}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-medium truncate">
+                                {b.customerName}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* 건수 */}
+                        <div className="text-center mt-1">
+                          <span className="text-[10px] text-text-muted">{dayB.length}건</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* 빈 상태 */}
-        {!loading && dayBookings.length === 0 && (
-          <div className="text-center py-12 text-text-muted text-sm">
-            이 날짜에 예약이 없습니다
-          </div>
+          </>
         )}
       </div>
     </div>

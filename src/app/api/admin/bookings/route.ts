@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, getBookingsByStatus } from "@/lib/db";
+import { getAllBookings, getBookingsPaginated } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 
 export async function GET(req: NextRequest) {
@@ -12,23 +12,31 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const status = req.nextUrl.searchParams.get("status");
-
-    let bookings;
-    if (status && status !== "all") {
-      bookings = await getBookingsByStatus(status);
-    } else {
-      bookings = await getAllBookings();
-    }
-
-    // 최신순 정렬
-    bookings.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    const searchParams = req.nextUrl.searchParams;
+    const status = searchParams.get("status") || undefined;
+    const dateFrom = searchParams.get("dateFrom") || undefined;
+    const dateTo = searchParams.get("dateTo") || undefined;
+    const search = searchParams.get("search") || undefined;
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      200,
     );
 
+    // status가 "all"이면 필터 없이 조회
+    const filterStatus = status === "all" ? undefined : status;
+
+    const { bookings, total } = await getBookingsPaginated({
+      status: filterStatus,
+      dateFrom,
+      dateTo,
+      search,
+      page,
+      limit,
+    });
+
     // 상태별 카운트 (전체 기준)
-    const allBookings = status ? await getAllBookings() : bookings;
+    const allBookings = await getAllBookings();
     const counts: Record<string, number> = {};
     for (const b of allBookings) {
       counts[b.status] = (counts[b.status] || 0) + 1;
@@ -37,11 +45,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       bookings,
       counts,
-      total: allBookings.length,
+      total,
+      page,
+      limit,
     });
   } catch (e) {
+    console.error("[admin/bookings/GET]", e);
     return NextResponse.json(
-      { error: "조회 실패", detail: String(e) },
+      { error: "조회 실패" },
       { status: 500 },
     );
   }

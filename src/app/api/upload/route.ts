@@ -13,12 +13,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (files.length > 10) {
+      return NextResponse.json(
+        { error: "최대 10개 파일까지 업로드 가능합니다" },
+        { status: 400 },
+      );
+    }
+
     const urls: string[] = [];
 
     for (const file of files) {
-      if (!file.type.startsWith("image/")) {
+      // 안전한 이미지 MIME 타입만 허용 (SVG/HTML 등 XSS 위험 차단)
+      const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+      if (!ALLOWED_TYPES.includes(file.type)) {
         return NextResponse.json(
-          { error: "이미지 파일만 업로드 가능합니다" },
+          { error: "JPG, PNG, WebP, HEIC 파일만 업로드 가능합니다" },
           { status: 400 },
         );
       }
@@ -31,7 +40,12 @@ export async function POST(req: NextRequest) {
       }
 
       const buffer = Buffer.from(await file.arrayBuffer());
-      const ext = file.name.split(".").pop() || "jpg";
+      // 확장자는 MIME 타입에서 추출 (사용자 입력 대신)
+      const EXT_MAP: Record<string, string> = {
+        "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
+        "image/heic": "heic", "image/heif": "heif",
+      };
+      const ext = EXT_MAP[file.type] || "jpg";
       const fileName = `booking_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
 
       const { error } = await supabase.storage
@@ -52,8 +66,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ urls });
   } catch (e) {
+    console.error("[upload/POST]", e);
     return NextResponse.json(
-      { error: "업로드 실패", detail: String(e) },
+      { error: "업로드 실패" },
       { status: 500 },
     );
   }

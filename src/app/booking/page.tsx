@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
+import { formatPhoneNumber } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -24,13 +25,6 @@ const QUOTE_PREVIEW_DEBOUNCE = 800;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
-}
-
-function formatPhoneNumber(value: string): string {
-  const numbers = value.replace(/[^\d]/g, "").slice(0, 11);
-  if (numbers.length <= 3) return numbers;
-  if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
 function getMonthDays(year: number, month: number) {
@@ -63,11 +57,11 @@ export default function BookingPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
 
-  // 시간대별 슬롯 잔여
+  // 시간대별 슬롯 잔여 (-1 = 아직 로드 안됨, 로딩 중 마감 표시 방지)
   const [timeSlotCounts, setTimeSlotCounts] = useState<Record<string, number>>({
-    "오전 (09~12시)": 0,
-    "오후 (13~18시)": 0,
-    "종일 가능": 0,
+    "오전 (09~12시)": -1,
+    "오후 (13~18시)": -1,
+    "종일 가능": -1,
   });
   const [slotsLoading, setSlotsLoading] = useState(false);
 
@@ -149,6 +143,16 @@ export default function BookingPage() {
       .then((d) => setCategories(d.categories || []));
   }, []);
 
+  // 날짜 변경 시 시간 선택 초기화 + 슬롯 카운트를 미로드 상태로 리셋
+  useEffect(() => {
+    setSelectedTime("");
+    setTimeSlotCounts({
+      "오전 (09~12시)": -1,
+      "오후 (13~18시)": -1,
+      "종일 가능": -1,
+    });
+  }, [selectedDate]);
+
   // 날짜 선택 시 슬롯 가용성 조회
   useEffect(() => {
     if (!selectedDate) return;
@@ -209,8 +213,8 @@ export default function BookingPage() {
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (step !== 2 || selectedItems.length === 0 || !selectedArea) {
-      setPreviewQuote(null);
+    if ((step !== 2 && step !== 4) || selectedItems.length === 0 || !selectedArea) {
+      if (step !== 2 && step !== 4) setPreviewQuote(null);
       return;
     }
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
@@ -222,7 +226,9 @@ export default function BookingPage() {
           body: JSON.stringify({
             area: selectedArea,
             items: selectedItems,
-            needLadder: false,
+            needLadder: step === 4 ? needLadder : false,
+            ladderType: step === 4 && needLadder ? ladderType : undefined,
+            ladderHours: step === 4 && needLadder ? ladderHours : undefined,
           }),
         });
         const data = await res.json();
@@ -230,7 +236,7 @@ export default function BookingPage() {
       } catch { /* 미리보기 실패 무시 */ }
     }, QUOTE_PREVIEW_DEBOUNCE);
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
-  }, [step, selectedItems, selectedArea]);
+  }, [step, selectedItems, selectedArea, needLadder, ladderType, ladderHours]);
 
   // 견적 계산
   const calcQuote = useCallback(async () => {
@@ -368,6 +374,10 @@ export default function BookingPage() {
       const data = await res.json();
       if (res.ok) {
         localStorage.removeItem("covering_spot_booking_draft");
+        // bookingToken 저장 (예약 조회/수정/삭제 시 사용)
+        if (data.bookingToken) {
+          localStorage.setItem("covering_spot_booking_token", data.bookingToken);
+        }
         router.push(`/booking/complete?id=${data.booking.id}`);
       } else {
         alert(data.error || "신청 실패");
@@ -394,7 +404,7 @@ export default function BookingPage() {
   return (
     <div>
       {/* 스텝 인디케이터 */}
-      <div className="mb-10">
+      <div className="mb-10" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuetext={`${STEPS.length}단계 중 ${step + 1}단계: ${STEPS[step]}`}>
         {/* 프로그레스 바 */}
         <div className="flex items-center gap-1.5 mb-4">
           {STEPS.map((s, i) => (
@@ -464,7 +474,7 @@ export default function BookingPage() {
             <button
               type="button"
               onClick={() => setShowPostcode(true)}
-              className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 ${
+              className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none ${
                 address ? "text-text-primary" : "text-text-muted"
               }`}
             >
@@ -518,7 +528,7 @@ export default function BookingPage() {
                     return { year: d.getFullYear(), month: d.getMonth() };
                   })
                 }
-                className="p-2 hover:bg-bg-warm rounded-lg"
+                className="p-2 hover:bg-bg-warm rounded-[--radius-sm]"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
@@ -532,7 +542,7 @@ export default function BookingPage() {
                     return { year: d.getFullYear(), month: d.getMonth() };
                   })
                 }
-                className="p-2 hover:bg-bg-warm rounded-lg"
+                className="p-2 hover:bg-bg-warm rounded-[--radius-sm]"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
@@ -554,7 +564,9 @@ export default function BookingPage() {
                     key={dateStr}
                     disabled={isPast}
                     onClick={() => setSelectedDate(dateStr)}
-                    className={`py-2.5 rounded-[--radius-md] text-sm transition-all duration-200 ${
+                    aria-label={`${calMonth.month + 1}월 ${day}일 ${isPast ? '예약 불가' : '예약 가능'}`}
+                    aria-pressed={isSelected}
+                    className={`py-3 min-h-[44px] rounded-[--radius-md] text-sm transition-all duration-200 ${
                       isPast
                         ? "text-text-muted/40 cursor-not-allowed"
                         : isSelected
@@ -584,13 +596,15 @@ export default function BookingPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {TIME_OPTIONS.map((opt) => {
-                    const count = timeSlotCounts[opt] || 0;
-                    const isFull = count === 0;
+                    const count = timeSlotCounts[opt] ?? -1;
+                    const isFull = count === 0; // -1 = 미로드 (가능으로 표시), 0 = 마감
                     return (
                       <button
                         key={opt}
                         onClick={() => !isFull && setSelectedTime(opt)}
                         disabled={isFull}
+                        aria-label={`${opt} ${isFull ? '마감' : '선택 가능'}`}
+                        aria-pressed={opt === selectedTime}
                         className={`py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                           isFull
                             ? "bg-fill-tint text-text-muted cursor-not-allowed"
@@ -600,9 +614,9 @@ export default function BookingPage() {
                         }`}
                       >
                         {opt}
-                        <span className={`block text-xs mt-0.5 ${isFull ? "text-semantic-red/70" : opt === selectedTime ? "text-white/70" : "text-text-muted"}`}>
-                          {isFull ? "마감" : `${count}건 가능`}
-                        </span>
+                        {isFull && (
+                          <span className="block text-xs mt-0.5 text-semantic-red/70">마감</span>
+                        )}
                       </button>
                     );
                   })}
@@ -634,7 +648,7 @@ export default function BookingPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
-                      className="w-6 h-6 rounded-md bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
+                      className="w-10 h-10 rounded-[--radius-sm] bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
                     >
                       −
                     </button>
@@ -643,7 +657,7 @@ export default function BookingPage() {
                     </span>
                     <button
                       onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
-                      className="w-6 h-6 rounded-md bg-primary text-white text-xs font-bold flex items-center justify-center"
+                      className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white text-xs font-bold flex items-center justify-center"
                     >
                       +
                     </button>
@@ -664,14 +678,14 @@ export default function BookingPage() {
             <h3 className="text-sm font-semibold mb-3">인기 품목</h3>
             <div className="flex flex-wrap gap-2">
               {[
-                { cat: "장롱", name: "장롱 3자", displayName: "장롱 3자" },
-                { cat: "침대", name: "침대 더블", displayName: "침대 더블" },
-                { cat: "소파", name: "소파 2인", displayName: "소파 2인" },
-                { cat: "가전", name: "냉장고", displayName: "냉장고" },
-                { cat: "가전", name: "세탁기", displayName: "세탁기" },
-                { cat: "가전", name: "에어컨 (실내기+실외기)", displayName: "에어컨" },
-                { cat: "식탁/의자", name: "식탁 4인", displayName: "식탁 4인" },
-                { cat: "서랍장", name: "서랍장 3단", displayName: "서랍장 3단" },
+                { cat: "장롱", name: "3자", displayName: "장롱 3자" },
+                { cat: "침대", name: "더블 SET", displayName: "침대 더블" },
+                { cat: "소파", name: "2인용", displayName: "소파 2인" },
+                { cat: "가전", name: "양문형 냉장고", displayName: "냉장고" },
+                { cat: "가전", name: "세탁기(일반)", displayName: "세탁기" },
+                { cat: "가전", name: "에어컨(2in1)", displayName: "에어컨" },
+                { cat: "식탁", name: "6인용미만(의자포함)", displayName: "식탁 4인" },
+                { cat: "서랍장", name: "3단이하", displayName: "서랍장 3단" },
               ].map((pop) => {
                 const qty = getItemQty(pop.cat, pop.name);
                 const catData = categories.find((c) => c.name === pop.cat);
@@ -695,7 +709,7 @@ export default function BookingPage() {
           </div>
 
           {/* 품목 검색 */}
-          <div className="mb-1">
+          <div className="mb-3">
             <TextField
               placeholder="품목 검색 (예: 침대, 소파, 냉장고)"
               value={itemSearch}
@@ -708,10 +722,10 @@ export default function BookingPage() {
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               <button
                 onClick={() => setCategoryFilter(null)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                className={`shrink-0 px-3.5 py-2.5 rounded-full text-xs font-medium transition-all duration-200 ${
                   categoryFilter === null
                     ? "bg-primary text-white"
-                    : "bg-bg-warm text-text-sub hover:bg-primary-bg"
+                    : "bg-bg-warm text-text-sub hover:bg-primary-bg border border-border-light"
                 }`}
               >
                 전체
@@ -723,10 +737,10 @@ export default function BookingPage() {
                     setCategoryFilter(cat.name);
                     setOpenCat(cat.name);
                   }}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                  className={`shrink-0 px-3.5 py-2.5 rounded-full text-xs font-medium transition-all duration-200 ${
                     categoryFilter === cat.name
                       ? "bg-primary text-white"
-                      : "bg-bg-warm text-text-sub hover:bg-primary-bg"
+                      : "bg-bg-warm text-text-sub hover:bg-primary-bg border border-border-light"
                   }`}
                 >
                   {cat.name}
@@ -772,14 +786,14 @@ export default function BookingPage() {
                         <button
                           onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
                           disabled={qty === 0}
-                          className="w-8 h-8 rounded-lg bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                          className="w-10 h-10 rounded-[--radius-sm] bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
                         >
                           −
                         </button>
                         <span className="w-6 text-center text-sm font-semibold">{qty}</span>
                         <button
                           onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
-                          className="w-8 h-8 rounded-lg bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                          className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
                         >
                           +
                         </button>
@@ -815,7 +829,7 @@ export default function BookingPage() {
                   </span>
                 </button>
                 {openCat === cat.name && (
-                  <div className="px-6 pb-5 space-y-2">
+                  <div className="px-6 max-sm:px-4 pb-5 space-y-2">
                     {cat.items.map((item) => {
                       const qty = getItemQty(cat.name, item.name);
                       return (
@@ -834,7 +848,7 @@ export default function BookingPage() {
                                 updateItemQty(cat.name, item.name, item.displayName, item.price, -1)
                               }
                               disabled={qty === 0}
-                              className="w-8 h-8 rounded-lg bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                              className="w-10 h-10 rounded-[--radius-sm] bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
                             >
                               −
                             </button>
@@ -845,7 +859,7 @@ export default function BookingPage() {
                               onClick={() =>
                                 updateItemQty(cat.name, item.name, item.displayName, item.price, 1)
                               }
-                              className="w-8 h-8 rounded-lg bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                              className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
                             >
                               +
                             </button>
@@ -924,7 +938,8 @@ export default function BookingPage() {
                     />
                     <button
                       onClick={() => removePhoto(i)}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center text-xs"
+                      aria-label="사진 삭제"
+                      className="absolute top-1 right-1 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center text-xs"
                     >
                       ✕
                     </button>
@@ -1057,7 +1072,7 @@ export default function BookingPage() {
                     <button
                       key={d}
                       onClick={() => setLadderHours(i)}
-                      className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`py-3 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                         ladderHours === i
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1230,14 +1245,20 @@ export default function BookingPage() {
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? "" : "수거 신청 확정하기"}
+            {loading ? "" : "견적 요청하기"}
           </Button>
         )}
       </div>
 
       {/* 주소 검색 팝업 */}
       {showPostcode && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4">
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="주소 검색"
+          onKeyDown={(e) => { if (e.key === "Escape") setShowPostcode(false); }}
+        >
           <div className="bg-white rounded-[--radius-lg] overflow-hidden w-full max-w-[28rem]">
             <ModalHeader
               title="주소 검색"

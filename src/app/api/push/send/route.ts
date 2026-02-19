@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { validateToken } from "@/app/api/admin/auth/route";
 
 export async function POST(req: NextRequest) {
   try {
+    // admin 토큰 검증 (HMAC) 또는 내부 호출 (x-internal-token)
+    const internalToken = process.env.ADMIN_PASSWORD;
+    const isInternalCall = !!internalToken && req.headers.get("x-internal-token") === internalToken;
+    if (!isInternalCall && !validateToken(req)) {
+      return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { bookingId, title, message, url } = body;
 
@@ -60,6 +68,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sent });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    console.error("[push/send]", e);
+    return NextResponse.json({ error: "푸시 발송 실패" }, { status: 500 });
   }
 }

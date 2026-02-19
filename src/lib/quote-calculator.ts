@@ -49,15 +49,19 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   // estimateMin = 품목합계 + 인력비(1인 기준) + 사다리차
   const estimateMin = itemsTotal + crewPrice1 + ladderPrice;
 
-  // estimateMax = 품목합계 * 1.2 + 인력비(자동산정 기준) + 사다리차
-  let itemsTotalMax = itemsTotal * 1.2;
+  // estimateMax = 품목합계 * 1.15 + 해체 품목 추가 10% (가산 방식)
+  // 기존: 1.2 * 1.2 = 1.44x (과도한 범위) → 변경: 1.15 + 해체분 0.1 (합리적 범위)
+  let itemsTotalMax = itemsTotal * 1.15;
 
-  // 해체 가능 카테고리 품목이 있으면 추가 20% 가산
+  // 해체 가능 카테고리 품목이 있으면 해당 품목 금액의 10%만 추가 가산
   const hasDisassemblyItem = input.items.some((item) =>
     DISASSEMBLY_CATEGORIES.includes(item.category),
   );
   if (hasDisassemblyItem) {
-    itemsTotalMax = itemsTotalMax * 1.2;
+    const disassemblyTotal = input.items
+      .filter((item) => DISASSEMBLY_CATEGORIES.includes(item.category))
+      .reduce((sum, item) => sum + item.price * item.quantity, 0);
+    itemsTotalMax += disassemblyTotal * 0.1;
   }
 
   const estimateMax = Math.round(itemsTotalMax + crewPrice + ladderPrice);

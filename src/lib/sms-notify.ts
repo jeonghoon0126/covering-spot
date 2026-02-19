@@ -8,12 +8,14 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
 }
 
-const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null) => string> = {
+const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null) => string> = {
   quote_confirmed: (finalPrice) =>
     `[커버링 스팟] 견적이 확정되었습니다. 최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}`,
   in_progress: () => "[커버링 스팟] 수거 팀이 출발했습니다.",
   completed: () => "[커버링 스팟] 수거가 완료되었습니다.",
-  payment_requested: () => "[커버링 스팟] 정산 요청이 발송되었습니다.",
+  payment_requested: (_finalPrice, paymentUrl) =>
+    "[커버링 스팟] 정산 요청이 발송되었습니다." +
+    (paymentUrl ? `\n\n결제 링크: ${paymentUrl}` : ""),
   cancelled: () => "[커버링 스팟] 신청이 취소되었습니다.",
   rejected: () => "[커버링 스팟] 수거가 불가한 건입니다.",
 };
@@ -45,6 +47,7 @@ export async function sendStatusSms(
   status: string,
   bookingId: string,
   finalPrice?: number | null,
+  paymentUrl?: string | null,
 ): Promise<void> {
   try {
     const apiKey = process.env.SOLAPI_API_KEY;
@@ -59,7 +62,7 @@ export async function sendStatusSms(
     const templateFn = STATUS_TEMPLATES[status];
     if (!templateFn) return;
 
-    const text = templateFn(finalPrice) + STATUS_LINK;
+    const text = templateFn(finalPrice, paymentUrl) + STATUS_LINK;
 
     const res = await fetch(SOLAPI_URL, {
       method: "POST",

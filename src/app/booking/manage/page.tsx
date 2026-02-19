@@ -7,16 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { formatPhoneNumber } from "@/lib/format";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
-}
-
-function formatPhoneNumber(value: string): string {
-  const numbers = value.replace(/[^\d]/g, "").slice(0, 11);
-  if (numbers.length <= 3) return numbers;
-  if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
 /** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
@@ -61,10 +55,9 @@ const STATUS_MESSAGES: Record<string, string> = {
 };
 
 const TIME_SLOTS = [
-  "오전 (9~12시)",
-  "오후 (12~18시)",
-  "저녁 (18~21시)",
-  "시간 협의",
+  "오전 (09~12시)",
+  "오후 (13~18시)",
+  "종일 가능",
 ];
 
 interface EditForm {
@@ -87,13 +80,24 @@ export default function BookingManagePage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
+  /** localStorage에서 bookingToken 가져오기 */
+  function getBookingToken(): string | null {
+    try {
+      return localStorage.getItem("covering_spot_booking_token");
+    } catch {
+      return null;
+    }
+  }
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!phone.trim()) return;
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(`/api/bookings?phone=${encodeURIComponent(phone.trim())}`);
+      const token = getBookingToken();
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
+      const res = await fetch(`/api/bookings?phone=${encodeURIComponent(phone.trim())}${tokenParam}`);
       const data = await res.json();
       setBookings(data.bookings || []);
     } catch {
@@ -107,7 +111,10 @@ export default function BookingManagePage() {
     if (!confirm("정말 신청을 취소하시겠습니까?")) return;
     setCancelling(id);
     try {
-      const res = await fetch(`/api/bookings/${id}`, { method: "DELETE" });
+      const token = getBookingToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["x-booking-token"] = token;
+      const res = await fetch(`/api/bookings/${id}`, { method: "DELETE", headers });
       if (res.ok) {
         setBookings((prev) =>
           prev.map((b) =>
@@ -145,9 +152,12 @@ export default function BookingManagePage() {
     if (!editForm) return;
     setSaving(true);
     try {
+      const token = getBookingToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["x-booking-token"] = token;
       const res = await fetch(`/api/bookings/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(editForm),
       });
       if (res.ok) {
@@ -274,7 +284,7 @@ export default function BookingManagePage() {
                             min={today}
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-brand-300 appearance-none"
+                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
                           />
                         </div>
                         <div>

@@ -69,6 +69,11 @@ export default function AdminDashboardPage() {
   // 퀵 액션 로딩 상태
   const [quickLoading, setQuickLoading] = useState<string | null>(null);
 
+  // 벌크 선택
+  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   useEffect(() => {
     const t = sessionStorage.getItem("admin_token");
     if (!t) {
@@ -148,7 +153,7 @@ export default function AdminDashboardPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, expectedUpdatedAt: booking.updatedAt }),
       });
       if (res.ok) {
         fetchBookings();
@@ -161,6 +166,88 @@ export default function AdminDashboardPage() {
     } finally {
       setQuickLoading(null);
     }
+  }
+
+  // 벌크 체크박스 토글
+  function toggleBooking(id: string) {
+    setSelectedBookings((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selectedBookings.size === filtered.length) {
+      setSelectedBookings(new Set());
+    } else {
+      setSelectedBookings(new Set(filtered.map((b) => b.id)));
+    }
+  }
+
+  // 벌크 상태 변경
+  async function handleBulkStatusChange() {
+    if (!bulkStatus || selectedBookings.size === 0) return;
+    const statusLabel = STATUS_LABELS[bulkStatus] || bulkStatus;
+    if (!confirm(`선택한 ${selectedBookings.size}건을 "${statusLabel}"(으)로 변경할까요?`)) return;
+
+    setBulkLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const bookingId of selectedBookings) {
+      try {
+        const bk = bookings.find((b) => b.id === bookingId);
+        const res = await fetch(`/api/admin/bookings/${bookingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: bulkStatus, expectedUpdatedAt: bk?.updatedAt }),
+        });
+        if (res.ok) successCount++;
+        else failCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setBulkLoading(false);
+    setSelectedBookings(new Set());
+    setBulkStatus("");
+    fetchBookings();
+
+    if (failCount > 0) {
+      alert(`${successCount}건 성공, ${failCount}건 실패`);
+    }
+  }
+
+  // CSV 내보내기
+  function exportCSV() {
+    const headers = ["날짜", "시간", "고객명", "전화번호", "지역", "품목수", "예상금액", "확정금액", "상태"];
+    const rows = filtered.map((b) => [
+      b.date,
+      b.timeSlot,
+      b.customerName,
+      b.phone,
+      b.area,
+      String(b.items.length),
+      b.estimateMin && b.estimateMax ? `${b.estimateMin}~${b.estimateMax}` : String(b.totalPrice),
+      b.finalPrice != null ? String(b.finalPrice) : "",
+      STATUS_LABELS[b.status] || b.status,
+    ]);
+
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `커버링스팟_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const totalCount = Object.values(counts).reduce((s, n) => s + n, 0);
@@ -178,41 +265,58 @@ export default function AdminDashboardPage() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => router.push("/admin/calendar")}
-              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
                 <path d="M1 5.5H13M4 1V3.5M10 1V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
-              캘린더
+              <span className="max-sm:hidden">캘린더</span>
             </button>
             <button
               onClick={() => router.push("/admin/driver")}
-              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/>
                 <path d="M2 13C2 10.2 4.2 8 7 8C9.8 8 12 10.2 12 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
-              기사님
+              <span className="max-sm:hidden">기사님</span>
+            </button>
+            <button
+              onClick={exportCSV}
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              <span className="max-sm:hidden">내보내기</span>
             </button>
             <button
               onClick={fetchBookings}
-              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200"
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 px-2 py-2"
             >
-              새로고침
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="sm:hidden">
+                <path d="M1.5 7A5.5 5.5 0 0 1 12 4M12.5 7A5.5 5.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M12 1V4H9M2 13V10H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="max-sm:hidden">새로고침</span>
             </button>
             <button
               onClick={() => {
                 sessionStorage.removeItem("admin_token");
                 router.push("/admin");
               }}
-              className="text-sm text-semantic-red"
+              className="text-sm text-semantic-red px-2 py-2"
             >
-              로그아웃
+              <span className="max-sm:hidden">로그아웃</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="sm:hidden">
+                <path d="M5 1.5H3A1.5 1.5 0 0 0 1.5 3v8A1.5 1.5 0 0 0 3 12.5h2M9.5 10l3-3-3-3M5.5 7h7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -235,7 +339,7 @@ export default function AdminDashboardPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="이름, 전화번호, 주소, 주문번호 검색"
-                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-[--radius-md] border border-border-light bg-bg focus:outline-none focus:border-primary/50 transition-colors"
+                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
             </div>
             <button
@@ -260,14 +364,14 @@ export default function AdminDashboardPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border-light bg-bg focus:outline-none focus:border-primary/50"
+                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               <span className="text-text-muted text-xs">~</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border-light bg-bg focus:outline-none focus:border-primary/50"
+                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               {(dateFrom || dateTo) && (
                 <button
@@ -291,7 +395,7 @@ export default function AdminDashboardPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                className={`shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                     : "bg-bg text-text-sub border border-border-light hover:border-primary/30"
@@ -311,6 +415,21 @@ export default function AdminDashboardPage() {
           <p className="text-xs text-text-muted mb-3">
             검색 결과 {filtered.length}건
           </p>
+        )}
+
+        {/* 전체 선택 */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="checkbox"
+              checked={selectedBookings.size === filtered.length && filtered.length > 0}
+              onChange={toggleAll}
+              className="w-4 h-4 rounded-[3px] border-border accent-primary cursor-pointer"
+            />
+            <span className="text-xs text-text-sub">
+              전체 선택 {selectedBookings.size > 0 && `(${selectedBookings.size}건)`}
+            </span>
+          </div>
         )}
 
         {/* 목록 */}
@@ -336,9 +455,21 @@ export default function AdminDashboardPage() {
                   className="bg-bg rounded-[--radius-lg] border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
                 >
                   {/* 메인 영역 (클릭 → 상세) */}
+                  <div className="flex items-start">
+                    <div className="flex items-center pt-4 pl-3 max-sm:pt-3.5 max-sm:pl-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedBookings.has(b.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleBooking(b.id);
+                        }}
+                        className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                      />
+                    </div>
                   <button
                     onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                    className="w-full p-4 max-sm:p-3.5 text-left"
+                    className="flex-1 p-4 max-sm:p-3.5 text-left"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -383,6 +514,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                   </button>
+                  </div>
 
                   {/* 퀵 액션 바 */}
                   {quickAction && (
@@ -393,7 +525,7 @@ export default function AdminDashboardPage() {
                           handleQuickAction(b, quickAction.status, quickAction.label);
                         }}
                         disabled={isQuickLoading}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${quickAction.color} ${
+                        className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${quickAction.color} ${
                           isQuickLoading ? "opacity-50" : "hover:opacity-90"
                         }`}
                       >
@@ -406,7 +538,7 @@ export default function AdminDashboardPage() {
                     <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5">
                       <button
                         onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium bg-semantic-orange-tint text-semantic-orange transition-all duration-200 hover:opacity-90"
+                        className="px-4 py-2 rounded-full text-xs font-medium bg-semantic-orange-tint text-semantic-orange transition-all duration-200 hover:opacity-90"
                       >
                         견적 확정하기 →
                       </button>
@@ -418,6 +550,45 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* 벌크 상태 변경 바 */}
+      {selectedBookings.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-bg/95 backdrop-blur-[20px] border-t border-border-light shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+          <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm font-medium shrink-0">
+              {selectedBookings.size}건 선택
+            </span>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <select
+                value={bulkStatus}
+                onChange={(e) => setBulkStatus(e.target.value)}
+                className="px-3 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+              >
+                <option value="">상태 선택</option>
+                {STATUS_TABS.filter((t) => t.key !== "all").map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleBulkStatusChange}
+                disabled={!bulkStatus || bulkLoading}
+                className="px-4 py-2 text-sm font-medium rounded-[--radius-md] bg-primary text-white disabled:opacity-40 transition-all duration-200 hover:bg-primary-dark"
+              >
+                {bulkLoading ? "변경중..." : "벌크 변경"}
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedBookings(new Set());
+                  setBulkStatus("");
+                }}
+                className="px-3 py-2 text-sm text-text-sub hover:text-text-primary transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

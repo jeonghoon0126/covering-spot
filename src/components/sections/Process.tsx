@@ -1,6 +1,9 @@
+"use client";
+
+import { useRef, useState, useEffect } from "react";
 import { processSteps } from "@/data/process-steps";
-import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 /* ── 스텝별 듀오톤 아이콘 ── */
 const stepIcons: React.ReactNode[] = [
@@ -36,6 +39,73 @@ const stepIcons: React.ReactNode[] = [
   </svg>,
 ];
 
+function ProcessCard({ step, index }: { step: typeof processSteps[number]; index: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { threshold: 0.3 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      {/* 스텝 간 연결선 (마지막 카드 제외) */}
+      {index < processSteps.length - 1 && (
+        <div className="absolute top-10 -right-8 w-8 h-[2px] z-[1] max-lg:hidden">
+          <div className="w-full h-full border-t-2 border-dashed border-primary/20" />
+          <svg
+            className="absolute -right-1 top-1/2 -translate-y-1/2 text-primary/30"
+            width="8"
+            height="10"
+            viewBox="0 0 8 10"
+            fill="currentColor"
+          >
+            <path d="M0 0L8 5L0 10V0Z" />
+          </svg>
+        </div>
+      )}
+      <div className="bg-bg rounded-[16px] p-8 text-left border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-hover">
+        {/* 아이콘 + 번호 영역 */}
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center overflow-hidden"
+            style={{
+              animation: visible ? `icon-bounce-in 0.6s cubic-bezier(0.16,1,0.3,1) ${index * 0.15}s both` : "none",
+            }}
+          >
+            {stepIcons[index]}
+            {/* 반짝임 오버레이 */}
+            {visible && (
+              <div
+                className="absolute top-0 left-0 w-3 h-full pointer-events-none"
+                style={{
+                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
+                  animation: `icon-shimmer 0.5s ease-out ${0.4 + index * 0.15}s both`,
+                  position: "absolute",
+                }}
+              />
+            )}
+          </div>
+          <span className="text-[13px] font-bold text-primary/50 tracking-wider">
+            STEP {step.num}
+          </span>
+        </div>
+        <div className="text-xl font-bold mb-3">{step.title}</div>
+        <div className="text-[15px] text-text-sub leading-relaxed whitespace-pre-line">
+          {step.desc}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Process() {
   return (
     <section className="py-[120px] bg-bg-warm max-md:py-20" id="process">
@@ -51,38 +121,7 @@ export function Process() {
         <div className="grid grid-cols-4 gap-8 max-lg:grid-cols-2 max-lg:gap-6">
           {processSteps.map((step, i) => (
             <ScrollReveal key={step.num} delay={i * 0.1}>
-              <div className="relative">
-                {/* 스텝 간 연결선 (마지막 카드 제외) */}
-                {i < processSteps.length - 1 && (
-                  <div className="absolute top-10 -right-8 w-8 h-[2px] z-[1] max-lg:hidden">
-                    <div className="w-full h-full border-t-2 border-dashed border-primary/20" />
-                    <svg
-                      className="absolute -right-1 top-1/2 -translate-y-1/2 text-primary/30"
-                      width="8"
-                      height="10"
-                      viewBox="0 0 8 10"
-                      fill="currentColor"
-                    >
-                      <path d="M0 0L8 5L0 10V0Z" />
-                    </svg>
-                  </div>
-                )}
-                <div className="bg-bg rounded-[16px] p-8 text-left border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-hover">
-                  {/* 아이콘 + 번호 영역 */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-[14px] bg-primary-bg flex items-center justify-center">
-                      {stepIcons[i]}
-                    </div>
-                    <span className="text-[13px] font-bold text-primary/50 tracking-wider">
-                      STEP {step.num}
-                    </span>
-                  </div>
-                  <div className="text-xl font-bold mb-3">{step.title}</div>
-                  <div className="text-[15px] text-text-sub leading-relaxed whitespace-pre-line">
-                    {step.desc}
-                  </div>
-                </div>
-              </div>
+              <ProcessCard step={step} index={i} />
             </ScrollReveal>
           ))}
         </div>

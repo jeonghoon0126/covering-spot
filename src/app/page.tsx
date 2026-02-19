@@ -8,6 +8,7 @@ import { ItemPrices } from "@/components/sections/ItemPrices";
 import { Compare } from "@/components/sections/Compare";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTASection } from "@/components/sections/CTASection";
+import { AppDownload } from "@/components/sections/AppDownload";
 import { Footer } from "@/components/layout/Footer";
 import { FloatingCTA } from "@/components/layout/FloatingCTA";
 
@@ -30,6 +31,7 @@ export default function Page() {
       <Compare />
       <FAQ items={faqItems} />
       <CTASection />
+      <AppDownload />
       <Footer />
       <FloatingCTA />
     </>

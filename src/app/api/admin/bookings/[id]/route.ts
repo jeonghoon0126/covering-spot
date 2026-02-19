@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllBookings, updateBooking } from "@/lib/db";
 import { validateToken, getAdminFromToken } from "@/app/api/admin/auth/route";
 import { supabase } from "@/lib/supabase";
+import { hasPermission } from "@/lib/admin-roles";
+import { BookingUpdateSchema } from "@/lib/validation";
 import {
   sendQuoteConfirmed,
   sendStatusChanged,
   sendAdminMemoUpdated,
 } from "@/lib/slack-notify";
 import { sendStatusSms } from "@/lib/sms-notify";
+import { createPaymentLink } from "@/lib/payment-link";
 
 // 관리자용 getBookingById (취소된 건 포함)
 async function getBookingByIdAdmin(id: string) {
@@ -37,8 +40,9 @@ export async function GET(
     }
     return NextResponse.json({ booking });
   } catch (e) {
+    console.error("[admin/bookings/[id]/GET]", e);
     return NextResponse.json(
-      { error: "조회 실패", detail: String(e) },
+      { error: "조회 실패" },
       { status: 500 },
     );
   }
@@ -59,6 +63,34 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
+    // Zod 서버사이드 검증
+    const parsed = BookingUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "입력값이 올바르지 않습니다", fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    // 역할 기반 권한 검사
+    const { adminId, adminEmail, role } = getAdminFromToken(req);
+
+    // payment_completed 상태 변경은 admin만 가능
+    if (body.status === "payment_completed" && !hasPermission(role, "payment_confirm")) {
+      return NextResponse.json(
+        { error: "정산 완료 권한이 없습니다" },
+        { status: 403 },
+      );
+    }
+
+    // 가격 변경은 admin만 가능
+    if (body.finalPrice !== undefined && !hasPermission(role, "price_change")) {
+      return NextResponse.json(
+        { error: "가격 변경 권한이 없습니다" },
+        { status: 403 },
+      );
+    }
+
     // 허용되는 업데이트 필드만 추출
     const allowedUpdates: Record<string, unknown> = {};
     if (body.status !== undefined) allowedUpdates.status = body.status;
@@ -66,10 +98,12 @@ export async function PUT(
     if (body.adminMemo !== undefined) allowedUpdates.adminMemo = body.adminMemo;
     if (body.confirmedTime !== undefined) allowedUpdates.confirmedTime = body.confirmedTime;
     if (body.items !== undefined) allowedUpdates.items = body.items;
+    if (body.driverId !== undefined) allowedUpdates.driverId = body.driverId;
+    if (body.driverName !== undefined) allowedUpdates.driverName = body.driverName;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, items)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, items, driverId, driverName)" },
         { status: 400 },
       );
     }
@@ -84,9 +118,22 @@ export async function PUT(
 
     const previousStatus = existing.status;
     const previousMemo = existing.adminMemo;
-    const updated = await updateBooking(id, allowedUpdates);
+
+    // expectedUpdatedAt가 있으면 optimistic locking 적용
+    const expectedUpdatedAt: string | undefined = body.expectedUpdatedAt;
+    const updated = await updateBooking(id, allowedUpdates, expectedUpdatedAt);
 
     if (!updated) {
+      // updateBooking이 null을 반환했지만 existing은 존재 → 동시 수정 충돌
+      if (expectedUpdatedAt) {
+        return NextResponse.json(
+          {
+            error: "다른 관리자가 이미 수정했습니다. 새로고침 후 다시 시도해 주세요.",
+            code: "CONFLICT",
+          },
+          { status: 409 },
+        );
+      }
       return NextResponse.json(
         { error: "예약을 찾을 수 없습니다" },
         { status: 404 },
@@ -101,9 +148,19 @@ export async function PUT(
       } else {
         sendStatusChanged(updated, newStatus).catch(() => {});
       }
-      // SMS 알림 (fire-and-forget)
+      // 결제 링크 생성 + SMS 알림 (fire-and-forget)
       if (updated.phone) {
-        sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+        if (newStatus === "payment_requested") {
+          createPaymentLink(id, updated.finalPrice ?? 0, updated.customerName ?? "")
+            .then((paymentUrl) => {
+              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice, paymentUrl).catch(() => {});
+            })
+            .catch(() => {
+              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+            });
+        } else {
+          sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+        }
       }
       // 푸시 알림 (fire-and-forget)
       const STATUS_MSG: Record<string, string> = {
@@ -132,7 +189,6 @@ export async function PUT(
     }
 
     // Audit log (fire-and-forget)
-    const { adminId, adminEmail } = getAdminFromToken(req);
     const action = newStatus && newStatus !== previousStatus
       ? "status_change"
       : body.items !== undefined
@@ -162,8 +218,9 @@ export async function PUT(
 
     return NextResponse.json({ booking: updated });
   } catch (e) {
+    console.error("[admin/bookings/[id]/PUT]", e);
     return NextResponse.json(
-      { error: "수정 실패", detail: String(e) },
+      { error: "수정 실패" },
       { status: 500 },
     );
   }

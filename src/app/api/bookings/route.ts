@@ -7,6 +7,8 @@ import {
 } from "@/lib/db";
 import { sendBookingCreated } from "@/lib/slack-notify";
 import { isDateBookable } from "@/lib/booking-utils";
+import { generateBookingToken, validateBookingToken } from "@/lib/booking-token";
+import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
 import type { Booking } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -18,11 +20,31 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    // 전화번호 형식 검증
+    const digits = phone.replace(/[^\d]/g, "");
+    const parsed = PhoneSchema.safeParse(digits);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "올바른 전화번호 형식이 아닙니다" },
+        { status: 400 },
+      );
+    }
+
+    // 토큰 검증: phone 기반 토큰이 일치해야 조회 가능
+    if (!validateBookingToken(req, phone)) {
+      return NextResponse.json(
+        { error: "인증이 필요합니다" },
+        { status: 401 },
+      );
+    }
+
     const bookings = await getBookingsByPhone(phone);
     return NextResponse.json({ bookings });
   } catch (e) {
+    console.error("[bookings/GET]", e);
     return NextResponse.json(
-      { error: "조회 실패", detail: String(e) },
+      { error: "조회 실패" },
       { status: 500 },
     );
   }
@@ -31,6 +53,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Zod 서버사이드 검증
+    const parsed = BookingCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "입력값이 올바르지 않습니다", fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
 
     // 전날 12시 마감 정책 검증
     if (!isDateBookable(body.date)) {
@@ -74,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     await createBooking(booking);
 
-    // Slack 알림 → thread_ts 저장 (실패해도 예약은 성공)
+    // Slack 알림 -> thread_ts 저장 (실패해도 예약은 성공)
     sendBookingCreated(booking)
       .then((threadTs) => {
         if (threadTs) {
@@ -83,10 +114,14 @@ export async function POST(req: NextRequest) {
       })
       .catch(() => {});
 
-    return NextResponse.json({ booking }, { status: 201 });
+    // 예약 생성 시 bookingToken 반환 (고객이 조회/수정/삭제에 사용)
+    const bookingToken = generateBookingToken(booking.phone);
+
+    return NextResponse.json({ booking, bookingToken }, { status: 201 });
   } catch (e) {
+    console.error("[bookings/POST]", e);
     return NextResponse.json(
-      { error: "예약 생성 실패", detail: String(e) },
+      { error: "예약 생성 실패" },
       { status: 500 },
     );
   }

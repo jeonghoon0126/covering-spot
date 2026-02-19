@@ -7,6 +7,8 @@ import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { subscribeToPush } from "@/lib/push-subscription";
+import { KAKAO_CHAT_URL } from "@/lib/constants";
+import { KakaoIcon } from "@/components/ui/KakaoIcon";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -67,20 +69,39 @@ function BookingCompleteContent() {
 
   return (
     <div className="space-y-6">
-      {/* 완료 헤더 */}
-      <div className="text-center py-6">
-        <div className="relative w-20 h-20 flex items-center justify-center mx-auto mb-4">
-          {/* 펄스 링 */}
-          <div className="absolute inset-0 rounded-full bg-semantic-green/10 animate-pulse-ring" />
-          {/* 메인 아이콘 */}
-          <svg width="64" height="64" viewBox="0 0 48 48" fill="none" className="animate-scale-in relative z-10">
+      {/* 완료 헤더 — 성공 애니메이션 */}
+      <div className="text-center py-8">
+        <div className="relative w-24 h-24 flex items-center justify-center mx-auto mb-5">
+          {/* 확산 링 */}
+          <div className="animate-success-ring1" />
+          <div className="animate-success-ring2" />
+          {/* 컨페티 파티클 */}
+          {[0,1,2,3,4,5,6,7].map((i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: ['#059669','#10B981','#34D399','#6EE7B7','#1AA3FF','#FCD34D','#F472B6','#A78BFA'][i],
+                top: '50%', left: '50%',
+                transform: `rotate(${i * 45}deg) translateX(${28}px)`,
+                opacity: 0,
+                animation: `success-confetti 0.7s cubic-bezier(0.16,1,0.3,1) ${0.5 + i * 0.04}s both`,
+              }}
+            />
+          ))}
+          {/* 메인 원 + 체크 */}
+          <svg width="80" height="80" viewBox="0 0 48 48" fill="none" className="animate-success-circle relative z-10">
             <circle cx="24" cy="24" r="22" fill="#EDFCF6" />
             <circle cx="24" cy="24" r="17" fill="#D1FAE5" />
-            <path d="M15 24l6 6L33 18" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="animate-check-draw" />
+            <path d="M15 24l6 6L33 18" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="animate-success-check" />
           </svg>
+          {/* 반짝임 */}
+          <div className="absolute inset-0 rounded-full overflow-hidden animate-success-shimmer z-20 pointer-events-none" />
         </div>
-        <h1 className="text-2xl font-bold mb-2">수거 신청이 접수되었습니다</h1>
-        <p className="text-text-sub text-sm">
+        <h1 className="text-2xl font-bold mb-2 animate-success-fadeup" style={{ animationDelay: '0.7s' }}>
+          수거 신청이 접수되었습니다
+        </h1>
+        <p className="text-text-sub text-sm animate-success-fadeup" style={{ animationDelay: '0.85s' }}>
           담당자가 확인 후 최종 견적을 안내드립니다 (영업일 기준 24시간 이내)
         </p>
       </div>
@@ -157,7 +178,7 @@ function BookingCompleteContent() {
               <span className="text-text-sub truncate max-w-[60%]">
                 {item.category} - {item.name} x{item.quantity}
               </span>
-              <span>{formatPrice(item.price * item.quantity)}원</span>
+              <span>{item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}</span>
             </div>
           ))}
         </div>
@@ -231,8 +252,23 @@ function BookingCompleteContent() {
             <span className="text-primary shrink-0">3.</span>
             신청 변경/취소는 신청 관리 페이지에서 가능합니다.
           </li>
+          <li className="flex gap-2">
+            <span className="text-semantic-orange shrink-0">⚠</span>
+            <span className="text-text-primary font-medium">수거 전 귀중품(현금, 귀금속, 중요 서류 등)은 반드시 따로 보관해 주세요.</span>
+          </li>
         </ul>
       </div>
+
+      {/* 카카오톡 문의 */}
+      <a
+        href={KAKAO_CHAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[--radius-md] bg-[#FEE500] text-[#191919] font-semibold text-[15px] hover:brightness-95 active:scale-[0.98] transition-all"
+      >
+        <KakaoIcon size={20} />
+        카카오톡으로 문의하기
+      </a>
 
       {/* 하단 버튼 */}
       <div className="flex gap-3">

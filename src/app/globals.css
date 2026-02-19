@@ -124,35 +124,89 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ═══ Complete check animation ═══ */
-@keyframes scale-in {
+/* ═══ Complete success animation ═══ */
+@keyframes success-circle-fill {
   0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); }
+  50% { transform: scale(1.2); opacity: 1; }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes check-draw {
+@keyframes success-check-draw {
   0% { stroke-dashoffset: 30; }
   100% { stroke-dashoffset: 0; }
 }
 
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.4; }
-  100% { transform: scale(1.6); opacity: 0; }
+@keyframes success-ring-expand {
+  0% { transform: scale(0.8); opacity: 0.6; border-width: 3px; }
+  100% { transform: scale(2.2); opacity: 0; border-width: 0px; }
 }
 
-.animate-scale-in {
-  animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+@keyframes success-ring-expand2 {
+  0% { transform: scale(0.8); opacity: 0.4; border-width: 2px; }
+  100% { transform: scale(2.8); opacity: 0; border-width: 0px; }
 }
 
-.animate-check-draw {
+@keyframes success-shimmer {
+  0% { transform: translateX(-100%) rotate(25deg); }
+  100% { transform: translateX(200%) rotate(25deg); }
+}
+
+@keyframes success-confetti {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(-80px) rotate(360deg) scale(0); opacity: 0; }
+}
+
+@keyframes success-fade-up {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-success-circle {
+  animation: success-circle-fill 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.animate-success-check {
   stroke-dasharray: 30;
   stroke-dashoffset: 30;
-  animation: check-draw 0.4s ease-out 0.3s forwards;
+  animation: success-check-draw 0.4s cubic-bezier(0.65, 0, 0.35, 1) 0.5s forwards;
 }
 
-.animate-pulse-ring {
-  animation: pulse-ring 1.5s ease-out infinite;
+.animate-success-ring1 {
+  position: absolute; inset: -4px; border-radius: 9999px;
+  border: 3px solid #059669;
+  animation: success-ring-expand 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+.animate-success-ring2 {
+  position: absolute; inset: -4px; border-radius: 9999px;
+  border: 2px solid #059669;
+  animation: success-ring-expand2 1s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}
+
+.animate-success-shimmer::after {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: success-shimmer 0.6s ease-out 0.8s both;
+}
+
+.animate-success-fadeup {
+  opacity: 0;
+  animation: success-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ═══ Process icon bounce ═══ */
+@keyframes icon-bounce-in {
+  0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+  50% { transform: translateY(-6px) scale(1.08); opacity: 1; }
+  70% { transform: translateY(2px) scale(0.97); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes icon-shimmer {
+  0% { left: -50%; }
+  100% { left: 150%; }
 }
 
 /* ═══ Carousel grab cursor ═══ */
