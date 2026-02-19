@@ -178,7 +178,7 @@ export async function PUT(
           },
           body: JSON.stringify({
             bookingId: id,
-            title: "커버링 스팟",
+            title: "커버링 방문수거",
             message: STATUS_MSG[newStatus],
             url: `/booking/manage?id=${id}`,
           }),
