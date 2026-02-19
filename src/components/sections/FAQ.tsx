@@ -35,7 +35,7 @@ function FAQItemCard({
 
   return (
     <div
-      className={`border-b border-border rounded-[--radius-lg] mb-2 transition-all duration-300 ease-out ${
+      className={`border-b border-border rounded-lg mb-2 transition-all duration-300 ease-out ${
         isOpen
           ? "bg-primary/[0.03] border-primary/20"
           : "hover:bg-bg-warm/60"
@@ -66,7 +66,7 @@ function FAQItemCard({
         <div ref={contentRef} className="pb-7 px-6 text-[15px] text-text-sub leading-[1.75] max-md:px-4">
           {item.answer}
           {item.note && (
-            <div className="text-[13px] text-text-muted mt-3 py-4 px-5 bg-bg-warm rounded-[--radius-lg] leading-relaxed border border-border/50">
+            <div className="text-[13px] text-text-muted mt-3 py-4 px-5 bg-bg-warm rounded-lg leading-relaxed border border-border/50">
               {item.note}
             </div>
           )}

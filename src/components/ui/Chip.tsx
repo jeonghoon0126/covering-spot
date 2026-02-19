@@ -75,7 +75,7 @@ export function Chip({
 
   const classes = [
     "inline-flex items-center justify-center gap-1 font-medium",
-    "rounded-[--radius-max] whitespace-nowrap",
+    "rounded-full whitespace-nowrap",
     "transition-all duration-200",
     "cursor-pointer",
     sizeStyles[size],

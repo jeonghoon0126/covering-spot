@@ -26,7 +26,7 @@ export const SegmentedField = forwardRef<HTMLDivElement, SegmentedFieldProps>(
       <div
         ref={ref}
         className={[
-          "inline-flex gap-1 rounded-[--radius-md] bg-fill-tint p-1",
+          "inline-flex gap-1 rounded-md bg-fill-tint p-1",
           disabled ? "opacity-60 pointer-events-none" : "",
           className,
         ]
@@ -48,7 +48,7 @@ export const SegmentedField = forwardRef<HTMLDivElement, SegmentedFieldProps>(
               onClick={() => onChange(option.value)}
               className={[
                 "flex-1 flex items-center justify-center",
-                "h-9 rounded-[--radius-sm] px-3",
+                "h-9 rounded-sm px-3",
                 "text-sm leading-[22px]",
                 "transition-all duration-200",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400",

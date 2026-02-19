@@ -468,7 +468,7 @@ export default function BookingPage() {
 
       {/* Step 0: 고객 정보 */}
       {step === 0 && (
-        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+        <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
           <p className="text-sm text-text-sub">
             수거 신청을 위해 기본 정보를 입력해 주세요
           </p>
@@ -498,7 +498,7 @@ export default function BookingPage() {
             <button
               type="button"
               onClick={() => setShowPostcode(true)}
-              className={`w-full h-12 px-4 rounded-[--radius-md] border border-border text-base text-left transition-all duration-200 hover:border-brand-300 focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none ${
+              className={`w-full h-12 px-4 rounded-md border border-border text-base text-left transition-all duration-200 hover:border-brand-300 focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none ${
                 address ? "text-text-primary" : "text-text-muted"
               }`}
             >
@@ -537,13 +537,13 @@ export default function BookingPage() {
       {step === 1 && (
         <div className="space-y-6">
           {/* 마감 안내 */}
-          <div className="bg-primary-tint/30 rounded-[--radius-md] px-4 py-3 border border-primary/20">
+          <div className="bg-primary-tint/30 rounded-md px-4 py-3 border border-primary/20">
             <p className="text-sm text-primary font-medium">
               수거 희망일 전날 낮 12시까지 신청 가능합니다
             </p>
           </div>
           {/* 달력 */}
-          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+          <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() =>
@@ -552,7 +552,7 @@ export default function BookingPage() {
                     return { year: d.getFullYear(), month: d.getMonth() };
                   })
                 }
-                className="p-2 hover:bg-bg-warm rounded-[--radius-sm]"
+                className="p-2 hover:bg-bg-warm rounded-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
@@ -566,7 +566,7 @@ export default function BookingPage() {
                     return { year: d.getFullYear(), month: d.getMonth() };
                   })
                 }
-                className="p-2 hover:bg-bg-warm rounded-[--radius-sm]"
+                className="p-2 hover:bg-bg-warm rounded-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
@@ -590,7 +590,7 @@ export default function BookingPage() {
                     onClick={() => setSelectedDate(dateStr)}
                     aria-label={`${calMonth.month + 1}월 ${day}일 ${isPast ? '예약 불가' : '예약 가능'}`}
                     aria-pressed={isSelected}
-                    className={`py-3 min-h-[44px] rounded-[--radius-md] text-sm transition-all duration-200 ${
+                    className={`py-3 min-h-[44px] rounded-md text-sm transition-all duration-200 ${
                       isPast
                         ? "text-text-muted/40 cursor-not-allowed"
                         : isSelected
@@ -607,7 +607,7 @@ export default function BookingPage() {
 
           {/* 시간대 선택 */}
           {selectedDate && (
-            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+            <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
               <h3 className="font-semibold mb-1">시간대 선택</h3>
               <p className="text-sm text-text-sub mb-3">
                 쓰레기 수거량에 따라서 수거 시간대가 확정돼요.<br />
@@ -629,7 +629,7 @@ export default function BookingPage() {
                         disabled={isFull}
                         aria-label={`${opt} ${isFull ? '마감' : '선택 가능'}`}
                         aria-pressed={opt === selectedTime}
-                        className={`py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                        className={`py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                           isFull
                             ? "bg-fill-tint text-text-muted cursor-not-allowed"
                             : opt === selectedTime
@@ -656,7 +656,7 @@ export default function BookingPage() {
         <div className="space-y-3">
           {/* 선택된 품목 요약 */}
           {selectedItems.length > 0 && (
-            <div className="bg-primary-bg rounded-[--radius-lg] p-4 mb-1">
+            <div className="bg-primary-bg rounded-lg p-4 mb-1">
               <p className="text-sm font-semibold text-primary mb-2">
                 선택된 품목 ({selectedItems.length}종,{" "}
                 {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
@@ -672,7 +672,7 @@ export default function BookingPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
-                      className="w-10 h-10 rounded-[--radius-sm] bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
+                      className="w-10 h-10 rounded-sm bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
                     >
                       −
                     </button>
@@ -681,7 +681,7 @@ export default function BookingPage() {
                     </span>
                     <button
                       onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
-                      className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white text-xs font-bold flex items-center justify-center"
+                      className="w-10 h-10 rounded-sm bg-primary text-white text-xs font-bold flex items-center justify-center"
                     >
                       +
                     </button>
@@ -698,7 +698,7 @@ export default function BookingPage() {
           )}
 
           {/* 인기 품목 */}
-          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4">
+          <div className="bg-bg rounded-lg shadow-md border border-border-light p-5 max-sm:p-4">
             <h3 className="text-sm font-semibold mb-3">인기 품목</h3>
             <div className="flex flex-wrap gap-2">
               {[
@@ -719,7 +719,7 @@ export default function BookingPage() {
                   <button
                     key={`${pop.cat}-${pop.name}`}
                     onClick={() => updateItemQty(pop.cat, pop.name, itemData.displayName, itemData.price, 1)}
-                    className={`px-3 py-2 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                    className={`px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                       qty > 0
                         ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.2)]"
                         : "bg-bg-warm hover:bg-primary-bg"
@@ -775,7 +775,7 @@ export default function BookingPage() {
 
           {/* 검색 결과 또는 카테고리 아코디언 */}
           {itemSearch.trim() ? (
-            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4 space-y-2">
+            <div className="bg-bg rounded-lg shadow-md border border-border-light p-5 max-sm:p-4 space-y-2">
               <p className="text-sm text-text-sub mb-2">
                 &quot;{itemSearch}&quot; 검색 결과
               </p>
@@ -810,14 +810,14 @@ export default function BookingPage() {
                         <button
                           onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
                           disabled={qty === 0}
-                          className="w-10 h-10 rounded-[--radius-sm] bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                          className="w-10 h-10 rounded-sm bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
                         >
                           −
                         </button>
                         <span className="w-6 text-center text-sm font-semibold">{qty}</span>
                         <button
                           onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
-                          className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                          className="w-10 h-10 rounded-sm bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
                         >
                           +
                         </button>
@@ -833,7 +833,7 @@ export default function BookingPage() {
             .map((cat) => (
               <div
                 key={cat.name}
-                className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
+                className="bg-bg rounded-lg shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
               >
                 <button
                   onClick={() =>
@@ -842,7 +842,7 @@ export default function BookingPage() {
                   className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-[--radius-md] bg-primary-tint/50 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-md bg-primary-tint/50 flex items-center justify-center shrink-0">
                       {categoryIcons[cat.name] || defaultCategoryIcon}
                     </div>
                     <span className="font-medium">{cat.name}</span>
@@ -872,7 +872,7 @@ export default function BookingPage() {
                                 updateItemQty(cat.name, item.name, item.displayName, item.price, -1)
                               }
                               disabled={qty === 0}
-                              className="w-10 h-10 rounded-[--radius-sm] bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                              className="w-10 h-10 rounded-sm bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
                             >
                               −
                             </button>
@@ -883,7 +883,7 @@ export default function BookingPage() {
                               onClick={() =>
                                 updateItemQty(cat.name, item.name, item.displayName, item.price, 1)
                               }
-                              className="w-10 h-10 rounded-[--radius-sm] bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                              className="w-10 h-10 rounded-sm bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
                             >
                               +
                             </button>
@@ -898,7 +898,7 @@ export default function BookingPage() {
           )}
 
           {/* 커스텀 품목 입력 */}
-          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-5 max-sm:p-4">
+          <div className="bg-bg rounded-lg shadow-md border border-border-light p-5 max-sm:p-4">
             <h3 className="text-sm font-semibold mb-3">원하는 품목이 없나요?</h3>
             <div className="flex gap-2">
               <div className="flex-1">
@@ -928,7 +928,7 @@ export default function BookingPage() {
 
           {/* 견적 미리보기 */}
           {previewQuote && selectedItems.length > 0 && (
-            <div className="bg-primary-bg rounded-[--radius-lg] border border-primary/20 p-5 max-sm:p-4">
+            <div className="bg-primary-bg rounded-lg border border-primary/20 p-5 max-sm:p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-primary">예상 견적 (사다리차 별도)</p>
                 <p className="text-lg font-bold text-primary">
@@ -942,7 +942,7 @@ export default function BookingPage() {
           )}
 
           {/* 사진 업로드 */}
-          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+          <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
             <div>
               <h3 className="font-semibold mb-1">품목 사진 첨부 <span className="text-xs font-normal text-text-muted">(선택)</span></h3>
               <p className="text-sm text-text-sub">
@@ -954,7 +954,7 @@ export default function BookingPage() {
             {photoPreviews.length > 0 && (
               <div className="grid grid-cols-3 gap-3">
                 {photoPreviews.map((url, i) => (
-                  <div key={i} className="relative aspect-square rounded-[--radius-md] overflow-hidden bg-bg-warm">
+                  <div key={i} className="relative aspect-square rounded-md overflow-hidden bg-bg-warm">
                     <img
                       src={url}
                       alt={`사진 ${i + 1}`}
@@ -976,7 +976,7 @@ export default function BookingPage() {
             {photos.length < 5 && (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-3 rounded-[--radius-md] border-2 border-dashed border-border text-sm text-text-sub font-medium hover:border-primary hover:text-primary transition-colors"
+                className="w-full py-3 rounded-md border-2 border-dashed border-border text-sm text-text-sub font-medium hover:border-primary hover:text-primary transition-colors"
               >
                 사진 추가 ({photos.length}/5)
               </button>
@@ -995,14 +995,14 @@ export default function BookingPage() {
 
       {/* Step 3: 작업 환경 */}
       {step === 3 && (
-        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-8">
+        <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-8">
           <p className="text-sm text-text-sub">작업 환경을 알려주세요</p>
           <div>
             <p className="font-semibold mb-4">엘리베이터</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setHasElevator(true)}
-                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasElevator === true
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1012,7 +1012,7 @@ export default function BookingPage() {
               </button>
               <button
                 onClick={() => setHasElevator(false)}
-                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasElevator === false
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1027,7 +1027,7 @@ export default function BookingPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setHasParking(true)}
-                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasParking === true
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1037,7 +1037,7 @@ export default function BookingPage() {
               </button>
               <button
                 onClick={() => setHasParking(false)}
-                className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                   hasParking === false
                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1052,7 +1052,7 @@ export default function BookingPage() {
 
       {/* Step 4: 사다리차 */}
       {step === 4 && (
-        <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-5">
+        <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-5">
           <p className="text-sm text-text-sub">사다리차 필요여부를 알려주세요</p>
           <Checkbox
             checked={needLadder}
@@ -1069,7 +1069,7 @@ export default function BookingPage() {
                     <button
                       key={t}
                       onClick={() => setLadderType(t)}
-                      className={`flex-1 py-3.5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                         ladderType === t
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1096,7 +1096,7 @@ export default function BookingPage() {
                     <button
                       key={d}
                       onClick={() => setLadderHours(i)}
-                      className={`py-3 rounded-[--radius-md] text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                      className={`py-3 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                         ladderHours === i
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
@@ -1116,7 +1116,7 @@ export default function BookingPage() {
       {step === 5 && (
         <div className="space-y-5">
           {/* 수거 신청 요약 */}
-          <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+          <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
             <h3 className="font-semibold mb-3">수거 신청내용을 확인해주세요</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -1172,7 +1172,7 @@ export default function BookingPage() {
 
           {/* 견적 상세 */}
           {quote ? (
-            <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+            <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
               <h3 className="font-semibold mb-3">견적 금액</h3>
               <div className="space-y-2 text-sm">
                 {quote.breakdown.map((b, i) => (
@@ -1221,7 +1221,7 @@ export default function BookingPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-bg rounded-[--radius-lg] shadow-sm border border-border-light p-8 flex flex-col items-center">
+            <div className="bg-bg rounded-lg shadow-sm border border-border-light p-8 flex flex-col items-center">
               <LoadingSpinner size="lg" />
               <p className="text-text-muted mt-4 text-sm">견적을 계산하고 있습니다...</p>
             </div>
@@ -1283,7 +1283,7 @@ export default function BookingPage() {
           aria-label="주소 검색"
           onKeyDown={(e) => { if (e.key === "Escape") setShowPostcode(false); }}
         >
-          <div className="bg-white rounded-[--radius-lg] overflow-hidden w-full max-w-[28rem]">
+          <div className="bg-white rounded-lg overflow-hidden w-full max-w-[28rem]">
             <ModalHeader
               title="주소 검색"
               onClose={() => setShowPostcode(false)}

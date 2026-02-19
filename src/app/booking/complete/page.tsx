@@ -115,7 +115,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 상태 표시 */}
-      <div className="bg-semantic-orange-tint rounded-[--radius-lg] p-4 flex items-center gap-3">
+      <div className="bg-semantic-orange-tint rounded-lg p-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <circle cx="18" cy="18" r="16" fill="#FFF7E5" />
@@ -131,7 +131,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 신청 요약 */}
-      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+      <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
         <h2 className="font-semibold text-lg">신청 정보</h2>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between py-2 border-b border-border-light">
@@ -178,7 +178,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 품목 내역 */}
-      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+      <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">품목 내역</h2>
         <div className="space-y-2 text-sm">
           {booking.items.map((item, i) => (
@@ -193,7 +193,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 견적 금액 */}
-      <div className="bg-primary-bg rounded-[--radius-lg] p-5">
+      <div className="bg-primary-bg rounded-lg p-5">
         <div className="flex justify-between items-center">
           <span className="font-semibold">예상 견적</span>
           <span className="text-xl font-bold text-primary">
@@ -211,7 +211,7 @@ function BookingCompleteContent() {
 
       {/* 푸시 알림 */}
       {!pushSubscribed && typeof window !== "undefined" && "Notification" in window && Notification.permission !== "denied" && (
-        <div className="bg-primary-bg rounded-[--radius-lg] border border-primary/20 p-5 flex items-center gap-3">
+        <div className="bg-primary-bg rounded-lg border border-primary/20 p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1AA3FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -229,14 +229,14 @@ function BookingCompleteContent() {
                 if (ok) setPushSubscribed(true);
               }
             }}
-            className="shrink-0 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-[--radius-md]"
+            className="shrink-0 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md"
           >
             허용
           </button>
         </div>
       )}
       {pushSubscribed && (
-        <div className="bg-semantic-green-tint rounded-[--radius-lg] p-4 flex items-center gap-2">
+        <div className="bg-semantic-green-tint rounded-lg p-4 flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
@@ -245,7 +245,7 @@ function BookingCompleteContent() {
       )}
 
       {/* 안내 */}
-      <div className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light p-7 max-sm:p-5">
+      <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
         <h2 className="font-semibold mb-3">안내 사항</h2>
         <ul className="space-y-2 text-sm text-text-sub">
           <li className="flex gap-2">
@@ -272,7 +272,7 @@ function BookingCompleteContent() {
         href={KAKAO_CHAT_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[--radius-md] bg-[#FEE500] text-[#191919] font-semibold text-[15px] hover:brightness-95 active:scale-[0.98] transition-all"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-md bg-[#FEE500] text-[#191919] font-semibold text-[15px] hover:brightness-95 active:scale-[0.98] transition-all"
       >
         <KakaoIcon size={20} />
         카카오톡으로 문의하기

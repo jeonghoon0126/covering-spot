@@ -526,7 +526,7 @@ export default function AdminCalendarPage() {
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">{headerTitle}</h1>
-            <div className="flex rounded-[--radius-md] border border-border-light overflow-hidden">
+            <div className="flex rounded-md border border-border-light overflow-hidden">
               <button
                 onClick={() => setViewMode("daily")}
                 className={`text-xs px-3 py-1 font-medium transition-colors ${
@@ -689,7 +689,7 @@ export default function AdminCalendarPage() {
                           <button
                             key={b.id}
                             onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                            className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left max-w-full"
+                            className="flex items-center gap-2 bg-bg rounded-md px-3 py-2 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left max-w-full"
                           >
                             <span
                               className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
@@ -723,7 +723,7 @@ export default function AdminCalendarPage() {
                         <button
                           key={b.id}
                           onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                          className="flex items-center gap-2 bg-bg rounded-[--radius-md] px-3 py-2 border border-border-light hover:shadow-hover transition-all duration-200 text-left"
+                          className="flex items-center gap-2 bg-bg rounded-md px-3 py-2 border border-border-light hover:shadow-hover transition-all duration-200 text-left"
                         >
                           <span
                             className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
@@ -793,7 +793,7 @@ export default function AdminCalendarPage() {
                             <button
                               key={b.id}
                               onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                              className="w-full text-left bg-bg-warm rounded-[--radius-md] px-2 py-1.5 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
+                              className="w-full text-left bg-bg-warm rounded-md px-2 py-1.5 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
                             >
                               <div className="flex items-center gap-1 mb-0.5">
                                 <span className="text-[10px] font-medium text-text-sub">
@@ -836,7 +836,7 @@ export default function AdminCalendarPage() {
                 <select
                   value={selectedDriverId}
                   onChange={(e) => setSelectedDriverId(e.target.value)}
-                  className="w-full h-11 px-3 rounded-[--radius-md] border border-border-light bg-bg text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  className="w-full h-11 px-3 rounded-md border border-border-light bg-bg text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                 >
                   <option value="all">전체</option>
                   {drivers.map((d) => (
@@ -853,7 +853,7 @@ export default function AdminCalendarPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, -1))}
-                    className="shrink-0 p-2 rounded-[--radius-sm] hover:bg-bg transition-colors border border-border-light"
+                    className="shrink-0 p-2 rounded-sm hover:bg-bg transition-colors border border-border-light"
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -863,11 +863,11 @@ export default function AdminCalendarPage() {
                     type="date"
                     value={slotMgmtDate}
                     onChange={(e) => setSlotMgmtDate(e.target.value)}
-                    className="flex-1 h-11 px-3 rounded-[--radius-md] border border-border-light bg-bg text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="flex-1 h-11 px-3 rounded-md border border-border-light bg-bg text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                   <button
                     onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, 1))}
-                    className="shrink-0 p-2 rounded-[--radius-sm] hover:bg-bg transition-colors border border-border-light"
+                    className="shrink-0 p-2 rounded-sm hover:bg-bg transition-colors border border-border-light"
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -930,7 +930,7 @@ export default function AdminCalendarPage() {
                       <div className="flex-1 border-l border-border-light min-h-[3.25rem] flex items-center px-3 gap-3">
                         {/* 예약 수 표시 */}
                         {bookingCount > 0 && (
-                          <span className="text-[11px] font-medium text-text-sub bg-bg-warm px-2 py-1 rounded-[--radius-sm]">
+                          <span className="text-[11px] font-medium text-text-sub bg-bg-warm px-2 py-1 rounded-sm">
                             예약 {bookingCount}건
                           </span>
                         )}
@@ -950,7 +950,7 @@ export default function AdminCalendarPage() {
                             <button
                               onClick={() => handleUnblockSlot(blocked.id!, time)}
                               disabled={isActionLoading}
-                              className="ml-auto shrink-0 text-[11px] font-medium text-semantic-red bg-white border border-red-200 rounded-[--radius-sm] px-3 py-1.5 hover:bg-red-50 active:scale-[0.97] transition-all disabled:opacity-50"
+                              className="ml-auto shrink-0 text-[11px] font-medium text-semantic-red bg-white border border-red-200 rounded-sm px-3 py-1.5 hover:bg-red-50 active:scale-[0.97] transition-all disabled:opacity-50"
                             >
                               {isActionLoading ? "..." : "해제"}
                             </button>
@@ -964,7 +964,7 @@ export default function AdminCalendarPage() {
                             <button
                               onClick={() => handleBlockSlot(time)}
                               disabled={isActionLoading}
-                              className="ml-auto shrink-0 text-[11px] font-medium text-text-sub bg-bg border border-border-light rounded-[--radius-sm] px-3 py-1.5 hover:bg-bg-warm active:scale-[0.97] transition-all disabled:opacity-50"
+                              className="ml-auto shrink-0 text-[11px] font-medium text-text-sub bg-bg border border-border-light rounded-sm px-3 py-1.5 hover:bg-bg-warm active:scale-[0.97] transition-all disabled:opacity-50"
                             >
                               {isActionLoading ? "..." : "차단"}
                             </button>
@@ -995,7 +995,7 @@ export default function AdminCalendarPage() {
 
               {/* 기사 추가 폼 */}
               {showDriverForm && (
-                <div className="bg-bg rounded-[--radius-lg] border border-border-light p-4 mb-3 space-y-3">
+                <div className="bg-bg rounded-lg border border-border-light p-4 mb-3 space-y-3">
                   <div>
                     <label className="block text-[11px] text-text-muted font-medium mb-1">이름 *</label>
                     <input
@@ -1003,7 +1003,7 @@ export default function AdminCalendarPage() {
                       value={newDriverName}
                       onChange={(e) => setNewDriverName(e.target.value)}
                       placeholder="기사님 이름"
-                      className="w-full h-10 px-3 rounded-[--radius-md] border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                      className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                     />
                   </div>
                   <div>
@@ -1013,13 +1013,13 @@ export default function AdminCalendarPage() {
                       value={newDriverPhone}
                       onChange={(e) => setNewDriverPhone(e.target.value)}
                       placeholder="010-0000-0000"
-                      className="w-full h-10 px-3 rounded-[--radius-md] border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                      className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                     />
                   </div>
                   <button
                     onClick={handleCreateDriver}
                     disabled={driverSaving || !newDriverName.trim()}
-                    className="w-full h-10 rounded-[--radius-md] bg-primary text-white text-sm font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="w-full h-10 rounded-md bg-primary text-white text-sm font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-50"
                   >
                     {driverSaving ? "추가 중..." : "추가"}
                   </button>
@@ -1039,7 +1039,7 @@ export default function AdminCalendarPage() {
                   return (
                     <div
                       key={driver.id}
-                      className={`bg-bg rounded-[--radius-md] border p-3 transition-colors ${
+                      className={`bg-bg rounded-md border p-3 transition-colors ${
                         driver.active
                           ? "border-border-light"
                           : "border-border-light/50 opacity-60"
@@ -1053,26 +1053,26 @@ export default function AdminCalendarPage() {
                             value={editDriverName}
                             onChange={(e) => setEditDriverName(e.target.value)}
                             placeholder="이름"
-                            className="w-full h-9 px-3 rounded-[--radius-sm] border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                           />
                           <input
                             type="tel"
                             value={editDriverPhone}
                             onChange={(e) => setEditDriverPhone(e.target.value)}
                             placeholder="연락처"
-                            className="w-full h-9 px-3 rounded-[--radius-sm] border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateDriver(driver.id)}
                               disabled={driverSaving}
-                              className="flex-1 h-9 rounded-[--radius-sm] bg-primary text-white text-xs font-semibold active:scale-[0.98] transition-all disabled:opacity-50"
+                              className="flex-1 h-9 rounded-sm bg-primary text-white text-xs font-semibold active:scale-[0.98] transition-all disabled:opacity-50"
                             >
                               {driverSaving ? "..." : "저장"}
                             </button>
                             <button
                               onClick={() => setEditingDriverId(null)}
-                              className="flex-1 h-9 rounded-[--radius-sm] bg-bg-warm text-text-sub text-xs font-medium border border-border-light active:scale-[0.98] transition-all"
+                              className="flex-1 h-9 rounded-sm bg-bg-warm text-text-sub text-xs font-medium border border-border-light active:scale-[0.98] transition-all"
                             >
                               취소
                             </button>
@@ -1106,13 +1106,13 @@ export default function AdminCalendarPage() {
                                 setEditDriverName(driver.name);
                                 setEditDriverPhone(driver.phone || "");
                               }}
-                              className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-[--radius-sm] hover:bg-bg-warm transition-colors"
+                              className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
                             >
                               수정
                             </button>
                             <button
                               onClick={() => handleToggleDriverActive(driver)}
-                              className={`text-[11px] font-medium px-2 py-1.5 rounded-[--radius-sm] transition-colors ${
+                              className={`text-[11px] font-medium px-2 py-1.5 rounded-sm transition-colors ${
                                 driver.active
                                   ? "text-semantic-red hover:bg-red-50"
                                   : "text-semantic-green hover:bg-green-50"

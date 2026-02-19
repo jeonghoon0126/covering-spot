@@ -67,7 +67,7 @@ export const Counter = forwardRef<HTMLDivElement, CounterProps>(
 
     const btnBase = [
       "flex items-center justify-center",
-      "h-8 w-8 rounded-[--radius-sm] border",
+      "h-8 w-8 rounded-sm border",
       "transition-all duration-200",
       "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400",
     ].join(" ");
@@ -91,7 +91,7 @@ export const Counter = forwardRef<HTMLDivElement, CounterProps>(
           ref={ref}
           className={[
             "inline-flex items-center gap-3",
-            "h-10 rounded-[--radius-md] border border-border px-2",
+            "h-10 rounded-md border border-border px-2",
             disabled ? "bg-disable-assistive" : "bg-white",
             className,
           ]

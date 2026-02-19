@@ -170,7 +170,7 @@ export default function AdminBookingNewPage() {
 
       <form onSubmit={handleSubmit} className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
         {/* 고객 정보 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-4">고객 정보</h3>
           <div className="space-y-4">
             <TextField
@@ -211,7 +211,7 @@ export default function AdminBookingNewPage() {
         </div>
 
         {/* 수거 정보 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-4">수거 정보</h3>
           <div className="space-y-4">
             <TextArea
@@ -232,7 +232,7 @@ export default function AdminBookingNewPage() {
                   value={form.estimatedPrice ? formatPrice(form.estimatedPrice) : ""}
                   onChange={(e) => updateField("estimatedPrice", e.target.value.replace(/\D/g, ""))}
                   placeholder="0"
-                  className="w-full h-12 rounded-[--radius-md] px-4 pr-10 text-base leading-6 outline-none transition-all duration-200 placeholder:text-text-muted border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
+                  className="w-full h-12 rounded-md px-4 pr-10 text-base leading-6 outline-none transition-all duration-200 placeholder:text-text-muted border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-text-sub">원</span>
               </div>
@@ -247,7 +247,7 @@ export default function AdminBookingNewPage() {
                   type="date"
                   value={form.date}
                   onChange={(e) => updateField("date", e.target.value)}
-                  className="w-full h-12 rounded-[--radius-md] px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
+                  className="w-full h-12 rounded-md px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
                 />
               </div>
               <div className="flex flex-col">
@@ -257,7 +257,7 @@ export default function AdminBookingNewPage() {
                 <select
                   value={form.timeSlot}
                   onChange={(e) => updateField("timeSlot", e.target.value)}
-                  className="w-full h-12 rounded-[--radius-md] px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
+                  className="w-full h-12 rounded-md px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
                 >
                   <option value="">시간 선택</option>
                   {TIME_SLOTS.map((slot) => (
@@ -270,7 +270,7 @@ export default function AdminBookingNewPage() {
         </div>
 
         {/* 메모 + 출처 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-4">추가 정보</h3>
           <div className="space-y-4">
             <TextArea
@@ -288,7 +288,7 @@ export default function AdminBookingNewPage() {
               <select
                 value={form.source}
                 onChange={(e) => updateField("source", e.target.value)}
-                className="w-full h-12 rounded-[--radius-md] px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
+                className="w-full h-12 rounded-md px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
               >
                 {SOURCE_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>

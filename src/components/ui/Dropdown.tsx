@@ -90,7 +90,7 @@ export const Dropdown = forwardRef<HTMLButtonElement, DropdownProps>(
 
     const triggerClasses = [
       "flex w-full items-center justify-between",
-      "h-12 rounded-[--radius-md] border px-4",
+      "h-12 rounded-md border px-4",
       "text-base leading-6 outline-none",
       "transition-all duration-200",
       borderColor,
@@ -163,7 +163,7 @@ export const Dropdown = forwardRef<HTMLButtonElement, DropdownProps>(
             role="listbox"
             className={[
               "absolute top-full left-0 z-50 mt-1 w-full",
-              "rounded-[--radius-md] border border-border bg-white",
+              "rounded-md border border-border bg-white",
               "shadow-md overflow-hidden",
               "max-h-60 overflow-y-auto",
             ].join(" ")}

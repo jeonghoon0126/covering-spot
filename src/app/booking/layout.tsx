@@ -10,7 +10,7 @@ export default function BookingLayout({
       <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[42rem] mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/images/logo.png" alt="커버링" className="w-7 h-7 rounded-[--radius-sm]" />
+            <img src="/images/logo.png" alt="커버링" className="w-7 h-7 rounded-sm" />
             <span className="text-lg font-bold text-primary">커버링 방문 수거</span>
           </Link>
           <Link

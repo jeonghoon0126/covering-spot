@@ -268,14 +268,14 @@ export function Hero() {
             >
               <CTALink
                 location="hero"
-                className="group inline-flex items-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-[16px] px-8 rounded-[--radius-lg] shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+                className="group inline-flex items-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-[16px] px-8 rounded-lg shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 <KakaoIcon />
                 <span>카카오톡으로 5분만에 견적 받기</span>
               </CTALink>
               <Link
                 href="/booking"
-                className="group inline-flex items-center bg-primary text-white text-base font-semibold py-[16px] px-8 rounded-[--radius-lg] shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
+                className="group inline-flex items-center bg-primary text-white text-base font-semibold py-[16px] px-8 rounded-lg shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 5분만에 수거신청하기
               </Link>
@@ -292,10 +292,10 @@ export function Hero() {
             }`}
             style={{ transitionDelay: "0.15s" }}
           >
-            <div className="w-full max-w-[400px] bg-white rounded-[--radius-lg] shadow-lg overflow-hidden max-md:max-w-[340px] max-md:mx-auto border border-white/80 ring-1 ring-black/[0.04]">
+            <div className="w-full max-w-[400px] bg-white rounded-lg shadow-lg overflow-hidden max-md:max-w-[340px] max-md:mx-auto border border-white/80 ring-1 ring-black/[0.04]">
               {/* Chat Header */}
               <div className="bg-gradient-to-r from-bg-warm to-white px-6 py-5 flex items-center gap-3.5 border-b border-border-light">
-                <img src="/images/logo.png" alt="커버링" className="w-10 h-10 rounded-[--radius-md]" />
+                <img src="/images/logo.png" alt="커버링" className="w-10 h-10 rounded-md" />
                 <div>
                   <div className="text-[15px] font-bold text-text-primary">
                     커버링 방문수거

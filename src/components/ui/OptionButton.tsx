@@ -30,7 +30,7 @@ export const OptionButton = forwardRef<HTMLButtonElement, OptionButtonProps>(
 
     const classes = [
       "flex flex-col items-start gap-1 w-full",
-      "p-4 border rounded-[--radius-md]",
+      "p-4 border rounded-md",
       "transition-all duration-200",
       "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400",
       "cursor-pointer",

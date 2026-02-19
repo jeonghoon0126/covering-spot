@@ -20,7 +20,7 @@ export function Footer() {
           {/* Logo + Desc */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2.5">
-              <img src="/images/logo.png" alt="커버링" className="w-8 h-8 rounded-[--radius-sm]" />
+              <img src="/images/logo.png" alt="커버링" className="w-8 h-8 rounded-sm" />
               <span className="text-white font-bold text-[17px]">커버링 방문 수거</span>
             </div>
             <p className="text-sm leading-relaxed max-w-[320px]">

@@ -40,7 +40,7 @@ export function NumberBadge({
     <span
       className={[
         "inline-flex items-center justify-center px-1 font-bold leading-none",
-        "rounded-[--radius-max]",
+        "rounded-full",
         "transition-all duration-200",
         sizeStyles[size],
         variantStyles[variant],

@@ -20,13 +20,13 @@ const variantStyles: Record<
   sent: {
     wrapper: "flex justify-end",
     bubble:
-      "bg-brand-400 text-white rounded-[--radius-lg] rounded-br-[4px] px-[--spacing-md] py-[10px]",
+      "bg-brand-400 text-white rounded-lg rounded-br-[4px] px-[--spacing-md] py-[10px]",
     time: "text-right text-white/60",
   },
   received: {
     wrapper: "flex justify-start",
     bubble:
-      "bg-bg-warm2 text-text-primary rounded-[--radius-lg] rounded-bl-[4px] px-[--spacing-md] py-[10px]",
+      "bg-bg-warm2 text-text-primary rounded-lg rounded-bl-[4px] px-[--spacing-md] py-[10px]",
     time: "text-left text-text-muted",
   },
   system: {

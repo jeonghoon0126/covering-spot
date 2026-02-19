@@ -318,7 +318,7 @@ export default function AdminBookingDetailPage() {
 
       <div className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
         {/* 상태 + ID */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light flex items-center justify-between">
+        <div className="bg-bg rounded-lg p-5 border border-border-light flex items-center justify-between">
           <span
             className={`text-sm font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[booking.status] || STATUS_COLORS.pending}`}
           >
@@ -330,7 +330,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 고객 정보 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             고객 정보
           </h3>
@@ -358,7 +358,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 수거 정보 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 정보
           </h3>
@@ -413,7 +413,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 품목 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-text-sub">
               품목 ({booking.items.length}종)
@@ -531,7 +531,7 @@ export default function AdminBookingDetailPage() {
 
         {/* 사진 */}
         {booking.photos && booking.photos.length > 0 && (
-          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+          <div className="bg-bg rounded-lg p-5 border border-border-light">
             <h3 className="text-sm font-semibold text-text-sub mb-3">
               사진 ({booking.photos.length}장)
             </h3>
@@ -542,7 +542,7 @@ export default function AdminBookingDetailPage() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden"
+                  className="aspect-square bg-bg-warm rounded-md overflow-hidden"
                 >
                   <img
                     src={url}
@@ -556,7 +556,7 @@ export default function AdminBookingDetailPage() {
         )}
 
         {/* 견적 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">견적</h3>
           <div className="space-y-0 text-sm">
             {booking.estimateMin != null && booking.estimateMax != null && (
@@ -622,7 +622,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 수거 시간 확정 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 시간 확정
           </h3>
@@ -648,7 +648,7 @@ export default function AdminBookingDetailPage() {
                     key={slot}
                     onClick={() => !isFull && setConfirmedTimeInput(slot)}
                     disabled={isFull}
-                    className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
+                    className={`py-2.5 rounded-md text-xs font-medium transition-all duration-200 ${
                       isFull
                         ? "bg-fill-tint text-text-muted cursor-not-allowed"
                         : confirmedTimeInput === slot
@@ -680,7 +680,7 @@ export default function AdminBookingDetailPage() {
                   <button
                     key={opt.value}
                     onClick={() => setConfirmedDurationInput(opt.value)}
-                    className={`py-2.5 rounded-[--radius-md] text-xs font-medium transition-all duration-200 ${
+                    className={`py-2.5 rounded-md text-xs font-medium transition-all duration-200 ${
                       confirmedDurationInput === opt.value
                         ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                         : "bg-bg-warm hover:bg-primary-bg"
@@ -705,7 +705,7 @@ export default function AdminBookingDetailPage() {
         </div>
 
         {/* 관리자 메모 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             관리자 메모
           </h3>
@@ -730,14 +730,14 @@ export default function AdminBookingDetailPage() {
 
         {/* 수거 완료 사진 — 수거 진행 중일 때 업로드, 완료 이후 읽기 전용 */}
         {booking.status === "in_progress" && (
-          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+          <div className="bg-bg rounded-lg p-5 border border-border-light">
             <h3 className="text-sm font-semibold text-text-sub mb-3">
               수거 완료 사진
             </h3>
             {completionPhotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {completionPhotos.map((url, idx) => (
-                  <div key={idx} className="relative aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden">
+                  <div key={idx} className="relative aspect-square bg-bg-warm rounded-md overflow-hidden">
                     <img
                       src={url}
                       alt={`완료 사진 ${idx + 1}`}
@@ -757,7 +757,7 @@ export default function AdminBookingDetailPage() {
               </div>
             )}
             <label
-              className={`flex items-center justify-center gap-2 py-3 rounded-[--radius-md] border border-dashed border-border text-sm text-text-sub cursor-pointer hover:bg-bg-warm transition-colors duration-200 ${uploadingPhotos ? "opacity-50 pointer-events-none" : ""}`}
+              className={`flex items-center justify-center gap-2 py-3 rounded-md border border-dashed border-border text-sm text-text-sub cursor-pointer hover:bg-bg-warm transition-colors duration-200 ${uploadingPhotos ? "opacity-50 pointer-events-none" : ""}`}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -800,7 +800,7 @@ export default function AdminBookingDetailPage() {
         )}
         {["completed", "payment_requested", "payment_completed"].includes(booking.status) &&
           completionPhotos.length > 0 && (
-          <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+          <div className="bg-bg rounded-lg p-5 border border-border-light">
             <h3 className="text-sm font-semibold text-text-sub mb-3">
               수거 완료 사진 ({completionPhotos.length}장)
             </h3>
@@ -811,7 +811,7 @@ export default function AdminBookingDetailPage() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="aspect-square bg-bg-warm rounded-[--radius-md] overflow-hidden"
+                  className="aspect-square bg-bg-warm rounded-md overflow-hidden"
                 >
                   <img
                     src={url}
@@ -849,7 +849,7 @@ export default function AdminBookingDetailPage() {
         )}
 
         {/* 변경 이력 */}
-        <div className="bg-bg rounded-[--radius-lg] p-5 border border-border-light">
+        <div className="bg-bg rounded-lg p-5 border border-border-light">
           <button
             className="w-full flex items-center justify-between"
             onClick={() => {

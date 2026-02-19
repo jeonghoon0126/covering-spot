@@ -239,10 +239,10 @@ export function ItemPrices({ categories }: Props) {
         <ScrollReveal>
           <div
             ref={cardRef}
-            className="max-w-[640px] mx-auto bg-bg rounded-[--radius-lg] p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
+            className="max-w-[640px] mx-auto bg-bg rounded-lg p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
           >
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 rounded-[--radius-lg] bg-primary-tint/50 flex items-center justify-center shrink-0 max-md:w-12 max-md:h-12 animate-[icon-pop_0.4s_ease-out]" key={active.id}>
+              <div className="w-14 h-14 rounded-lg bg-primary-tint/50 flex items-center justify-center shrink-0 max-md:w-12 max-md:h-12 animate-[icon-pop_0.4s_ease-out]" key={active.id}>
                 {icons[active.icon] || icons.etc}
               </div>
               <div>
@@ -286,14 +286,14 @@ export function ItemPrices({ categories }: Props) {
             <div className="mt-8 flex flex-col items-center gap-3">
               <CTALink
                 location="price"
-                className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-[--radius-lg] hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
+                className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-lg hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
               >
                 <KakaoIcon size={18} />
                 <span>카톡으로 5분만에 견적받기</span>
               </CTALink>
               <Link
                 href="/booking"
-                className="flex items-center justify-center gap-1.5 w-full text-[15px] font-bold text-white bg-primary py-4 rounded-[--radius-lg] shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(26,163,255,0.25)] active:scale-[0.98] transition-all duration-300"
+                className="flex items-center justify-center gap-1.5 w-full text-[15px] font-bold text-white bg-primary py-4 rounded-lg shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(26,163,255,0.25)] active:scale-[0.98] transition-all duration-300"
               >
                 온라인 수거 신청하기
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>

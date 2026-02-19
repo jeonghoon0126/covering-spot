@@ -213,7 +213,7 @@ export default function AdminDriverPage() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setShowDate("today")}
-            className={`flex-1 py-3 rounded-[--radius-md] text-sm font-medium transition-all ${
+            className={`flex-1 py-3 rounded-md text-sm font-medium transition-all ${
               showDate === "today"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                 : "bg-bg text-text-sub border border-border-light"
@@ -223,7 +223,7 @@ export default function AdminDriverPage() {
           </button>
           <button
             onClick={() => setShowDate("tomorrow")}
-            className={`flex-1 py-3 rounded-[--radius-md] text-sm font-medium transition-all ${
+            className={`flex-1 py-3 rounded-md text-sm font-medium transition-all ${
               showDate === "tomorrow"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                 : "bg-bg text-text-sub border border-border-light"
@@ -280,7 +280,7 @@ export default function AdminDriverPage() {
               return (
                 <div
                   key={b.id}
-                  className="bg-bg rounded-[--radius-lg] border border-border-light overflow-hidden"
+                  className="bg-bg rounded-lg border border-border-light overflow-hidden"
                 >
                   {/* 카드 상단: 시간 + 상태 */}
                   <div className="px-4 pt-4 pb-2 flex items-center justify-between">
@@ -379,7 +379,7 @@ export default function AdminDriverPage() {
                       <button
                         onClick={() => handleQuickAction(b, quickAction.status, quickAction.label)}
                         disabled={isLoading}
-                        className={`w-full py-2.5 rounded-[--radius-md] text-sm font-semibold transition-all duration-200 ${quickAction.color} ${
+                        className={`w-full py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${quickAction.color} ${
                           isLoading ? "opacity-50" : "active:scale-[0.98]"
                         }`}
                       >

@@ -147,7 +147,7 @@ export function Banner({
   const styles = variantStyles[variant];
 
   const classes = [
-    "relative flex gap-[--spacing-sm] p-[--spacing-md] rounded-[--radius-md] w-full",
+    "relative flex gap-[--spacing-sm] p-[--spacing-md] rounded-md w-full",
     "transition-all duration-200",
     styles.container,
     className,

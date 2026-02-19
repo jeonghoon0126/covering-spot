@@ -71,11 +71,11 @@ function ProcessCard({ step, index }: { step: typeof processSteps[number]; index
           </svg>
         </div>
       )}
-      <div className="bg-bg rounded-[--radius-lg] p-8 text-left border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-hover">
+      <div className="bg-bg rounded-lg p-8 text-left border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-hover">
         {/* 아이콘 + 번호 영역 */}
         <div className="flex items-center gap-3 mb-6">
           <div
-            className="w-12 h-12 rounded-[--radius-md] bg-primary-bg flex items-center justify-center overflow-hidden"
+            className="w-12 h-12 rounded-md bg-primary-bg flex items-center justify-center overflow-hidden"
             style={{
               animation: visible ? `icon-bounce-in 0.6s cubic-bezier(0.16,1,0.3,1) ${index * 0.15}s both` : "none",
             }}

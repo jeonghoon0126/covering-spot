@@ -45,7 +45,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     },
     ref,
   ) {
-    const radiusClass = shape === "circle" ? "rounded-full" : "rounded-[--radius-md]";
+    const radiusClass = shape === "circle" ? "rounded-full" : "rounded-md";
 
     const classes = [
       "inline-flex items-center justify-center shrink-0",

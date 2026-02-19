@@ -88,7 +88,7 @@ export function CasualBanner({
   };
 
   const classes = [
-    "relative w-full overflow-hidden rounded-[--radius-lg]",
+    "relative w-full overflow-hidden rounded-lg",
     "transition-all duration-200",
     className,
   ]

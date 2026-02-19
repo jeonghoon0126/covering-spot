@@ -49,7 +49,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
 
     /* Input classes */
     const inputClasses = [
-      "w-full rounded-[--radius-md] px-4 text-base leading-6",
+      "w-full rounded-md px-4 text-base leading-6",
       "outline-none transition-all duration-200",
       "placeholder:text-text-muted",
       sizeStyles[size],

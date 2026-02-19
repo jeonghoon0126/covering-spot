@@ -348,12 +348,12 @@ export default function AdminDashboardPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="이름, 전화번호, 주소, 주문번호 검색"
-                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`shrink-0 px-3 py-2.5 rounded-[--radius-md] border text-sm transition-colors ${
+              className={`shrink-0 px-3 py-2.5 rounded-md border text-sm transition-colors ${
                 showFilters || dateFrom || dateTo
                   ? "border-primary bg-primary-bg text-primary"
                   : "border-border-light bg-bg text-text-sub"
@@ -373,14 +373,14 @@ export default function AdminDashboardPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               <span className="text-text-muted text-xs">~</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+                className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               {(dateFrom || dateTo) && (
                 <button
@@ -461,7 +461,7 @@ export default function AdminDashboardPage() {
               return (
                 <div
                   key={b.id}
-                  className="bg-bg rounded-[--radius-lg] border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
+                  className="bg-bg rounded-lg border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
                 >
                   {/* 메인 영역 (클릭 → 상세) */}
                   <div className="flex items-start">
@@ -571,7 +571,7 @@ export default function AdminDashboardPage() {
               <select
                 value={bulkStatus}
                 onChange={(e) => setBulkStatus(e.target.value)}
-                className="px-3 py-2 text-sm rounded-[--radius-md] border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+                className="px-3 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               >
                 <option value="">상태 선택</option>
                 {STATUS_TABS.filter((t) => t.key !== "all").map((t) => (
@@ -581,7 +581,7 @@ export default function AdminDashboardPage() {
               <button
                 onClick={handleBulkStatusChange}
                 disabled={!bulkStatus || bulkLoading}
-                className="px-4 py-2 text-sm font-medium rounded-[--radius-md] bg-primary text-white disabled:opacity-40 transition-all duration-200 hover:bg-primary-dark"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white disabled:opacity-40 transition-all duration-200 hover:bg-primary-dark"
               >
                 {bulkLoading ? "변경중..." : "벌크 변경"}
               </button>

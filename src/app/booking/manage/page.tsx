@@ -237,7 +237,7 @@ export default function BookingManagePage() {
             return (
               <div
                 key={b.id}
-                className="bg-bg rounded-[--radius-lg] shadow-md border border-border-light overflow-hidden"
+                className="bg-bg rounded-lg shadow-md border border-border-light overflow-hidden"
               >
                 {/* 카드 헤더 */}
                 <button
@@ -271,7 +271,7 @@ export default function BookingManagePage() {
                 {isExpanded && (
                   <div className="px-6 pb-6 border-t border-border-light">
                     {/* 상태별 안내 메시지 */}
-                    <div className={`mt-4 mb-4 p-3 rounded-[--radius-md] text-sm ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}>
+                    <div className={`mt-4 mb-4 p-3 rounded-md text-sm ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}>
                       <p className="font-medium">
                         {b.status === "quote_confirmed" && b.finalPrice
                           ? `${STATUS_MESSAGES[b.status]} 견적: ${formatPrice(b.finalPrice)}원`
@@ -291,7 +291,7 @@ export default function BookingManagePage() {
                             min={today}
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="w-full h-12 px-4 border border-border rounded-[--radius-md] text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
+                            className="w-full h-12 px-4 border border-border rounded-md text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
                           />
                         </div>
                         <div>
@@ -302,7 +302,7 @@ export default function BookingManagePage() {
                                 key={slot}
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, timeSlot: slot })}
-                                className={`py-3 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                                className={`py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                                   editForm.timeSlot === slot
                                     ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"

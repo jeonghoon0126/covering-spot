@@ -39,9 +39,9 @@ const colorMap: Record<
 
 /* ─── Size styles ─── */
 const sizeStyles: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] rounded-[--radius-sm]",
-  md: "h-10 px-4 text-sm rounded-[--radius-md]",
-  lg: "h-[50px] px-6 text-base rounded-[--radius-md]",
+  sm: "h-8 px-3 text-[13px] rounded-sm",
+  md: "h-10 px-4 text-sm rounded-md",
+  lg: "h-[50px] px-6 text-base rounded-md",
 };
 
 /* ─── Component ─── */

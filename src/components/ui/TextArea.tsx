@@ -39,7 +39,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
 
     /* Textarea classes */
     const textareaClasses = [
-      "w-full rounded-[--radius-md] px-4 py-3 text-base leading-6",
+      "w-full rounded-md px-4 py-3 text-base leading-6",
       "outline-none transition-all duration-200 resize-y",
       "placeholder:text-text-muted",
       "border",
