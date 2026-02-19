@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("예약 흐름", () => {
   test("메인 페이지 로딩", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/커버링 스팟/);
+    await expect(page).toHaveTitle(/커버링 방문수거/);
     await expect(page.locator("text=수거 신청하기").first()).toBeVisible();
   });
 

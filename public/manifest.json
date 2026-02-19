@@ -1,6 +1,6 @@
 {
-  "name": "커버링 스팟 - 대형폐기물 수거 예약",
-  "short_name": "커버링 스팟",
+  "name": "커버링 방문수거 - 대형폐기물 수거 예약",
+  "short_name": "커버링 방문수거",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAFAF9",

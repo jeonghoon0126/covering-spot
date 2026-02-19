@@ -36,7 +36,7 @@ self.addEventListener("fetch", (event) => {
 // Push notification
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || "커버링 스팟";
+  const title = data.title || "커버링 방문수거";
   const options = {
     body: data.body || "알림이 있습니다",
     icon: "/icons/icon-192.png",

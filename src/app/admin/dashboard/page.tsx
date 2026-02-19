@@ -258,7 +258,7 @@ export default function AdminDashboardPage() {
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold">커버링 스팟 관리</h1>
+            <h1 className="text-lg font-bold">커버링 방문수거 관리</h1>
             {experimentName && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-semantic-orange-tint text-semantic-orange">
                 {experimentName}: {variant || "미할당"}

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     );
 
     const payload = JSON.stringify({
-      title: title || "커버링 스팟",
+      title: title || "커버링 방문수거",
       body: message || "예약 상태가 변경되었습니다",
       url: url || `/booking/manage`,
     });

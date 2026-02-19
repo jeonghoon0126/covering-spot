@@ -25,7 +25,7 @@ export async function GET() {
             marginBottom: 20,
           }}
         >
-          커버링 스팟
+          커버링 방문수거
         </div>
         <div
           style={{

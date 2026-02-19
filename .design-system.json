@@ -3,7 +3,7 @@
     "name": "커버링 디자인 시스템 (CDS)",
     "version": "2025-01-21",
     "updated": "2026-02-15",
-    "note": "커버링 스팟 프로젝트 전용 - 코딩 시에만 참조",
+    "note": "커버링 방문수거 프로젝트 전용 - 코딩 시에만 참조",
     "figma": "https://www.figma.com/design/QGO304gR4NUFzJkMbHEPz7"
   },
   "layoutGrid": {

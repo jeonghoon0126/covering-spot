@@ -1,4 +1,4 @@
-## 커버링 스팟 - 현재 상태
+## 커버링 방문수거 - 현재 상태
 
 배포: https://coveringspot.vercel.app
 커스텀 도메인: spot.covering.co.kr (Vercel에 등록됨, DNS CNAME 설정 필요)

@@ -52,10 +52,10 @@ export const metadata: Metadata = {
     "당일 수거",
     "폐기물 견적",
     "커버링",
-    "커버링스팟",
+    "커버링방문수거",
   ],
   openGraph: {
-    title: "대형폐기물 수거, 온라인으로 바로 예약 | 커버링 스팟",
+    title: "대형폐기물 수거, 온라인으로 바로 예약 | 커버링 방문수거",
     description:
       "소파·침대·냉장고 등 대형폐기물, 온라인 즉시 견적으로 추가비용 없이 수거. 서울·경기·인천 전 지역.",
     url: SITE_URL,
@@ -67,13 +67,13 @@ export const metadata: Metadata = {
         url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "커버링 스팟 - 대형폐기물 수거 예약",
+        alt: "커버링 방문수거 - 대형폐기물 수거 예약",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "대형폐기물 수거 예약 | 커버링 스팟",
+    title: "대형폐기물 수거 예약 | 커버링 방문수거",
     description:
       "소파·침대·냉장고 등 온라인 즉시 견적, 추가비용 없는 확정가. 서울·경기·인천.",
     images: ["/api/og"],
