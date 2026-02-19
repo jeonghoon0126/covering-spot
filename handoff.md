@@ -76,8 +76,10 @@ src/components/         → CDS 컴포넌트 (Splash, ABTest, Nav, FloatingCTA �
 - 테이블: bookings, leads, admin_users, admin_audit_log, push_subscriptions, blocked_slots, drivers
 
 ### TODO (수동 작업)
-1. ⚠️ **SMS/Push 알림 필수**: Vercel 환경변수 설정 (현재 미설정 → 견적확정 등 알림 미발송)
-   - SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER
+1. ⚠️ **SMS/알림톡 + Push 알림 필수**: Vercel 환경변수 설정 (현재 미설정 → 견적확정 등 알림 미발송)
+   - FLARELANE_API_KEY (FlareLane 프로젝트 API Key)
+   - FLARELANE_PROJECT_ID (FlareLane 프로젝트 ID)
+   - 알림톡 사용 시: FlareLane 콘솔에서 카카오 알림톡 템플릿 등록 필요
    - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BKl0vAAD7grgyFTFx2J8OKO3EP1HMUyjcvjBNtsEj8ACl3vkmdY9FwgxkETl_d1PBv0f_H_vvOE9exH8TaQyqNM
    - VAPID_PRIVATE_KEY=K1e-xf9HOc4xjUZkEbyWh74v-B3ceqwLnTgsN1i4DhE
 2. DNS CNAME 설정: spot.covering.co.kr → cname.vercel-dns.com

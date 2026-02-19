@@ -1,6 +1,17 @@
-import crypto from "crypto";
-
-const SOLAPI_URL = "https://api.solapi.com/messages/v4/send-many/detail";
+/**
+ * FlareLane SMS 발송 모듈
+ *
+ * 환경변수:
+ *   FLARELANE_API_KEY     — FlareLane 프로젝트 API Key (Bearer 인증)
+ *   FLARELANE_PROJECT_ID  — FlareLane 프로젝트 ID
+ *
+ * API 스펙:
+ *   POST https://api.flarelane.com/v1/projects/{PROJECT_ID}/sms
+ *   Auth: Authorization: Bearer {API_KEY}
+ *   Body: { targetType, targetIds (E.164), isAdvertisement, body }
+ *
+ * @see https://flarelane-api-docs.readme.io/reference/send-notifications
+ */
 
 const STATUS_LINK = "\n조회: https://coveringspot.vercel.app/booking/manage";
 
@@ -21,24 +32,24 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
 };
 
 /**
- * Solapi v4 HMAC-SHA256 인증 헤더 생성
- * @see https://docs.solapi.com/authentication
+ * 한국 전화번호를 E.164 형식으로 변환
+ * "010-1234-5678" → "+821012345678"
  */
-function buildAuthHeader(apiKey: string, apiSecret: string): string {
-  const date = new Date().toISOString();
-  const salt = crypto.randomBytes(16).toString("hex");
-  const signature = crypto
-    .createHmac("sha256", apiSecret)
-    .update(date + salt)
-    .digest("hex");
-
-  return `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`;
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) {
+    return "+82" + digits.slice(1);
+  }
+  if (digits.startsWith("82")) {
+    return "+" + digits;
+  }
+  return "+" + digits;
 }
 
 /**
- * SMS 상태 알림 발송 (fire-and-forget)
+ * FlareLane SMS 발송 (fire-and-forget)
  *
- * - SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER 환경변수 미설정 시 조용히 스킵
+ * - FLARELANE_API_KEY, FLARELANE_PROJECT_ID 환경변수 미설정 시 조용히 스킵
  * - STATUS_TEMPLATES에 없는 status는 무시
  * - 에러 발생 시 콘솔 로그만 남기고 throw 하지 않음
  */
@@ -50,12 +61,11 @@ export async function sendStatusSms(
   paymentUrl?: string | null,
 ): Promise<void> {
   try {
-    const apiKey = process.env.SOLAPI_API_KEY;
-    const apiSecret = process.env.SOLAPI_API_SECRET;
-    const sender = process.env.SOLAPI_SENDER;
+    const apiKey = process.env.FLARELANE_API_KEY;
+    const projectId = process.env.FLARELANE_PROJECT_ID;
 
-    if (!apiKey || !apiSecret || !sender) {
-      console.log("[sms-notify] 환경변수 미설정 - SMS 발송 스킵");
+    if (!apiKey || !projectId) {
+      console.log("[sms-notify] FlareLane 환경변수 미설정 - SMS 발송 스킵");
       return;
     }
 
@@ -64,29 +74,76 @@ export async function sendStatusSms(
 
     const text = templateFn(finalPrice, paymentUrl) + STATUS_LINK;
 
-    const res = await fetch(SOLAPI_URL, {
-      method: "POST",
-      headers: {
-        Authorization: buildAuthHeader(apiKey, apiSecret),
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `https://api.flarelane.com/v1/projects/${projectId}/sms`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetType: "phoneNumber",
+          targetIds: [toE164(phone)],
+          isAdvertisement: false,
+          body: text,
+        }),
       },
-      body: JSON.stringify({
-        messages: [
-          {
-            to: phone,
-            from: sender,
-            text,
-            type: "SMS",
-          },
-        ],
-      }),
-    });
+    );
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[sms-notify] 발송 실패 (booking=${bookingId}):`, res.status, body);
+      console.error(`[sms-notify] FlareLane 발송 실패 (booking=${bookingId}):`, res.status, body);
     }
   } catch (err) {
-    console.error("[sms-notify] 발송 에러:", err);
+    console.error("[sms-notify] FlareLane 발송 에러:", err);
+  }
+}
+
+/**
+ * FlareLane 카카오 알림톡 발송
+ *
+ * 알림톡은 사전에 FlareLane 콘솔에서 템플릿 등록 필요.
+ * 템플릿 ID를 받아서 발송.
+ *
+ * @see https://flarelane-api-docs.readme.io/reference/send-kakao-alimtalk
+ */
+export async function sendAlimtalk(
+  phone: string,
+  templateId: string,
+  interpolations?: Record<string, string>,
+): Promise<void> {
+  try {
+    const apiKey = process.env.FLARELANE_API_KEY;
+    const projectId = process.env.FLARELANE_PROJECT_ID;
+
+    if (!apiKey || !projectId) {
+      console.log("[alimtalk] FlareLane 환경변수 미설정 - 알림톡 발송 스킵");
+      return;
+    }
+
+    const res = await fetch(
+      `https://api.flarelane.com/v1/projects/${projectId}/alimtalk`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetType: "phoneNumber",
+          targetIds: [toE164(phone)],
+          templateId,
+          ...(interpolations ? { interpolations } : {}),
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[alimtalk] FlareLane 발송 실패:`, res.status, body);
+    }
+  } catch (err) {
+    console.error("[alimtalk] FlareLane 발송 에러:", err);
   }
 }
