@@ -52,7 +52,11 @@ export async function GET(req: NextRequest) {
     let confirmedCounts: Record<string, number> = {};
     let blockedTimes: Set<string> = new Set();
     try {
-      const bookings = await getBookings(date);
+      // 병렬 조회 (성능 최적화)
+      const [bookings, blocked] = await Promise.all([
+        getBookings(date),
+        getBlockedSlots(date),
+      ]);
       for (const b of bookings) {
         if (b.confirmedTime && (!excludeId || b.id !== excludeId)) {
           confirmedCounts[b.confirmedTime] =
@@ -60,8 +64,6 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // 차단된 슬롯 조회
-      const blocked = await getBlockedSlots(date);
       for (const bs of blocked) {
         // timeStart ~ timeEnd 범위에 해당하는 모든 슬롯을 차단
         for (const slot of DEFAULT_SLOTS) {

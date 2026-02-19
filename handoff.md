@@ -7,10 +7,19 @@ Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 
 ### 최근 작업 (2026-02-18)
 
+**Phase 8.1: 성능/UX/알림 개선 (세션 6)**
+- 슬로건 변경: "이제 쉽고 간편하게" → "5분만에 수거신청 완료" (Hero + Splash)
+- 성능 최적화: slots API에서 getBookings + getBlockedSlots를 Promise.all로 병렬 처리
+- 푸시 알림 버그 수정: admin bookings PUT에서 /api/push/send 호출 시 x-internal-token 헤더 누락 → 403 → 수정
+- 수거 일정 변경 기능: quote_confirmed 상태에서 수거 전날까지 날짜/시간 변경 가능
+  - API: PUT /api/bookings/[id]에 quote_confirmed 허용 (date, timeSlot만)
+  - UI: manage 페이지에 "일정 변경" 버튼 + 전용 폼 추가
+- 견적 거절(취소) 확장: quote_confirmed 상태에서도 DELETE 허용
+- border-radius 핫픽스: rounded-[--radius-*] → rounded-sm/md/lg (Tailwind v4 @theme inline은 런타임 CSS변수 미생성)
+
 **Phase 8: 프로덕션 레벨 개선 + 기사 슬롯 관리 + 분석/AB 인프라 (세션 5)**
 - Nav: 모바일 브랜드명 표시 (max-sm:hidden 제거, 14px 축소), Airbridge fallback 링크 제거
-- Border-radius 전역 CSS 변수 통일 (~25곳): rounded-2xl/xl/[14px]/[16px]/[20px] → rounded-[--radius-sm/md/lg]
-  - Nav, Hero, Process, FloatingCTA, AppDownload, FAQ, Compare, ItemPrices, Pricing, CTASection, ItemsCarousel, Footer, booking/layout
+- Border-radius 전역 통일: Tailwind 빌트인 rounded-sm/md/lg 사용 (37개 파일)
 - 스플래시 컴포넌트: sessionStorage 기반 (새 세션마다 로고 fade-in 애니메이션, 같은 탭 새로고침 시 스킵)
   - src/components/Splash.tsx 신규, page.tsx 래핑
 - 375px 모바일 줄바꿈 점검: booking 스텝 인디케이터 max-sm:gap-1 + w-7 축소
@@ -57,7 +66,8 @@ src/components/         → CDS 컴포넌트 (Splash, ABTest, Nav, FloatingCTA �
 ```
 
 ### ⚠️ Tailwind v4 주의사항
-globals.css의 `@theme inline`에 `--spacing-sm/md/2xl/4xl` 정의 → `max-w-sm`, `max-w-2xl` 등이 spacing 값으로 오염됨. 항상 `max-w-[42rem]` 형태의 명시값 사용 필수.
+- `@theme inline`은 런타임 CSS 변수를 생성하지 않음. `rounded-[--radius-lg]` → var(--radius-lg) = 0px. 반드시 `rounded-lg` 등 빌트인 유틸리티 사용
+- globals.css의 `@theme inline`에 `--spacing-sm/md/2xl/4xl` 정의 → `max-w-sm`, `max-w-2xl` 등이 spacing 값으로 오염됨. 항상 `max-w-[42rem]` 형태의 명시값 사용 필수
 
 ### Supabase
 - Project ref: agqynwvbswolmrktjsbw

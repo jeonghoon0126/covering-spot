@@ -86,10 +86,11 @@ export async function PUT(
       );
     }
 
-    // 수정 가능 조건: pending 상태만
-    if (existing.status !== "pending") {
+    // 수정 가능 조건: pending 또는 quote_confirmed 상태
+    const isReschedule = existing.status === "quote_confirmed";
+    if (existing.status !== "pending" && !isReschedule) {
       return NextResponse.json(
-        { error: "견적 확정 전에만 수정할 수 있습니다" },
+        { error: "일정 변경이 불가능한 상태입니다" },
         { status: 400 },
       );
     }
@@ -106,6 +107,27 @@ export async function PUT(
     }
 
     const body = await req.json();
+
+    // quote_confirmed 상태에서는 date, timeSlot만 변경 가능
+    if (isReschedule) {
+      const { date, timeSlot } = body;
+      if (!date && !timeSlot) {
+        return NextResponse.json(
+          { error: "변경할 날짜 또는 시간대를 입력해주세요" },
+          { status: 400 },
+        );
+      }
+      const rescheduleData: Record<string, string> = {};
+      if (date) rescheduleData.date = date;
+      if (timeSlot) rescheduleData.timeSlot = timeSlot;
+      const updated = await updateBooking(id, rescheduleData);
+      if (!updated) {
+        return NextResponse.json({ error: "수정 실패" }, { status: 500 });
+      }
+      sendBookingUpdated(updated).catch(() => {});
+      return NextResponse.json({ booking: updated });
+    }
+
     const parsed = CustomerUpdateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -153,10 +175,10 @@ export async function DELETE(
       );
     }
 
-    // pending 상태에서만 취소 가능
-    if (booking.status !== "pending") {
+    // pending 또는 quote_confirmed 상태에서만 취소 가능
+    if (booking.status !== "pending" && booking.status !== "quote_confirmed") {
       return NextResponse.json(
-        { error: "견적 확정 전에만 취소할 수 있습니다" },
+        { error: "수거 진행 중에는 취소할 수 없습니다" },
         { status: 400 },
       );
     }

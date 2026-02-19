@@ -172,7 +172,10 @@ export async function PUT(
       if (STATUS_MSG[newStatus]) {
         fetch(new URL("/api/push/send", req.url), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-token": process.env.ADMIN_PASSWORD || "",
+          },
           body: JSON.stringify({
             bookingId: id,
             title: "커버링 스팟",

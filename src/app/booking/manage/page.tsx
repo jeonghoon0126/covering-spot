@@ -22,6 +22,19 @@ function canEdit(b: Booking): boolean {
   return new Date() < deadline;
 }
 
+/** 일정 변경 가능 여부: quote_confirmed 상태 + 수거일 전날 22시 이전 */
+function canReschedule(b: Booking): boolean {
+  if (b.status !== "quote_confirmed") return false;
+  const pickupDate = new Date(b.date + "T00:00:00+09:00");
+  const deadline = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+  return new Date() < deadline;
+}
+
+/** 취소 가능 여부: pending 또는 quote_confirmed */
+function canCancel(b: Booking): boolean {
+  return b.status === "pending" || b.status === "quote_confirmed";
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
@@ -80,6 +93,9 @@ export default function BookingManagePage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState<{ date: string; timeSlot: string } | null>(null);
+  const [rescheduleSaving, setRescheduleSaving] = useState(false);
 
   // 신청 관리 페이지 트래킹
   useEffect(() => {
@@ -182,6 +198,44 @@ export default function BookingManagePage() {
       alert("네트워크 오류");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function startReschedule(b: Booking) {
+    setReschedulingId(b.id);
+    setRescheduleForm({ date: b.date, timeSlot: b.timeSlot });
+  }
+
+  function cancelReschedule() {
+    setReschedulingId(null);
+    setRescheduleForm(null);
+  }
+
+  async function handleReschedule(id: string) {
+    if (!rescheduleForm) return;
+    setRescheduleSaving(true);
+    try {
+      const token = getBookingToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["x-booking-token"] = token;
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(rescheduleForm),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookings((prev) => prev.map((b) => (b.id === id ? data.booking : b)));
+        setReschedulingId(null);
+        setRescheduleForm(null);
+      } else {
+        const err = await res.json();
+        alert(err.error || "일정 변경 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setRescheduleSaving(false);
     }
   }
 
@@ -440,12 +494,67 @@ export default function BookingManagePage() {
                           ))}
                         </div>
 
-                        {/* 수정/취소 버튼 */}
-                        {b.status !== "cancelled" &&
-                          b.status !== "completed" &&
-                          b.status !== "rejected" &&
-                          b.status !== "payment_requested" &&
-                          b.status !== "payment_completed" && (
+                        {/* 일정 변경 폼 (quote_confirmed) */}
+                        {reschedulingId === b.id && rescheduleForm && (
+                          <div className="space-y-4 mt-3 p-4 bg-bg-warm rounded-md">
+                            <p className="text-sm font-semibold">수거 일정 변경</p>
+                            <div>
+                              <label className="block text-sm font-semibold text-text-primary mb-2">
+                                수거 희망일<span className="ml-0.5 text-semantic-red">*</span>
+                              </label>
+                              <input
+                                type="date"
+                                min={today}
+                                value={rescheduleForm.date}
+                                onChange={(e) => setRescheduleForm({ ...rescheduleForm, date: e.target.value })}
+                                className="w-full h-12 px-4 border border-border rounded-md text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-text-primary mb-2">시간대</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {TIME_SLOTS.map((slot) => (
+                                  <button
+                                    key={slot}
+                                    type="button"
+                                    onClick={() => setRescheduleForm({ ...rescheduleForm, timeSlot: slot })}
+                                    className={`py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                                      rescheduleForm.timeSlot === slot
+                                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                                        : "bg-bg hover:bg-primary-bg hover:-translate-y-0.5"
+                                    }`}
+                                  >
+                                    {slot}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="primary"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleReschedule(b.id)}
+                                disabled={rescheduleSaving}
+                                loading={rescheduleSaving}
+                              >
+                                변경 저장
+                              </Button>
+                              <Button
+                                variant="tertiary"
+                                size="md"
+                                fullWidth
+                                onClick={cancelReschedule}
+                                disabled={rescheduleSaving}
+                              >
+                                취소
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 수정/일정변경/취소 버튼 */}
+                        {canCancel(b) && reschedulingId !== b.id && (
                           <div className="flex gap-2 mt-3">
                             {editable && (
                               <Button
@@ -455,6 +564,16 @@ export default function BookingManagePage() {
                                 onClick={() => startEdit(b)}
                               >
                                 수정
+                              </Button>
+                            )}
+                            {canReschedule(b) && (
+                              <Button
+                                variant="secondary"
+                                size="md"
+                                fullWidth
+                                onClick={() => startReschedule(b)}
+                              >
+                                일정 변경
                               </Button>
                             )}
                             <Button

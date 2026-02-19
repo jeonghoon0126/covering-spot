@@ -44,7 +44,7 @@ export function Splash({ children }: { children: React.ReactNode }) {
               className="splash-logo"
               priority
             />
-            <span className="splash-text">커버링 방문 수거</span>
+            <span className="splash-text">5분만에 수거신청 완료</span>
           </div>
         </div>
       )}

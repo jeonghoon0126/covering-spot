@@ -233,7 +233,7 @@ export function Hero() {
                       : "none",
                   }}
                 >
-                  이제 쉽고 간편하게
+                  5분만에 수거신청 완료
                 </span>
               </span>
             </h1>
