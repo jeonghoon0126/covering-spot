@@ -19,12 +19,13 @@ export async function GET(req: NextRequest) {
     const date = req.nextUrl.searchParams.get("date");
     const dateFrom = req.nextUrl.searchParams.get("dateFrom");
     const dateTo = req.nextUrl.searchParams.get("dateTo");
+    const driverId = req.nextUrl.searchParams.get("driverId") || undefined;
 
     let slots;
     if (date) {
-      slots = await getBlockedSlots(date);
+      slots = await getBlockedSlots(date, driverId);
     } else if (dateFrom && dateTo) {
-      slots = await getBlockedSlotsRange(dateFrom, dateTo);
+      slots = await getBlockedSlotsRange(dateFrom, dateTo, driverId);
     } else {
       return NextResponse.json(
         { error: "date 또는 dateFrom+dateTo 파라미터가 필요합니다" },
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       timeEnd: body.timeEnd,
       reason: body.reason,
       createdBy: adminEmail || undefined,
+      driverId: body.driverId || null,
     });
 
     return NextResponse.json({ slot }, { status: 201 });

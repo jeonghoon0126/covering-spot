@@ -32,14 +32,14 @@ export function CTASection() {
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <CTALink
               location="bottom"
-              className="inline-flex items-center gap-2 bg-kakao text-text-primary text-[17px] font-bold py-[17px] px-9 rounded-[14px] hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
+              className="inline-flex items-center gap-2 bg-kakao text-text-primary text-[17px] font-bold py-[17px] px-9 rounded-[--radius-lg] hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
             >
               <KakaoIcon />
               <span>카카오톡으로 5분만에 견적 받기</span>
             </CTALink>
             <Link
               href="/booking"
-              className="inline-flex items-center gap-1.5 text-[17px] font-bold text-white bg-primary py-[17px] px-9 rounded-[14px] shadow-lg shadow-primary/30 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(26,163,255,0.3)] active:scale-[0.98] transition-all duration-300 ease-out"
+              className="inline-flex items-center gap-1.5 text-[17px] font-bold text-white bg-primary py-[17px] px-9 rounded-[--radius-lg] shadow-lg shadow-primary/30 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(26,163,255,0.3)] active:scale-[0.98] transition-all duration-300 ease-out"
             >
               5분만에 수거신청하기
             </Link>

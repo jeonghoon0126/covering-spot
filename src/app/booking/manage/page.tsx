@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,7 @@ import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { formatPhoneNumber } from "@/lib/format";
+import { track } from "@/lib/analytics";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -80,6 +81,11 @@ export default function BookingManagePage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // 신청 관리 페이지 트래킹
+  useEffect(() => {
+    track("booking_manage_view");
+  }, []);
+
   /** localStorage에서 bookingToken 가져오기 */
   function getBookingToken(): string | null {
     try {
@@ -109,6 +115,7 @@ export default function BookingManagePage() {
 
   async function handleCancel(id: string) {
     if (!confirm("정말 신청을 취소하시겠습니까?")) return;
+    track("booking_cancel", { bookingId: id });
     setCancelling(id);
     try {
       const token = getBookingToken();

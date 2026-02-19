@@ -9,6 +9,15 @@ export interface BlockedSlot {
   reason?: string;
   createdBy?: string;
   createdAt?: string;
+  driverId?: string | null;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string | null;
+  active: boolean;
+  createdAt: string;
 }
 
 /* ── camelCase ↔ snake_case 매핑 ── */
@@ -43,6 +52,7 @@ const FIELD_MAP: Record<string, string> = {
   slackThreadTs: "slack_thread_ts",
   driverId: "driver_id",
   driverName: "driver_name",
+  source: "source",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -81,6 +91,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     slackThreadTs: (row.slack_thread_ts as string) || null,
     driverId: (row.driver_id as string) || null,
     driverName: (row.driver_name as string) || null,
+    source: (row.source as string) || null,
   };
 }
 
@@ -118,6 +129,7 @@ function bookingToRow(b: Booking) {
     slack_thread_ts: b.slackThreadTs ?? null,
     driver_id: b.driverId ?? null,
     driver_name: b.driverName ?? null,
+    source: b.source ?? null,
   };
 }
 
@@ -302,16 +314,20 @@ function rowToBlockedSlot(row: Record<string, unknown>): BlockedSlot {
     reason: (row.reason as string) || undefined,
     createdBy: (row.created_by as string) || undefined,
     createdAt: (row.created_at as string) || undefined,
+    driverId: (row.driver_id as string) || null,
   };
 }
 
-export async function getBlockedSlots(date: string): Promise<BlockedSlot[]> {
-  const { data, error } = await supabase
+export async function getBlockedSlots(date: string, driverId?: string): Promise<BlockedSlot[]> {
+  let query = supabase
     .from("blocked_slots")
     .select("*")
     .eq("date", date)
     .order("time_start", { ascending: true });
 
+  if (driverId) query = query.eq("driver_id", driverId);
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(rowToBlockedSlot);
 }
@@ -319,14 +335,18 @@ export async function getBlockedSlots(date: string): Promise<BlockedSlot[]> {
 export async function getBlockedSlotsRange(
   dateFrom: string,
   dateTo: string,
+  driverId?: string,
 ): Promise<BlockedSlot[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("blocked_slots")
     .select("*")
     .gte("date", dateFrom)
     .lte("date", dateTo)
     .order("date", { ascending: true });
 
+  if (driverId) query = query.eq("driver_id", driverId);
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(rowToBlockedSlot);
 }
@@ -342,6 +362,7 @@ export async function createBlockedSlot(
       time_end: slot.timeEnd,
       reason: slot.reason || null,
       created_by: slot.createdBy || null,
+      driver_id: slot.driverId || null,
     })
     .select()
     .single();
@@ -358,4 +379,72 @@ export async function deleteBlockedSlot(id: string): Promise<boolean> {
 
   if (error) throw error;
   return (count ?? 1) > 0;
+}
+
+/* ── Drivers ── */
+
+function rowToDriver(row: Record<string, unknown>): Driver {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    phone: (row.phone as string) || null,
+    active: row.active as boolean,
+    createdAt: row.created_at as string,
+  };
+}
+
+export async function getDrivers(activeOnly = true): Promise<Driver[]> {
+  let query = supabase
+    .from("drivers")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (activeOnly) query = query.eq("active", true);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map(rowToDriver);
+}
+
+export async function createDriver(name: string, phone?: string): Promise<Driver> {
+  const { data, error } = await supabase
+    .from("drivers")
+    .insert({
+      name,
+      phone: phone || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return rowToDriver(data);
+}
+
+export async function updateDriver(
+  id: string,
+  updates: { name?: string; phone?: string; active?: boolean },
+): Promise<Driver | null> {
+  const row: Record<string, unknown> = {};
+  if (updates.name !== undefined) row.name = updates.name;
+  if (updates.phone !== undefined) row.phone = updates.phone;
+  if (updates.active !== undefined) row.active = updates.active;
+
+  const { data, error } = await supabase
+    .from("drivers")
+    .update(row)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return data ? rowToDriver(data) : null;
+}
+
+export async function deleteDriver(id: string): Promise<boolean> {
+  // soft-delete: active = false
+  const result = await updateDriver(id, { active: false });
+  return result !== null;
 }

@@ -48,6 +48,7 @@ export interface Booking {
   slackThreadTs: string | null;
   driverId?: string | null;
   driverName?: string | null;
+  source?: string | null;
 }
 
 export interface TimeSlot {

@@ -7,6 +7,7 @@ import { detectAreaFromAddress } from "@/data/spot-areas";
 import { getEarliestBookableDate, isDateBookable } from "@/lib/booking-utils";
 import type { SpotCategory } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
+import { track } from "@/lib/analytics";
 import DaumPostcodeEmbed from "react-daum-postcode";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -136,6 +137,20 @@ export default function BookingPage() {
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, needLadder, ladderType, ladderHours, step]);
 
+  // 예약 시작 트래킹
+  useEffect(() => {
+    track("booking_start");
+  }, []);
+
+  // 스텝 변경 트래킹
+  const prevStepRef = useRef(step);
+  useEffect(() => {
+    if (step !== prevStepRef.current) {
+      track("booking_step_complete", { step: prevStepRef.current, stepName: STEPS[prevStepRef.current] });
+      prevStepRef.current = step;
+    }
+  }, [step]);
+
   // 데이터 로드
   useEffect(() => {
     fetch("/api/items")
@@ -198,7 +213,9 @@ export default function BookingPage() {
     const newFiles = Array.from(files);
     setPhotos((prev) => {
       const combined = [...prev, ...newFiles];
-      return combined.slice(0, 5);
+      const result = combined.slice(0, 5);
+      track("booking_photo_upload", { count: result.length });
+      return result;
     });
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -233,6 +250,9 @@ export default function BookingPage() {
         });
         const data = await res.json();
         setPreviewQuote(data);
+        if (data.estimateMin) {
+          track("quote_preview", { itemCount: selectedItems.length, total: data.estimateMin });
+        }
       } catch { /* 미리보기 실패 무시 */ }
     }, QUOTE_PREVIEW_DEBOUNCE);
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
@@ -300,6 +320,9 @@ export default function BookingPage() {
     price: number,
     delta: number,
   ) {
+    if (delta > 0) {
+      track("booking_item_select", { category: cat, name, price });
+    }
     setSelectedItems((prev) => {
       const idx = prev.findIndex(
         (i) => i.category === cat && i.name === name,
@@ -327,6 +350,7 @@ export default function BookingPage() {
   // 수거 신청 확정
   async function handleSubmit() {
     if (!quote) return;
+    track("booking_submit", { itemCount: selectedItems.length, estimatedTotal: quote.estimateMin });
     setLoading(true);
     try {
       // 1. 사진이 있으면 먼저 업로드
@@ -406,11 +430,11 @@ export default function BookingPage() {
       {/* 스텝 인디케이터 */}
       <div className="mb-10" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuetext={`${STEPS.length}단계 중 ${step + 1}단계: ${STEPS[step]}`}>
         {/* 프로그레스 바 */}
-        <div className="flex items-center gap-1.5 mb-4">
+        <div className="flex items-center gap-1.5 max-sm:gap-1 mb-4">
           {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center gap-1.5 flex-1">
+            <div key={s} className="flex items-center gap-1.5 max-sm:gap-1 flex-1">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all duration-300 ${
+                className={`w-9 h-9 max-sm:w-7 max-sm:h-7 rounded-full flex items-center justify-center text-sm max-sm:text-xs font-bold shrink-0 transition-all duration-300 ${
                   i < step
                     ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
                     : i === step

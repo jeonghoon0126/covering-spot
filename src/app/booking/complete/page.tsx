@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { subscribeToPush } from "@/lib/push-subscription";
 import { KAKAO_CHAT_URL } from "@/lib/constants";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
+import { track } from "@/lib/analytics";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -45,6 +46,13 @@ function BookingCompleteContent() {
         else setError("신청 정보를 찾을 수 없습니다");
       })
       .catch(() => setError("조회 실패"));
+  }, [id]);
+
+  // 예약 완료 트래킹
+  useEffect(() => {
+    if (id) {
+      track("booking_complete", { bookingId: id });
+    }
   }, [id]);
 
   if (error) {

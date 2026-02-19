@@ -11,6 +11,7 @@ import { CTASection } from "@/components/sections/CTASection";
 import { AppDownload } from "@/components/sections/AppDownload";
 import { Footer } from "@/components/layout/Footer";
 import { FloatingCTA } from "@/components/layout/FloatingCTA";
+import { Splash } from "@/components/Splash";
 
 import { carouselItems } from "@/data/carousel-items";
 import { priceCategories } from "@/data/price-data";
@@ -18,7 +19,7 @@ import { faqItems } from "@/data/faq-data";
 
 export default function Page() {
   return (
-    <>
+    <Splash>
       <Nav />
       <section className="hero-section" id="hero">
         <Hero />
@@ -34,6 +35,6 @@ export default function Page() {
       <AppDownload />
       <Footer />
       <FloatingCTA />
-    </>
+    </Splash>
   );
 }

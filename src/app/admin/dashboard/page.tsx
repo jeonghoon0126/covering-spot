@@ -267,6 +267,15 @@ export default function AdminDashboardPage() {
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={() => router.push("/admin/bookings/new")}
+              className="text-sm text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1 px-2 py-2 font-medium"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span className="max-sm:hidden">새 예약</span>
+            </button>
+            <button
               onClick={() => router.push("/admin/calendar")}
               className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
             >

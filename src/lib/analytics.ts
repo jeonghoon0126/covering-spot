@@ -5,7 +5,16 @@ type EventName =
   | "price_tab_select"
   | "faq_open"
   | "compare_section_viewed"
-  | "scroll_depth";
+  | "scroll_depth"
+  | "booking_start"
+  | "booking_step_complete"
+  | "booking_item_select"
+  | "booking_photo_upload"
+  | "booking_submit"
+  | "booking_complete"
+  | "booking_manage_view"
+  | "booking_cancel"
+  | "quote_preview";
 
 interface EventProps {
   cta_click: { location: "hero" | "price" | "floating" | "bottom" | "nav" };
@@ -18,6 +27,15 @@ interface EventProps {
   scroll_depth: { depth: 25 | 50 | 75 | 100 };
   compare_section_viewed: Record<string, never>;
   page_view: { variant?: string };
+  booking_start: Record<string, never>;
+  booking_step_complete: { step: number; stepName: string };
+  booking_item_select: { category: string; name: string; price: number };
+  booking_photo_upload: { count: number };
+  booking_submit: { itemCount: number; estimatedTotal: number };
+  booking_complete: { bookingId: string };
+  booking_manage_view: Record<string, never>;
+  booking_cancel: { bookingId: string; reason?: string };
+  quote_preview: { itemCount: number; total: number };
 }
 
 declare global {
@@ -32,9 +50,12 @@ declare global {
 
 function getExperimentVariant(): Record<string, string> {
   if (typeof document === "undefined") return {};
-  const match = document.cookie.match(/ab_([^=]+)=([^;]+)/);
-  if (!match) return {};
-  return { experiment: match[1], variant: match[2] };
+  const result: Record<string, string> = {};
+  const matches = document.cookie.matchAll(/ab_([^=]+)=([^;]+)/g);
+  for (const match of matches) {
+    result[`experiment_${match[1]}`] = match[2];
+  }
+  return result;
 }
 
 export function track<T extends EventName>(

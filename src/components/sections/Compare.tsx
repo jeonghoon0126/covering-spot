@@ -55,7 +55,7 @@ function BarChart({
       </div>
 
       {/* stacked horizontal bar */}
-      <div className="relative h-14 rounded-lg overflow-hidden bg-border-light max-sm:h-12">
+      <div className="relative h-14 rounded-[--radius-sm] overflow-hidden bg-border-light max-sm:h-12">
         <div
           className="absolute inset-y-0 left-0 flex transition-all ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{
@@ -227,7 +227,7 @@ export function Compare() {
         <ScrollReveal>
           <div
             ref={barRef}
-            className="max-w-[800px] mx-auto bg-bg rounded-2xl border border-border-light p-8 shadow-sm max-sm:p-5"
+            className="max-w-[800px] mx-auto bg-bg rounded-[--radius-lg] border border-border-light p-8 shadow-sm max-sm:p-5"
           >
             <div className="flex gap-10 max-md:flex-col max-md:gap-10">
               <BarChart

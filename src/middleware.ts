@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveExperiment, assignVariant } from "@/config/experiments";
+import { getActiveExperiments, assignVariant } from "@/config/experiments";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 // 경로별 Rate Limit 설정 (limit, windowMs)
@@ -44,27 +44,29 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // A/B 테스트 variant 할당
+  // A/B 테스트 variant 할당 (복수 실험 지원)
   const response = NextResponse.next();
 
-  const experiment = getActiveExperiment();
-  if (!experiment) return response;
+  const experiments = getActiveExperiments();
+  if (experiments.length === 0) return response;
 
-  const cookieName = `ab_${experiment.name}`;
-  const existing = request.cookies.get(cookieName)?.value;
+  for (const experiment of experiments) {
+    const cookieName = `ab_${experiment.name}`;
+    const existing = request.cookies.get(cookieName)?.value;
 
-  // 이미 할당된 variant가 유효하면 유지
-  if (existing && experiment.variants.includes(existing)) {
-    return response;
+    // 이미 할당된 variant가 유효하면 유지
+    if (existing && experiment.variants.includes(existing)) {
+      continue;
+    }
+
+    // 새로 할당
+    const variant = assignVariant(experiment);
+    response.cookies.set(cookieName, variant, {
+      maxAge: 60 * 60 * 24 * 30, // 30일
+      path: "/",
+      sameSite: "lax",
+    });
   }
-
-  // 새로 할당
-  const variant = assignVariant(experiment);
-  response.cookies.set(cookieName, variant, {
-    maxAge: 60 * 60 * 24 * 30, // 30일
-    path: "/",
-    sameSite: "lax",
-  });
 
   return response;
 }

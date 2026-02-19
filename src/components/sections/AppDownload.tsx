@@ -41,7 +41,7 @@ export function AppDownload() {
               alt="커버링"
               width={80}
               height={80}
-              className="w-20 h-20 rounded-[20px] shadow-lg"
+              className="w-20 h-20 rounded-[--radius-lg] shadow-lg"
             />
           </div>
 
@@ -60,7 +60,7 @@ export function AppDownload() {
             {canInstall ? (
               <button
                 onClick={install}
-                className="inline-flex items-center justify-center gap-2 bg-primary text-white text-[15px] font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] transition-all max-md:w-full"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-white text-[15px] font-bold px-8 py-3.5 rounded-[--radius-md] shadow-lg shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] transition-all max-md:w-full"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -70,7 +70,7 @@ export function AppDownload() {
                 앱 설치하기
               </button>
             ) : ios ? (
-              <div className="bg-white rounded-xl p-4 border border-border-light max-md:w-full">
+              <div className="bg-white rounded-[--radius-md] p-4 border border-border-light max-md:w-full">
                 <p className="text-[14px] text-text-primary font-semibold mb-2">Safari에서 홈 화면에 추가</p>
                 <div className="flex items-center gap-3 text-[13px] text-text-sub">
                   <span className="inline-flex items-center gap-1">
@@ -93,7 +93,7 @@ export function AppDownload() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-4 border border-border-light max-md:w-full">
+              <div className="bg-white rounded-[--radius-md] p-4 border border-border-light max-md:w-full">
                 <p className="text-[14px] text-text-primary font-semibold mb-1">Chrome 브라우저에서 설치 가능</p>
                 <p className="text-[13px] text-text-sub">Chrome으로 접속하면 앱 설치 버튼이 나타납니다</p>
               </div>

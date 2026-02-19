@@ -44,7 +44,7 @@ export function ItemsCarousel({ items }: Props) {
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="min-w-[300px] max-w-[300px] bg-bg rounded-[16px] overflow-hidden shrink-0 border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg max-md:min-w-[260px] max-md:max-w-[260px] max-sm:min-w-[240px] max-sm:max-w-[240px]"
+                    className="min-w-[300px] max-w-[300px] bg-bg rounded-[--radius-lg] overflow-hidden shrink-0 border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg max-md:min-w-[260px] max-md:max-w-[260px] max-sm:min-w-[240px] max-sm:max-w-[240px]"
                   >
                     <div className="overflow-hidden relative bg-bg-warm2">
                       <img

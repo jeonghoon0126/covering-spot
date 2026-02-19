@@ -27,9 +27,14 @@ export const EXPERIMENTS: Experiment[] = [
   // },
 ];
 
-/** 현재 활성화된 실험 (1개만 지원) */
+/** 현재 활성화된 실험 (1개만 지원, 하위 호환) */
 export function getActiveExperiment(): Experiment | null {
   return EXPERIMENTS.find((e) => e.enabled) || null;
+}
+
+/** 활성화된 모든 실험 반환 (복수 실험 지원) */
+export function getActiveExperiments(): Experiment[] {
+  return EXPERIMENTS.filter((e) => e.enabled);
 }
 
 /** weights 기반 variant 할당 */

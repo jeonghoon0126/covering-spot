@@ -55,7 +55,7 @@ export function Pricing() {
 
         {/* 단일 카드 안에 테이블 형태로 구성 */}
         <ScrollReveal>
-          <div className="max-w-[720px] mx-auto rounded-[20px] border border-border bg-bg-warm overflow-hidden">
+          <div className="max-w-[720px] mx-auto rounded-[--radius-lg] border border-border bg-bg-warm overflow-hidden">
             {pricingItems.map((item, i) => (
               <div
                 key={item.title}
@@ -101,9 +101,9 @@ export function Pricing() {
                 return (
                   <div
                     key={feat.title}
-                    className="rounded-2xl border border-border bg-bg p-8 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                    className="rounded-[--radius-lg] border border-border bg-bg p-8 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-primary-tint flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-[--radius-lg] bg-primary-tint flex items-center justify-center">
                       {icon}
                     </div>
                     <div className="text-lg font-bold text-text-primary mt-5 mb-2">
