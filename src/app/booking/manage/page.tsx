@@ -94,8 +94,10 @@ export default function BookingManagePage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
-  const [rescheduleForm, setRescheduleForm] = useState<{ date: string; timeSlot: string } | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState<{ date: string; timeSlot: string; confirmedTime: string } | null>(null);
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   // 신청 관리 페이지 트래킹
   useEffect(() => {
@@ -201,14 +203,28 @@ export default function BookingManagePage() {
     }
   }
 
+  async function fetchSlots(date: string, excludeId: string) {
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(`/api/slots?date=${date}&excludeId=${excludeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSlots(data.slots || []);
+      }
+    } catch { /* ignore */ }
+    finally { setSlotsLoading(false); }
+  }
+
   function startReschedule(b: Booking) {
     setReschedulingId(b.id);
-    setRescheduleForm({ date: b.date, timeSlot: b.timeSlot });
+    setRescheduleForm({ date: b.date, timeSlot: b.timeSlot, confirmedTime: b.confirmedTime || "" });
+    fetchSlots(b.date, b.id);
   }
 
   function cancelReschedule() {
     setReschedulingId(null);
     setRescheduleForm(null);
+    setAvailableSlots([]);
   }
 
   async function handleReschedule(id: string) {
@@ -310,7 +326,7 @@ export default function BookingManagePage() {
                       </span>
                     </div>
                     <p className="font-semibold text-sm">
-                      {b.date} {b.timeSlot} | {b.area}
+                      {b.date} {b.confirmedTime ? `${b.confirmedTime} 확정` : b.timeSlot} | {b.area}
                     </p>
                     <p className="text-[15px] text-primary font-bold mt-0.5">
                       {b.estimateMin > 0 && b.estimateMax > 0
@@ -419,6 +435,12 @@ export default function BookingManagePage() {
                     ) : (
                       /* 읽기 모드 */
                       <div className="space-y-0 text-sm">
+                        {b.confirmedTime && (
+                          <div className="flex justify-between py-2.5 border-b border-border-light">
+                            <span className="text-text-sub">확정 시간</span>
+                            <span className="font-bold text-primary">{b.confirmedTime}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">주소</span>
                           <span className="font-medium text-right max-w-[60%]">
@@ -500,34 +522,49 @@ export default function BookingManagePage() {
                             <p className="text-sm font-semibold">수거 일정 변경</p>
                             <div>
                               <label className="block text-sm font-semibold text-text-primary mb-2">
-                                수거 희망일<span className="ml-0.5 text-semantic-red">*</span>
+                                수거 날짜<span className="ml-0.5 text-semantic-red">*</span>
                               </label>
                               <input
                                 type="date"
                                 min={today}
                                 value={rescheduleForm.date}
-                                onChange={(e) => setRescheduleForm({ ...rescheduleForm, date: e.target.value })}
+                                onChange={(e) => {
+                                  const newDate = e.target.value;
+                                  setRescheduleForm({ ...rescheduleForm, date: newDate, confirmedTime: "" });
+                                  fetchSlots(newDate, b.id);
+                                }}
                                 className="w-full h-12 px-4 border border-border rounded-md text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-semibold text-text-primary mb-2">시간대</label>
-                              <div className="grid grid-cols-2 gap-2">
-                                {TIME_SLOTS.map((slot) => (
-                                  <button
-                                    key={slot}
-                                    type="button"
-                                    onClick={() => setRescheduleForm({ ...rescheduleForm, timeSlot: slot })}
-                                    className={`py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                                      rescheduleForm.timeSlot === slot
-                                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                                        : "bg-bg hover:bg-primary-bg hover:-translate-y-0.5"
-                                    }`}
-                                  >
-                                    {slot}
-                                  </button>
-                                ))}
-                              </div>
+                              <label className="block text-sm font-semibold text-text-primary mb-2">
+                                수거 시간<span className="ml-0.5 text-semantic-red">*</span>
+                              </label>
+                              {slotsLoading ? (
+                                <p className="text-sm text-text-muted py-3">시간 조회 중...</p>
+                              ) : availableSlots.length > 0 ? (
+                                <div className="grid grid-cols-4 gap-1.5">
+                                  {availableSlots.map((slot) => (
+                                    <button
+                                      key={slot.time}
+                                      type="button"
+                                      disabled={!slot.available}
+                                      onClick={() => setRescheduleForm({ ...rescheduleForm, confirmedTime: slot.time })}
+                                      className={`py-2.5 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
+                                        !slot.available
+                                          ? "bg-fill-tint text-text-muted cursor-not-allowed line-through"
+                                          : rescheduleForm.confirmedTime === slot.time
+                                            ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                                            : "bg-bg hover:bg-primary-bg hover:-translate-y-0.5"
+                                      }`}
+                                    >
+                                      {slot.time}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-text-muted py-3">날짜를 선택하면 시간이 표시됩니다</p>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -535,7 +572,7 @@ export default function BookingManagePage() {
                                 size="md"
                                 fullWidth
                                 onClick={() => handleReschedule(b.id)}
-                                disabled={rescheduleSaving}
+                                disabled={rescheduleSaving || !rescheduleForm.confirmedTime}
                                 loading={rescheduleSaving}
                               >
                                 변경 저장

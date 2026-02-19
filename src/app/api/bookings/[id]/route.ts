@@ -108,18 +108,19 @@ export async function PUT(
 
     const body = await req.json();
 
-    // quote_confirmed 상태에서는 date, timeSlot만 변경 가능
+    // quote_confirmed 상태에서는 date, timeSlot, confirmedTime만 변경 가능
     if (isReschedule) {
-      const { date, timeSlot } = body;
-      if (!date && !timeSlot) {
+      const { date, timeSlot, confirmedTime } = body;
+      if (!date && !timeSlot && !confirmedTime) {
         return NextResponse.json(
-          { error: "변경할 날짜 또는 시간대를 입력해주세요" },
+          { error: "변경할 날짜, 시간대 또는 확정 시간을 입력해주세요" },
           { status: 400 },
         );
       }
       const rescheduleData: Record<string, string> = {};
       if (date) rescheduleData.date = date;
       if (timeSlot) rescheduleData.timeSlot = timeSlot;
+      if (confirmedTime) rescheduleData.confirmedTime = confirmedTime;
       const updated = await updateBooking(id, rescheduleData);
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
