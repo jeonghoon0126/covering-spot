@@ -346,8 +346,8 @@ export default function AdminBookingDetailPage() {
               </a>
             </div>
             <div className="flex justify-between py-2.5">
-              <span className="text-text-sub">주소</span>
-              <span className="font-medium text-right max-w-[60%]">
+              <span className="text-text-sub shrink-0">주소</span>
+              <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                 {booking.address} {booking.addressDetail}
               </span>
             </div>
@@ -400,8 +400,8 @@ export default function AdminBookingDetailPage() {
             )}
             {booking.memo && (
               <div className="flex justify-between py-2.5">
-                <span className="text-text-sub">요청사항</span>
-                <span className="font-medium text-right max-w-[60%]">
+                <span className="text-text-sub shrink-0">요청사항</span>
+                <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                   {booking.memo}
                 </span>
               </div>

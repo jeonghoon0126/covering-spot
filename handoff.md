@@ -7,6 +7,16 @@ Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 
 ### 최근 작업 (2026-02-20)
 
+**Phase 8.2: QA 피드백 반영 + DRY 리팩터링 (세션 8)**
+- FloatingCTA 모바일 CTA 축약: "카톡으로 신청하기" / "수거 신청하기" (PC 문구는 유지)
+- 예상 견적 만원 단위: Math.floor(min)/Math.ceil(max) → "22만~27만원" (모바일 줄바꿈 해결)
+- Step 6 견적 확인: 품목 상세 리스트 + 요청사항 표시 (수정 버튼 → Step 0 이동)
+- SMS 내용 친절하게: 6개 상태별 템플릿 전면 재작성 (안내, 줄바꿈, 친절 어투)
+- Push 알림 상세화: quote_confirmed에 최종 견적 금액 포함
+- Admin 대시보드 모바일: 고객 전화번호 모바일 숨김, 구분자 · 사용, 만원 단위
+- DRY 리팩터링: formatPrice/formatManWon → src/lib/format.ts로 통합 (5개 파일)
+- 코드 리뷰: 🔴 Critical 0건, 🟡 Medium 3건(DRY, 인라인 Math.round, formatManWon(0) 엣지케이스)
+
 **Phase 8.2: QA 피드백 반영 (세션 7)**
 - FloatingCTA 트리거 개선: Hero CTA 버튼 스크롤아웃 시 즉시 표시 (hero-cta id 기반, fallback 유지)
 - GNB 모바일 햄버거 메뉴: md:hidden 버튼 + 드롭다운 (서비스/가격/FAQ/고객후기/신청조회)
@@ -14,60 +24,13 @@ Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 - Step 6 CTA 텍스트: "견적 요청하기" → "최종 견적 요청하기"
 - 접근성 개선: 햄버거 버튼 aria-expanded, 동적 aria-label 추가
 
-### 이전 작업 (2026-02-18)
-
-**Phase 8.1: 성능/UX/알림 개선 (세션 6)**
-- 슬로건 변경: "이제 쉽고 간편하게" → "5분만에 수거신청 완료" (Hero + Splash)
-- 성능 최적화: slots API에서 getBookings + getBlockedSlots를 Promise.all로 병렬 처리
-- 푸시 알림 버그 수정: admin bookings PUT에서 /api/push/send 호출 시 x-internal-token 헤더 누락 → 403 → 수정
-- 수거 일정 변경 기능: quote_confirmed 상태에서 수거 전날까지 날짜/시간 변경 가능
-  - API: PUT /api/bookings/[id]에 quote_confirmed 허용 (date, timeSlot만)
-  - UI: manage 페이지에 "일정 변경" 버튼 + 전용 폼 추가
-- 견적 거절(취소) 확장: quote_confirmed 상태에서도 DELETE 허용
-- border-radius 핫픽스: rounded-[--radius-*] → rounded-sm/md/lg (Tailwind v4 @theme inline은 런타임 CSS변수 미생성)
-
-**Phase 8: 프로덕션 레벨 개선 + 기사 슬롯 관리 + 분석/AB 인프라 (세션 5)**
-- Nav: 모바일 브랜드명 표시 (max-sm:hidden 제거, 14px 축소), Airbridge fallback 링크 제거
-- Border-radius 전역 통일: Tailwind 빌트인 rounded-sm/md/lg 사용 (37개 파일)
-- 스플래시 컴포넌트: sessionStorage 기반 (새 세션마다 로고 fade-in 애니메이션, 같은 탭 새로고침 시 스킵)
-  - src/components/Splash.tsx 신규, page.tsx 래핑
-- 375px 모바일 줄바꿈 점검: booking 스텝 인디케이터 max-sm:gap-1 + w-7 축소
-- 분석 이벤트 확장 (booking 퍼널 9개 이벤트 추가):
-  - booking_start, booking_step_complete, booking_item_select, booking_photo_upload, booking_submit, booking_complete, booking_manage_view, booking_cancel, quote_preview
-  - booking/page.tsx, complete/page.tsx, manage/page.tsx에 track() 호출 추가
-- A/B 테스트 인프라 강화:
-  - getActiveExperiments() 복수 실험 지원, middleware 루프 처리
-  - ExperimentContext: Map<name, variant> 지원, getVariant(name) 메서드
-  - ABTest.tsx 신규 컴포넌트 (variant별 렌더링 헬퍼)
-  - analytics.ts: 모든 실험 쿠키 수집으로 변경
-- 기사 마스터 데이터:
-  - Supabase: drivers 테이블 생성 (id, name, phone, active, created_at)
-  - blocked_slots에 driver_id FK 추가 (NULL=전체 차단)
-  - db.ts: Driver CRUD (getDrivers, createDriver, updateDriver, deleteDriver)
-  - GET/POST/PUT/DELETE /api/admin/drivers 엔드포인트
-  - blocked-slots API: driverId 파라미터 지원
-- 기사 슬롯 관리 UI:
-  - /admin/calendar에 "슬롯" 탭 추가 (일간/주간/슬롯 3모드)
-  - 기사 드롭다운 + 날짜 선택 → 07:00~24:00 타임라인 (18개 슬롯)
-  - 클릭으로 차단/해제 토글, 예약 건수 표시
-  - 기사 추가/수정/비활성화 UI (인라인 폼)
-- 관리자 수동 예약 생성 (카톡 상담 공존):
-  - /admin/bookings/new 페이지 신규
-  - POST /api/admin/bookings 엔드포인트 추가
-  - Booking에 source 필드 추가 (카카오톡 상담/전화 상담/기타)
-  - dashboard 헤더에 "+ 새 예약" 버튼 추가
-
-**Phase 7: 제품 종합 개선 16건 (세션 4)**
-- 크리티컬 버그 수정: 인기 품목 8개 전부 name 불일치 → find() 실패 → 빈 화면
-- 예약 플로우 UI 개선, 완료 페이지, AppDownload, Hero, 관리자 UX 등
-- 캘린더 주간 뷰, 정산 LinkPay placeholder, 모바일 UI 글로벌 리뷰
-
 ### 주요 파일 구조
 ```
 src/app/booking/        → 예약 UI (page, complete, manage)
 src/app/admin/          → 관리자 (page=로그인, dashboard, calendar, bookings/[id], bookings/new)
 src/app/api/            → API Routes (bookings, leads, quote, slots, push, admin/drivers, admin/blocked-slots 등)
 src/lib/                → Supabase, 견적, Slack, SMS, 예약마감, 푸시, analytics
+src/lib/format.ts       → 공용 포맷 유틸 (formatPhoneNumber, formatPrice, formatManWon)
 src/config/experiments.ts → A/B 테스트 실험 설정 (복수 실험 지원)
 src/middleware.ts       → Rate limiting + A/B 쿠키 할당 (복수 실험)
 src/data/               → 정적 데이터 (58지역, 470+품목, 사다리차)

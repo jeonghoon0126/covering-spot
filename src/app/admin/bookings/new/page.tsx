@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import DaumPostcodeEmbed from "react-daum-postcode";
+import { detectAreaFromAddress } from "@/data/spot-areas";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
+import { ModalHeader } from "@/components/ui/ModalHeader";
 
 const SOURCE_OPTIONS = ["카카오톡 상담", "전화 상담", "기타"];
 
@@ -31,6 +34,7 @@ interface FormData {
   phone: string;
   address: string;
   addressDetail: string;
+  area: string;
   itemsDescription: string;
   estimatedPrice: string;
   date: string;
@@ -56,6 +60,7 @@ export default function AdminBookingNewPage() {
     phone: "",
     address: "",
     addressDetail: "",
+    area: "",
     itemsDescription: "",
     estimatedPrice: "",
     date: "",
@@ -63,6 +68,7 @@ export default function AdminBookingNewPage() {
     memo: "",
     source: "카카오톡 상담",
   });
+  const [showPostcode, setShowPostcode] = useState(false);
 
   useEffect(() => {
     const t = sessionStorage.getItem("admin_token");
@@ -122,6 +128,7 @@ export default function AdminBookingNewPage() {
           phone: formatPhone(form.phone),
           address: form.address.trim(),
           addressDetail: form.addressDetail.trim(),
+          area: form.area,
           itemsDescription: form.itemsDescription.trim(),
           estimatedPrice: priceNum,
           date: form.date,
@@ -192,15 +199,33 @@ export default function AdminBookingNewPage() {
               error={!!errors.phone}
               helperText={errors.phone}
             />
-            <TextField
-              label="주소"
-              required
-              value={form.address}
-              onChange={(e) => updateField("address", e.target.value)}
-              placeholder="서울시 강남구 테헤란로 123"
-              error={!!errors.address}
-              helperText={errors.address}
-            />
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
+                주소<span className="ml-0.5 text-semantic-red">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPostcode(true)}
+                className={`w-full h-12 px-4 rounded-md border text-base text-left transition-all duration-200 hover:border-brand-300 outline-none ${
+                  errors.address ? "border-semantic-red" : "border-border"
+                } ${form.address ? "text-text-primary" : "text-text-muted"}`}
+              >
+                {form.address || "주소를 검색하세요"}
+              </button>
+              {errors.address && (
+                <p className="mt-1 text-xs text-semantic-red">{errors.address}</p>
+              )}
+              {form.area && (
+                <p className="mt-1 text-xs text-primary font-medium">
+                  서비스 지역: {form.area}
+                </p>
+              )}
+              {form.address && !form.area && (
+                <p className="mt-1 text-xs text-semantic-orange font-medium">
+                  서비스 지역 감지 불가 (수동으로 지역을 설정하세요)
+                </p>
+              )}
+            </div>
             <TextField
               label="상세주소"
               value={form.addressDetail}
@@ -312,6 +337,34 @@ export default function AdminBookingNewPage() {
           </Button>
         </div>
       </form>
+
+      {/* 주소 검색 팝업 */}
+      {showPostcode && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="주소 검색"
+          onKeyDown={(e) => { if (e.key === "Escape") setShowPostcode(false); }}
+        >
+          <div className="bg-white rounded-lg overflow-hidden w-full max-w-[28rem]">
+            <ModalHeader
+              title="주소 검색"
+              onClose={() => setShowPostcode(false)}
+            />
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                const addr = data.roadAddress || data.jibunAddress;
+                updateField("address", addr);
+                setShowPostcode(false);
+                const detected = detectAreaFromAddress(data.sigungu, data.sido);
+                updateField("area", detected ? detected.name : "");
+              }}
+              style={{ height: 400 }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

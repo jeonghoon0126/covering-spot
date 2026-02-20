@@ -33,6 +33,20 @@ function BookingCompleteContent() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState("");
   const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushDenied, setPushDenied] = useState(false);
+  const [supportsNotification, setSupportsNotification] = useState(false);
+
+  // 마운트 시 알림 권한 체크
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setSupportsNotification(true);
+      if (Notification.permission === "granted") {
+        setPushSubscribed(true);
+      } else if (Notification.permission === "denied") {
+        setPushDenied(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -152,8 +166,8 @@ function BookingCompleteContent() {
             <span className="font-medium">{booking.phone}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-border-light">
-            <span className="text-text-sub">주소</span>
-            <span className="font-medium text-right max-w-[60%]">
+            <span className="text-text-sub shrink-0">주소</span>
+            <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
               {booking.address} {booking.addressDetail}
             </span>
           </div>
@@ -207,7 +221,7 @@ function BookingCompleteContent() {
       </div>
 
       {/* 푸시 알림 */}
-      {!pushSubscribed && typeof window !== "undefined" && "Notification" in window && Notification.permission !== "denied" && (
+      {!pushSubscribed && !pushDenied && supportsNotification && (
         <div className="bg-primary-bg rounded-lg border border-primary/20 p-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1AA3FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -230,6 +244,15 @@ function BookingCompleteContent() {
           >
             허용
           </button>
+        </div>
+      )}
+      {pushDenied && (
+        <div className="bg-semantic-orange-tint rounded-lg p-4 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+          <p className="text-sm text-semantic-orange font-medium">브라우저 설정에서 알림을 허용해주세요</p>
         </div>
       )}
       {pushSubscribed && (

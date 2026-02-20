@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { getAllBookings, getBookingsPaginated, createBooking } from "@/lib/db";
+import { getAllBookings, getBookingsPaginated, createBooking, updateBooking } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
+import { sendBookingCreated } from "@/lib/slack-notify";
 import type { Booking } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
       id: uuidv4(),
       date: body.date || "",
       timeSlot: body.timeSlot || "",
-      area: "",
+      area: body.area || "",
       items: [],
       totalPrice: body.estimatedPrice || 0,
       crewSize: 1,
@@ -117,6 +118,15 @@ export async function POST(req: NextRequest) {
     };
 
     const created = await createBooking(booking);
+
+    // Slack 알림 (fire-and-forget)
+    sendBookingCreated(created)
+      .then((threadTs) => {
+        if (threadTs) {
+          updateBooking(created.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({ booking: created }, { status: 201 });
   } catch (e) {

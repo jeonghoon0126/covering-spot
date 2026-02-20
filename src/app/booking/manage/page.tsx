@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
@@ -80,6 +81,7 @@ interface EditForm {
 }
 
 export default function BookingManagePage() {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searched, setSearched] = useState(false);
@@ -438,8 +440,8 @@ export default function BookingManagePage() {
                           </div>
                         )}
                         <div className="flex justify-between py-2.5 border-b border-border-light">
-                          <span className="text-text-sub">주소</span>
-                          <span className="font-medium text-right max-w-[60%]">
+                          <span className="text-text-sub shrink-0">주소</span>
+                          <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                             {b.address} {b.addressDetail}
                           </span>
                         </div>
@@ -492,8 +494,8 @@ export default function BookingManagePage() {
 
                         {b.memo && (
                           <div className="flex justify-between py-2.5 border-b border-border-light">
-                            <span className="text-text-sub">메모</span>
-                            <span className="font-medium text-right max-w-[60%]">
+                            <span className="text-text-sub shrink-0">메모</span>
+                            <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                               {b.memo}
                             </span>
                           </div>
@@ -594,7 +596,7 @@ export default function BookingManagePage() {
                                 variant="secondary"
                                 size="md"
                                 fullWidth
-                                onClick={() => startEdit(b)}
+                                onClick={() => router.push(`/booking?edit=${b.id}`)}
                               >
                                 수정
                               </Button>

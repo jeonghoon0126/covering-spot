@@ -11,6 +11,7 @@ type EventName =
   | "booking_item_select"
   | "booking_photo_upload"
   | "booking_submit"
+  | "booking_edit_submit"
   | "booking_complete"
   | "booking_manage_view"
   | "booking_cancel"
@@ -32,6 +33,7 @@ interface EventProps {
   booking_item_select: { category: string; name: string; price: number };
   booking_photo_upload: { count: number };
   booking_submit: { itemCount: number; estimatedTotal: number };
+  booking_edit_submit: { itemCount: number; estimatedTotal: number };
   booking_complete: { bookingId: string };
   booking_manage_view: Record<string, never>;
   booking_cancel: { bookingId: string; reason?: string };

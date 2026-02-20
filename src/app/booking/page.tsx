@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { BookingItem } from "@/types/booking";
 import { detectAreaFromAddress } from "@/data/spot-areas";
 import { getEarliestBookableDate, isDateBookable } from "@/lib/booking-utils";
@@ -34,7 +34,19 @@ function getMonthDays(year: number, month: number) {
 }
 
 export default function BookingPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20"><LoadingSpinner size="lg" /></div>}>
+      <BookingPageContent />
+    </Suspense>
+  );
+}
+
+function BookingPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const [editMode, setEditMode] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -89,10 +101,12 @@ export default function BookingPage() {
   // Step 5: 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [leadSaved, setLeadSaved] = useState(false);
+  const [editingMemo, setEditingMemo] = useState(false);
 
-  // localStorage 복원 (마운트 시 1회)
+  // localStorage 복원 (마운트 시 1회) — 수정 모드가 아닐 때만
   const [draftLoaded, setDraftLoaded] = useState(false);
   useEffect(() => {
+    if (editId) { setDraftLoaded(true); return; } // 수정 모드면 draft 무시
     try {
       const raw = localStorage.getItem("covering_spot_booking_draft");
       if (!raw) { setDraftLoaded(true); return; }
@@ -114,12 +128,43 @@ export default function BookingPage() {
       if (typeof d.step === "number" && d.step >= 0 && d.step < STEPS.length) setStep(d.step);
     } catch { /* 파싱 실패 무시 */ }
     setDraftLoaded(true);
-  }, []);
+  }, [editId]);
 
-  // localStorage 저장 (debounce 500ms)
+  // 수정 모드: 기존 예약 데이터 로드
+  useEffect(() => {
+    if (!editId) return;
+    setEditLoading(true);
+    const token = (() => { try { return localStorage.getItem("covering_spot_booking_token"); } catch { return null; } })();
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
+    fetch(`/api/bookings/${editId}?_=1${tokenParam}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.booking) { alert("예약을 찾을 수 없습니다"); router.push("/booking/manage"); return; }
+        const b = data.booking;
+        setEditMode(true);
+        setCustomerName(b.customerName || "");
+        setPhone(b.phone || "");
+        setAddress(b.address || "");
+        setAddressDetail(b.addressDetail || "");
+        setMemo(b.memo || "");
+        setSelectedDate(b.date || "");
+        setSelectedTime(b.timeSlot || "");
+        setSelectedArea(b.area || "");
+        if (b.items?.length) setSelectedItems(b.items);
+        if (b.hasElevator != null) setHasElevator(b.hasElevator);
+        if (b.hasParking != null) setHasParking(b.hasParking);
+        if (b.needLadder != null) setNeedLadder(b.needLadder);
+        if (b.ladderType) setLadderType(b.ladderType);
+        setStep(0);
+      })
+      .catch(() => { alert("데이터 로드 실패"); router.push("/booking/manage"); })
+      .finally(() => setEditLoading(false));
+  }, [editId, router]);
+
+  // localStorage 저장 (debounce 500ms) — 수정 모드에서는 저장하지 않음
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!draftLoaded) return;
+    if (!draftLoaded || editMode) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       try {
@@ -343,10 +388,10 @@ export default function BookingPage() {
     );
   }
 
-  // 수거 신청 확정
+  // 수거 신청 확정 (신규 / 수정)
   async function handleSubmit() {
     if (!quote) return;
-    track("booking_submit", { itemCount: selectedItems.length, estimatedTotal: quote.estimateMin });
+    track(editMode ? "booking_edit_submit" : "booking_submit", { itemCount: selectedItems.length, estimatedTotal: quote.estimateMin });
     setLoading(true);
     try {
       // 1. 사진이 있으면 먼저 업로드
@@ -364,43 +409,74 @@ export default function BookingPage() {
         }
       }
 
-      // 2. 신청 데이터 전송
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const bookingData = {
+        date: selectedDate,
+        timeSlot: selectedTime,
+        area: selectedArea,
+        items: selectedItems,
+        totalPrice: quote.totalPrice,
+        estimateMin: quote.estimateMin,
+        estimateMax: quote.estimateMax,
+        crewSize: quote.crewSize,
+        needLadder,
+        ladderType: needLadder ? ladderType : "",
+        ladderHours: needLadder ? ladderHours : undefined,
+        ladderPrice: quote.ladderPrice,
+        hasElevator,
+        hasParking,
+        photos: photoUrls.length > 0 ? photoUrls : undefined,
+        customerName,
+        phone,
+        address,
+        addressDetail,
+        memo,
+      };
+
+      if (editMode && editId) {
+        // 수정 모드: PUT — CustomerUpdateSchema.strict()에 허용된 필드만 전송
+        const editData = {
           date: selectedDate,
           timeSlot: selectedTime,
-          area: selectedArea,
           items: selectedItems,
-          totalPrice: quote.totalPrice,
-          estimateMin: quote.estimateMin,
-          estimateMax: quote.estimateMax,
-          crewSize: quote.crewSize,
+          memo,
+          photos: photoUrls.length > 0 ? photoUrls : undefined,
+          address,
+          addressDetail,
           needLadder,
           ladderType: needLadder ? ladderType : "",
           ladderHours: needLadder ? ladderHours : undefined,
-          ladderPrice: quote.ladderPrice,
-          hasElevator,
-          hasParking,
-          photos: photoUrls,
-          customerName,
-          phone,
-          address,
-          addressDetail,
-          memo,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.removeItem("covering_spot_booking_draft");
-        // bookingToken 저장 (예약 조회/수정/삭제 시 사용)
-        if (data.bookingToken) {
-          localStorage.setItem("covering_spot_booking_token", data.bookingToken);
+        };
+        const token = (() => { try { return localStorage.getItem("covering_spot_booking_token"); } catch { return null; } })();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["x-booking-token"] = token;
+        const res = await fetch(`/api/bookings/${editId}`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(editData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          router.push("/booking/manage");
+        } else {
+          alert(data.error || "수정 실패");
         }
-        router.push(`/booking/complete?id=${data.booking.id}`);
       } else {
-        alert(data.error || "신청 실패");
+        // 신규 모드: POST
+        const res = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bookingData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.removeItem("covering_spot_booking_draft");
+          if (data.bookingToken) {
+            localStorage.setItem("covering_spot_booking_token", data.bookingToken);
+          }
+          router.push(`/booking/complete?id=${data.booking.id}`);
+        } else {
+          alert(data.error || "신청 실패");
+        }
       }
     } catch {
       alert("네트워크 오류");
@@ -420,6 +496,17 @@ export default function BookingPage() {
   ];
 
   const earliestBookable = getEarliestBookableDate();
+
+  if (editLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-text-sub">예약 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -457,6 +544,9 @@ export default function BookingPage() {
           ))}
         </div>
         {/* 현재 스텝 정보 */}
+        {editMode && step === 0 && (
+          <p className="text-xs font-semibold text-semantic-orange mb-1">신청 수정</p>
+        )}
         <h2 className="text-2xl font-bold tracking-[-0.5px]">
           {STEPS[step]}
         </h2>
@@ -1076,33 +1166,9 @@ export default function BookingPage() {
                   ))}
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold mb-3">예상 소요시간</p>
-                <div className="grid grid-cols-4 max-sm:grid-cols-2 gap-2">
-                  {[
-                    "기본(1시간 미만)",
-                    "1시간",
-                    "2시간",
-                    "3시간",
-                    "4시간",
-                    "5시간",
-                    "6시간",
-                    "7시간",
-                  ].map((d, i) => (
-                    <button
-                      key={d}
-                      onClick={() => setLadderHours(i)}
-                      className={`py-3 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
-                        ladderHours === i
-                          ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                          : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-text-muted mt-2">
+                사다리차 소요시간은 품목에 따라 매니저가 확정합니다
+              </p>
             </>
           )}
         </div>
@@ -1124,8 +1190,8 @@ export default function BookingPage() {
                 <span className="font-medium">{phone}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">주소</span>
-                <span className="font-medium text-right max-w-[60%]">
+                <span className="text-text-sub shrink-0">주소</span>
+                <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                   {address} {addressDetail}
                 </span>
               </div>
@@ -1181,15 +1247,27 @@ export default function BookingPage() {
                   <span className="text-text-sub">요청사항</span>
                   <button
                     type="button"
-                    onClick={() => setStep(0)}
+                    onClick={() => setEditingMemo(!editingMemo)}
                     className="text-xs text-primary font-medium hover:underline"
                   >
-                    수정
+                    {editingMemo ? "완료" : "수정"}
                   </button>
                 </div>
-                <p className="text-sm text-text-primary mt-1 whitespace-pre-wrap">
-                  {memo || "없음"}
-                </p>
+                {editingMemo ? (
+                  <div className="mt-2">
+                    <TextArea
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      rows={3}
+                      maxLength={200}
+                      placeholder="요청사항을 입력하세요 (선택)"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-primary mt-1 whitespace-pre-wrap break-words">
+                    {memo || "없음"}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1225,7 +1303,7 @@ export default function BookingPage() {
                 </div>
                 {quote.ladderPrice > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-text-sub">사다리차</span>
+                    <span className="text-text-sub">사다리차 (기본요금)</span>
                     <span className="font-medium">
                       {formatPrice(quote.ladderPrice)}원
                     </span>
@@ -1293,7 +1371,7 @@ export default function BookingPage() {
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? "" : "수거 신청하기"}
+            {loading ? "" : editMode ? "수정 완료" : "수거 신청하기"}
           </Button>
         )}
       </div>
