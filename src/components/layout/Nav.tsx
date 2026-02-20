@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
-import { usePWAInstall } from "@/hooks/usePWAInstall";
+// import { usePWAInstall } from "@/hooks/usePWAInstall"; — 유저 대상 앱 설치 비활성화 (어드민/매니저만 사용)
 
 const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [
   { label: "서비스", href: "#pricing" },
@@ -16,7 +16,7 @@ const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [
 export function Nav() {
   const scrollY = useScrollPosition();
   const scrolled = scrollY > 10;
-  const { canInstall, install } = usePWAInstall();
+  // const { canInstall, install } = usePWAInstall(); — 유저 대상 앱 설치 비활성화
   const [menuOpen, setMenuOpen] = useState(false);
   const [hasBooking, setHasBooking] = useState(false);
 
@@ -89,6 +89,7 @@ export function Nav() {
               신청 조회
             </Link>
           )}
+          {/* 앱 설치 버튼 — 유저 대상 비활성화 (어드민/매니저만 사용)
           {canInstall && (
             <button
               onClick={install}
@@ -102,6 +103,7 @@ export function Nav() {
               <span className="max-sm:hidden">앱 설치</span>
             </button>
           )}
+          */}
           {/* 모바일 햄버거 */}
           <button
             onClick={toggleMenu}

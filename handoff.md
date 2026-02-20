@@ -5,7 +5,16 @@
 GitHub: beige-ian/waste-management-landing (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 
-### 최근 작업 (2026-02-18)
+### 최근 작업 (2026-02-20)
+
+**Phase 8.2: QA 피드백 반영 (세션 7)**
+- FloatingCTA 트리거 개선: Hero CTA 버튼 스크롤아웃 시 즉시 표시 (hero-cta id 기반, fallback 유지)
+- GNB 모바일 햄버거 메뉴: md:hidden 버튼 + 드롭다운 (서비스/가격/FAQ/고객후기/신청조회)
+- 신청조회 조건부 표시: localStorage "covering_spot_booking_token" 있을 때만 GNB + 모바일 메뉴에 표시
+- Step 6 CTA 텍스트: "견적 요청하기" → "최종 견적 요청하기"
+- 접근성 개선: 햄버거 버튼 aria-expanded, 동적 aria-label 추가
+
+### 이전 작업 (2026-02-18)
 
 **Phase 8.1: 성능/UX/알림 개선 (세션 6)**
 - 슬로건 변경: "이제 쉽고 간편하게" → "5분만에 수거신청 완료" (Hero + Splash)

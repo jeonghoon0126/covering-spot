@@ -3,8 +3,8 @@ import type { FeatureItem } from "@/types";
 export const features: FeatureItem[] = [
   {
     icon: "chat",
-    title: "카톡 간편 견적",
-    desc: "사진 없이도 빠른 견적\n복잡한 절차 없이 대화 한 번에",
+    title: "카톡 간편 신청",
+    desc: "사진 없이도 빠른 신청\n복잡한 절차 없이 대화 한 번에",
   },
   {
     icon: "clock",

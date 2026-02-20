@@ -289,7 +289,7 @@ export function ItemPrices({ categories }: Props) {
                 className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-lg hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
               >
                 <KakaoIcon size={18} />
-                <span>카톡으로 5분만에 견적받기</span>
+                <span>카카오톡으로 5분만에 신청하기</span>
               </CTALink>
               <Link
                 href="/booking"

@@ -19,22 +19,25 @@ import { faqItems } from "@/data/faq-data";
 
 export default function Page() {
   return (
-    <Splash>
+    <>
+      {/* Nav/FloatingCTA는 Splash 밖에 배치 — Splash의 transform이 fixed 포지셔닝을 깨뜨리기 때문 */}
       <Nav />
-      <section className="hero-section" id="hero">
-        <Hero />
-      </section>
-      <TrustBar />
-      <ItemsCarousel items={carouselItems} />
-      <Process />
-      <Pricing />
-      <ItemPrices categories={priceCategories} />
-      <Compare />
-      <FAQ items={faqItems} />
-      <CTASection />
-      <AppDownload />
-      <Footer />
       <FloatingCTA />
-    </Splash>
+      <Splash>
+        <section className="hero-section" id="hero">
+          <Hero />
+        </section>
+        <TrustBar />
+        <ItemsCarousel items={carouselItems} />
+        <Process />
+        <Pricing />
+        <ItemPrices categories={priceCategories} />
+        <Compare />
+        <FAQ items={faqItems} />
+        <CTASection />
+        {/* <AppDownload /> — 유저 대상 앱 설치 비활성화 (어드민/매니저만 사용) */}
+        <Footer />
+      </Splash>
+    </>
   );
 }

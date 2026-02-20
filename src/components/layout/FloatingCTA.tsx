@@ -46,7 +46,7 @@ export function FloatingCTA() {
             className="flex-1 flex items-center justify-center gap-2 bg-kakao text-text-primary text-[15px] font-bold py-3.5 rounded-md hover:bg-kakao-hover active:scale-[0.98] transition-all"
           >
             <KakaoIcon />
-            <span>5분만에 견적 받기</span>
+            <span>카카오톡으로 5분만에 신청하기</span>
           </CTALink>
           <Link
             href="/booking"
@@ -65,7 +65,7 @@ export function FloatingCTA() {
             className="flex items-center gap-2.5 bg-kakao text-text-primary text-[15px] font-bold py-3 px-6 rounded-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
           >
             <KakaoIcon />
-            <span>카카오톡으로 5분만에 견적 받기</span>
+            <span>카카오톡으로 5분만에 신청하기</span>
           </CTALink>
           <Link
             href="/booking"

@@ -20,12 +20,12 @@ export function CTASection() {
           <h2 className="text-[44px] font-extrabold tracking-[-1.5px] leading-[1.15] text-white max-md:text-[32px]">
             지금 바로
             <br />
-            견적 받아보세요
+            수거 신청하세요
           </h2>
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <p className="text-[17px] text-[#94A3B8] mt-5 mb-10">
-            카톡 한 번이면 정확한 견적 확인 가능
+            카톡 한 번이면 간편하게 수거 신청 완료
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>
@@ -35,7 +35,7 @@ export function CTASection() {
               className="inline-flex items-center gap-2 bg-kakao text-text-primary text-[17px] font-bold py-[17px] px-9 rounded-lg hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"
             >
               <KakaoIcon />
-              <span>카카오톡으로 5분만에 견적 받기</span>
+              <span>카카오톡으로 5분만에 신청하기</span>
             </CTALink>
             <Link
               href="/booking"
