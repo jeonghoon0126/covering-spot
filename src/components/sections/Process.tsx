@@ -118,7 +118,7 @@ export function Process() {
             center
           />
         </ScrollReveal>
-        <div className="grid grid-cols-4 gap-8 max-lg:grid-cols-2 max-lg:gap-6">
+        <div className="grid grid-cols-4 gap-8 max-lg:grid-cols-2 max-lg:gap-6 max-sm:grid-cols-1 max-sm:gap-4">
           {processSteps.map((step, i) => (
             <ScrollReveal key={step.num} delay={i * 0.1}>
               <ProcessCard step={step} index={i} />

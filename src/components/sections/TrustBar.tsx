@@ -82,7 +82,7 @@ function StatItem({ value, suffix, label }: { value: string; suffix?: string; la
 export function TrustBar() {
   return (
     <div className="bg-bg-warm/60">
-      <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5 flex items-center justify-center py-14 gap-16 max-md:gap-8 max-md:flex-wrap max-sm:flex-col max-sm:gap-6 max-sm:py-10">
+      <div className="max-w-[1200px] mx-auto px-20 max-lg:px-10 max-sm:px-5 flex items-center justify-center py-14 gap-16 max-md:gap-8 max-md:flex-wrap max-sm:gap-x-8 max-sm:gap-y-6 max-sm:py-10">
         {trustStats.map((stat, i) => (
           <div key={stat.label} className="contents">
             {i > 0 && (

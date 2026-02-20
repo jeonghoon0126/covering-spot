@@ -130,7 +130,7 @@ function BarChart({
 
       {/* total */}
       <div className="mt-auto pt-5 flex items-baseline gap-3">
-        <span className="text-[22px] font-bold tracking-[-0.3px] text-text-primary max-sm:text-lg">
+        <span className="text-[24px] font-bold tracking-[-0.3px] text-text-primary max-sm:text-lg">
           {card.total}
         </span>
         {isGood ? (
@@ -157,14 +157,14 @@ function ReasonItem({
   return (
     <ScrollReveal delay={index * 0.08}>
       <div className="flex gap-3 items-baseline">
-        <span className="text-[15px] font-bold text-semantic-orange shrink-0">
+        <span className="text-[17px] font-bold text-semantic-orange shrink-0 max-sm:text-[15px]">
           {index + 1}.
         </span>
         <div>
-          <span className="text-[15px] font-bold text-text-primary">
+          <span className="text-[17px] font-bold text-text-primary max-sm:text-[15px]">
             {reason.heading}
           </span>
-          <p className="text-[14px] text-text-muted mt-1 leading-relaxed">
+          <p className="text-[15px] text-text-muted mt-1 leading-relaxed max-sm:text-[14px]">
             {reason.desc}
           </p>
         </div>
@@ -254,12 +254,12 @@ export function Compare() {
               }`}
               style={{ transitionDelay: "0.8s" }}
             >
-              <p className="text-[15px] text-text-sub">
-                같은 품목인데
-                <span className="text-[20px] font-bold text-primary mx-1.5">
+              <p className="text-[17px] text-text-sub max-sm:text-[15px]">
+                같은 품목인데{" "}
+                <span className="text-[22px] font-bold text-primary mx-1 max-sm:text-[20px]">
                   {formatPrice(saving)}
-                </span>
-                차이납니다
+                </span>{" "}
+                차이!
               </p>
             </div>
           </div>
@@ -268,7 +268,7 @@ export function Compare() {
         {/* ── Reasons ── */}
         <div className="max-w-[800px] mx-auto mt-16">
           <ScrollReveal>
-            <p className="text-[17px] font-bold text-text-primary mb-6 max-sm:text-[15px]">
+            <p className="text-[20px] font-bold text-text-primary mb-6 max-sm:text-[15px]">
               대부분의 업체가 이런 식으로 추가 비용을 붙여요
             </p>
           </ScrollReveal>

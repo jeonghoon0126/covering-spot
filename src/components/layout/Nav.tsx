@@ -52,6 +52,14 @@ export function Nav() {
           >
             FAQ
           </a>
+          <a
+            href="https://covering1.imweb.me/review"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-text-sub no-underline text-[13px] font-medium px-3 py-1.5 rounded-sm transition-all hover:text-text-primary hover:bg-black/[0.04] max-md:hidden"
+          >
+            고객 후기
+          </a>
           <Link
             href="/booking/manage"
             className="ml-1 inline-flex items-center gap-1.5 bg-bg-warm text-text-primary text-[13px] font-semibold px-4 py-2.5 rounded-md no-underline transition-all hover:bg-bg-warm2 active:scale-[0.97] border border-border-light"
