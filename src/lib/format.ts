@@ -1,8 +1,9 @@
-/** 전화번호 포맷팅 (010-1234-5678) */
+/** 전화번호 포맷팅: 11자리 010-1234-5678 (3-4-4), 10자리 016-123-4567 (3-3-4) */
 export function formatPhoneNumber(value: string): string {
   const numbers = value.replace(/[^\d]/g, "").slice(0, 11);
   if (numbers.length <= 3) return numbers;
   if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  if (numbers.length === 10) return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`;
   return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
