@@ -258,6 +258,7 @@ export function Hero() {
 
             {/* CTA Buttons */}
             <div
+              id="hero-cta"
               className="flex gap-3 max-md:justify-center max-md:flex-col max-md:items-center"
               style={{
                 opacity: 0,

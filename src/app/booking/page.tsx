@@ -1269,7 +1269,7 @@ export default function BookingPage() {
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? "" : "견적 요청하기"}
+            {loading ? "" : "최종 견적 요청하기"}
           </Button>
         )}
       </div>

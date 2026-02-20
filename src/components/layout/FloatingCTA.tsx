@@ -10,15 +10,19 @@ export function FloatingCTA() {
 
   useEffect(() => {
     const handle = () => {
+      const heroCta = document.getElementById("hero-cta");
       const hero = document.getElementById("hero");
       const cta = document.getElementById("cta");
       if (!hero || !cta) return;
 
-      const heroGone = hero.getBoundingClientRect().bottom < 0;
+      // Hero CTA 버튼이 뷰포트에서 사라지면 즉시 표시
+      const heroCtaGone = heroCta
+        ? heroCta.getBoundingClientRect().bottom < 0
+        : hero.getBoundingClientRect().bottom < 0;
       const ctaVisible = cta.getBoundingClientRect().top < window.innerHeight;
       // 페이지 하단 300px 이내면 숨김 (푸터/앱다운로드 영역)
       const nearBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight < 300;
-      setShow(heroGone && !ctaVisible && !nearBottom);
+      setShow(heroCtaGone && !ctaVisible && !nearBottom);
     };
 
     window.addEventListener("scroll", handle, { passive: true });
