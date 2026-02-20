@@ -105,7 +105,9 @@ export function Nav() {
           {/* 모바일 햄버거 */}
           <button
             onClick={toggleMenu}
-            aria-label="메뉴 열기"
+            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
             className="md:hidden ml-1.5 flex items-center justify-center w-10 h-10 rounded-md transition-all hover:bg-black/[0.04] active:scale-95"
           >
             <svg
@@ -137,6 +139,7 @@ export function Nav() {
 
       {/* 모바일 드롭다운 메뉴 */}
       <div
+        id="mobile-menu"
         className={`md:hidden overflow-hidden transition-all duration-200 ease-out ${
           menuOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
         }`}
