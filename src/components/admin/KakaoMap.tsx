@@ -23,7 +23,8 @@ export interface MapMarker {
   lat: number;
   lng: number;
   label?: string;
-  color: string; // HEX color 직접 지원 (예: "#3B82F6")
+  subtitle?: string;
+  color: string; // HEX color (예: "#3B82F6")
 }
 
 export interface KakaoMapHandle {
@@ -37,6 +38,11 @@ interface KakaoMapProps {
   className?: string;
 }
 
+// HEX 색상만 허용 (CSS injection 방어)
+function sanitizeColor(c: string): string {
+  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : "#3B82F6";
+}
+
 const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   { markers, selectedMarkerId, onMarkerClick, className = "" },
   ref,
@@ -44,93 +50,145 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<unknown>(null);
   const overlaysRef = useRef<unknown[]>([]);
-  const markerElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
-  const prevSelectedRef = useRef<string | null>(null);
+  const dotElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const labelElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const selectedIdRef = useRef<string | null>(null);
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // panTo 외부 호출용
+  // panTo
   useImperativeHandle(ref, () => ({
     panTo: (lat: number, lng: number) => {
       if (!mapRef.current || !window.kakao?.maps) return;
-      const pos = new window.kakao.maps.LatLng(lat, lng);
-      (mapRef.current as any).panTo(pos);
+      try {
+        const pos = new window.kakao.maps.LatLng(lat, lng);
+        (mapRef.current as any).panTo(pos);
+      } catch (e) {
+        console.error("[KakaoMap] panTo 실패:", e);
+      }
     },
   }), []);
 
+  // 줌 레벨에 따라 라벨 표시/숨김
+  const syncLabelVisibility = useCallback(() => {
+    if (!mapRef.current) return;
+    try {
+      const level = (mapRef.current as any).getLevel();
+      const show = level <= 8;
+      labelElsRef.current.forEach((el) => {
+        el.style.display = show ? "block" : "none";
+      });
+    } catch {}
+  }, []);
+
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.kakao?.maps) return;
-
     try {
       const { kakao } = window;
-      const container = mapContainerRef.current;
       const options = {
         center: new kakao.maps.LatLng(37.5665, 126.978),
-        level: 11,
+        level: 8,
       };
-
-      mapRef.current = new kakao.maps.Map(container, options);
+      mapRef.current = new kakao.maps.Map(mapContainerRef.current, options);
+      kakao.maps.event.addListener(mapRef.current as any, "zoom_changed", syncLabelVisibility);
       setIsMapReady(true);
     } catch (e) {
       console.error("[KakaoMap] 초기화 실패:", e);
       setMapError("지도 초기화에 실패했습니다");
     }
-  }, []);
+  }, [syncLabelVisibility]);
 
-  // 마커 DOM 스타일만 업데이트 (선택 변경 시)
-  const updateMarkerStyle = useCallback((markerId: string, isSelected: boolean, color: string) => {
-    const el = markerElsRef.current.get(markerId);
+  // dot 스타일 업데이트 (선택 변경 시)
+  const updateDotStyle = useCallback((markerId: string, isSelected: boolean, color: string) => {
+    const el = dotElsRef.current.get(markerId);
     if (!el) return;
-    const size = isSelected ? 28 : 22;
+    const safe = sanitizeColor(color);
+    const size = isSelected ? 32 : 26;
     el.style.width = `${size}px`;
     el.style.height = `${size}px`;
     el.style.boxShadow = isSelected
-      ? `0 0 0 3px ${color}40, 0 2px 8px rgba(0,0,0,0.3)`
+      ? `0 0 0 3px ${safe}40, 0 2px 8px rgba(0,0,0,0.3)`
       : "0 2px 6px rgba(0,0,0,0.3)";
   }, []);
 
+  // 마커 렌더 (markers / onMarkerClick 변경 시만 — selectedMarkerId 제외)
   const renderMarkers = useCallback(() => {
     if (!mapRef.current || !window.kakao?.maps) return;
-
     const { kakao } = window;
 
     // 기존 오버레이 제거
     overlaysRef.current.forEach((overlay: any) => {
-      overlay.setMap(null);
+      try { overlay.setMap(null); } catch {}
     });
     overlaysRef.current = [];
-    markerElsRef.current.clear();
+    dotElsRef.current.clear();
+    labelElsRef.current.clear();
 
     if (markers.length === 0) return;
 
     const bounds = new kakao.maps.LatLngBounds();
+    let currentLevel = 8;
+    try { currentLevel = (mapRef.current as any).getLevel(); } catch {}
+    const showLabels = currentLevel <= 8;
 
     markers.forEach((marker) => {
       const position = new kakao.maps.LatLng(marker.lat, marker.lng);
-      const isSelected = marker.id === selectedMarkerId;
-      const color = marker.color;
-      const size = isSelected ? 28 : 22;
+      const safe = sanitizeColor(marker.color);
+      // 초기 렌더는 항상 비선택 크기(26px)로, 선택 스타일은 별도 effect에서 처리
+      const size = 26;
 
-      const el = document.createElement("div");
-      el.style.cssText = `
-        width: ${size}px; height: ${size}px;
-        background: ${color};
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        cursor: pointer;
-        transition: all 0.15s ease;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 11px; color: white;
-      `;
-      if (isSelected) {
-        el.style.boxShadow = `0 0 0 3px ${color}40, 0 2px 8px rgba(0,0,0,0.3)`;
+      // 컨테이너
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.cursor = "pointer";
+
+      // 원형 dot — 개별 style 속성 (cssText 대신, injection 방어)
+      const dot = document.createElement("div");
+      dot.style.width = `${size}px`;
+      dot.style.height = `${size}px`;
+      dot.style.background = safe;
+      dot.style.border = "3px solid white";
+      dot.style.borderRadius = "50%";
+      dot.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+      dot.style.display = "flex";
+      dot.style.alignItems = "center";
+      dot.style.justifyContent = "center";
+      dot.style.fontWeight = "700";
+      dot.style.fontSize = "11px";
+      dot.style.color = "white";
+      dot.style.transition = "all 0.15s ease";
+      dot.style.flexShrink = "0";
+      if (marker.label) dot.textContent = marker.label;
+
+      container.appendChild(dot);
+
+      // 라벨 (고객명 등)
+      if (marker.subtitle) {
+        const label = document.createElement("div");
+        label.style.fontSize = "10px";
+        label.style.fontWeight = "600";
+        label.style.color = "#374151";
+        label.style.whiteSpace = "nowrap";
+        label.style.background = "rgba(255,255,255,0.93)";
+        label.style.padding = "1px 5px";
+        label.style.borderRadius = "3px";
+        label.style.marginTop = "2px";
+        label.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+        label.style.maxWidth = "72px";
+        label.style.overflow = "hidden";
+        label.style.textOverflow = "ellipsis";
+        label.style.display = showLabels ? "block" : "none";
+        label.style.pointerEvents = "none";
+        label.textContent = marker.subtitle;
+        container.appendChild(label);
+        labelElsRef.current.set(marker.id, label);
       }
-      if (marker.label) el.textContent = marker.label;
 
       if (onMarkerClick) {
-        el.addEventListener("click", (e) => {
+        container.addEventListener("click", (e) => {
           e.stopPropagation();
           onMarkerClick(marker.id);
         });
@@ -138,14 +196,14 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
 
       const overlay = new kakao.maps.CustomOverlay({
         position,
-        content: el,
+        content: container,
         xAnchor: 0.5,
         yAnchor: 0.5,
       });
 
       (overlay as any).setMap(mapRef.current);
       overlaysRef.current.push(overlay);
-      markerElsRef.current.set(marker.id, el);
+      dotElsRef.current.set(marker.id, dot);
       (bounds as any).extend(position);
     });
 
@@ -157,27 +215,33 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
     } else {
       (mapRef.current as any).setBounds(bounds);
     }
-    prevSelectedRef.current = selectedMarkerId ?? null;
-  }, [markers, selectedMarkerId, onMarkerClick]);
 
-  // 선택 변경: 마커 데이터가 같으면 스타일만 업데이트
+    // 렌더 직후 현재 선택 상태 반영
+    const curSelected = selectedIdRef.current;
+    if (curSelected) {
+      const m = markers.find((mk) => mk.id === curSelected);
+      if (m) updateDotStyle(curSelected, true, m.color);
+    }
+  }, [markers, onMarkerClick, updateDotStyle]); // selectedMarkerId 제거!
+
+  // 선택 변경: dot 스타일만 업데이트 (전체 리빌드 없음)
   useEffect(() => {
     if (!isMapReady) return;
-    const prev = prevSelectedRef.current;
-    if (prev === (selectedMarkerId ?? null) || markerElsRef.current.size === 0) return;
+    const prev = selectedIdRef.current;
+    const next = selectedMarkerId ?? null;
+    selectedIdRef.current = next;
 
-    // 이전 선택 해제
+    if (prev === next || dotElsRef.current.size === 0) return;
+
     if (prev) {
       const m = markers.find((mk) => mk.id === prev);
-      if (m) updateMarkerStyle(prev, false, m.color);
+      if (m) updateDotStyle(prev, false, m.color);
     }
-    // 새 선택 하이라이트
-    if (selectedMarkerId) {
-      const m = markers.find((mk) => mk.id === selectedMarkerId);
-      if (m) updateMarkerStyle(selectedMarkerId, true, m.color);
+    if (next) {
+      const m = markers.find((mk) => mk.id === next);
+      if (m) updateDotStyle(next, true, m.color);
     }
-    prevSelectedRef.current = selectedMarkerId ?? null;
-  }, [selectedMarkerId, isMapReady, markers, updateMarkerStyle]);
+  }, [selectedMarkerId, isMapReady, markers, updateDotStyle]);
 
   useEffect(() => {
     if (isMapReady) renderMarkers();
@@ -185,12 +249,14 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
 
   useEffect(() => {
     return () => {
-      overlaysRef.current.forEach((overlay: any) => overlay.setMap(null));
+      overlaysRef.current.forEach((overlay: any) => {
+        try { overlay.setMap(null); } catch {}
+      });
       overlaysRef.current = [];
     };
   }, []);
 
-  // SDK가 이미 로드되었을 수 있음 (페이지 재방문 등)
+  // SDK 재방문 대응 + 타임아웃
   useEffect(() => {
     if (window.kakao?.maps) {
       window.kakao.maps.load(() => {
@@ -198,7 +264,6 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         initializeMap();
       });
     }
-    // 10초 타임아웃: SDK 로드 실패 감지
     const timeout = setTimeout(() => {
       if (!isMapReady) {
         const host = typeof window !== "undefined" ? window.location.hostname : "";
@@ -254,6 +319,8 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
           ref={mapContainerRef}
           className="w-full h-full rounded-lg"
           style={{ minHeight: "400px" }}
+          role="application"
+          aria-label="배차 지도"
         />
       </div>
     </>

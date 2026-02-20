@@ -6,7 +6,6 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import KakaoMap from "@/components/admin/KakaoMap";
 import type { KakaoMapHandle, MapMarker } from "@/components/admin/KakaoMap";
 import type { Booking, BookingItem } from "@/types/booking";
-import { formatPrice } from "@/lib/format";
 
 /* ── 타입 ── */
 
@@ -66,9 +65,11 @@ function getToday(): string {
 }
 
 function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
+  // KST 기준 명시적 파싱 (서버/클라이언트 시간대 차이 방어)
+  const [y, m, d] = dateStr.split("-").map(Number);
   const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-  return `${d.getMonth() + 1}/${d.getDate()} (${weekdays[d.getDay()]})`;
+  const date = new Date(y, m - 1, d);
+  return `${m}/${d} (${weekdays[date.getDay()]})`;
 }
 
 function getLoadingPercent(used: number, capacity: number): number {
@@ -76,10 +77,12 @@ function getLoadingPercent(used: number, capacity: number): number {
   return Math.min(100, Math.round((used / capacity) * 100));
 }
 
-function itemsSummary(items: BookingItem[]): string {
-  if (items.length === 0) return "-";
-  const first = `${items[0].category} ${items[0].name}`;
-  return items.length > 1 ? `${first} 외 ${items.length - 1}종` : first;
+function itemsSummary(items: BookingItem[] | undefined | null): string {
+  if (!Array.isArray(items) || items.length === 0) return "-";
+  const first = items[0];
+  if (!first) return "-";
+  const label = `${first.category || ""} ${first.name || ""}`.trim() || "품목";
+  return items.length > 1 ? `${label} 외 ${items.length - 1}종` : label;
 }
 
 /* ── 메인 페이지 ── */
@@ -88,6 +91,7 @@ export default function AdminDispatchPage() {
   const router = useRouter();
   const mapRef = useRef<KakaoMapHandle>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const abortRef = useRef<AbortController | null>(null);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -128,15 +132,22 @@ export default function AdminDispatchPage() {
     setToken(t);
   }, [router]);
 
-  // 데이터 로드
+  // 데이터 로드 (AbortController로 race condition 방어)
   const fetchData = useCallback(async () => {
     if (!token) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setFetchError(false);
     try {
       const res = await fetch(`/api/admin/dispatch?date=${selectedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (res.status === 401) {
         sessionStorage.removeItem("admin_token");
         router.push("/admin");
@@ -147,20 +158,26 @@ export default function AdminDispatchPage() {
         return;
       }
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setBookings(data.bookings || []);
       setDrivers(data.drivers || []);
       setDriverStats(data.driverStats || []);
       setCheckedIds(new Set());
       setSelectedBookingId(null);
-    } catch {
-      setFetchError(true);
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        setFetchError(true);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [token, selectedDate, router]);
 
   useEffect(() => {
     fetchData();
+    return () => abortRef.current?.abort();
   }, [fetchData]);
 
   // 활성 예약 (취소/거부 제외)
@@ -186,7 +203,7 @@ export default function AdminDispatchPage() {
     groups["기타"] = [];
 
     for (const b of filteredBookings) {
-      const slot = SLOT_ORDER.includes(b.timeSlot) ? b.timeSlot : "기타";
+      const slot = b.timeSlot && SLOT_ORDER.includes(b.timeSlot) ? b.timeSlot : "기타";
       groups[slot].push(b);
     }
 
@@ -199,15 +216,16 @@ export default function AdminDispatchPage() {
     return driverColorMap.get(booking.driverId) || "#10B981";
   }, [driverColorMap]);
 
-  // 좌표 있는 예약만 마커로
+  // 좌표 있는 예약만 마커로 (subtitle에 고객명 표시)
   const mapMarkers: MapMarker[] = useMemo(() => {
     return filteredBookings
-      .filter((b) => b.latitude && b.longitude)
+      .filter((b) => b.latitude != null && b.longitude != null)
       .map((b, idx) => ({
         id: b.id,
         lat: b.latitude!,
         lng: b.longitude!,
         label: String(idx + 1),
+        subtitle: b.customerName || "",
         color: getMarkerColor(b),
       }));
   }, [filteredBookings, getMarkerColor]);
@@ -222,24 +240,23 @@ export default function AdminDispatchPage() {
     return bookings.find((b) => b.id === selectedBookingId) || null;
   }, [bookings, selectedBookingId]);
 
-  // 마커 클릭 → 카드 스크롤 + 선택
-  function handleMarkerClick(id: string) {
+  // 마커 클릭 → 카드 스크롤 + 선택 (useCallback으로 안정화 — KakaoMap 불필요 리렌더 방지)
+  const handleMarkerClick = useCallback((id: string) => {
     setSelectedBookingId(id);
     setMobileDetail(true);
-    // 카드로 스크롤
     const cardEl = cardRefs.current.get(id);
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }
+  }, []);
 
   // 카드 클릭 → 지도 panTo + 선택
-  function handleCardClick(booking: Booking) {
+  const handleCardClick = useCallback((booking: Booking) => {
     setSelectedBookingId(booking.id);
     if (booking.latitude && booking.longitude) {
       mapRef.current?.panTo(booking.latitude, booking.longitude);
     }
-  }
+  }, []);
 
   // 체크박스 토글
   function toggleCheck(id: string) {
@@ -265,7 +282,7 @@ export default function AdminDispatchPage() {
   // 단건 배차
   async function handleDispatch(bookingId: string, driverId: string) {
     const driver = drivers.find((d) => d.id === driverId);
-    if (!driver || !token) return;
+    if (!driver || !token || dispatching) return;
 
     setDispatching(true);
     try {
@@ -294,10 +311,10 @@ export default function AdminDispatchPage() {
     }
   }
 
-  // 일괄 배차
+  // 일괄 배차 (현재 필터에 보이는 것만 배차)
   async function handleBatchDispatch() {
     const driver = drivers.find((d) => d.id === batchDriverId);
-    if (!driver || !token || checkedIds.size === 0) return;
+    if (!driver || !token || checkedIds.size === 0 || dispatching) return;
 
     setDispatching(true);
     try {
@@ -308,7 +325,9 @@ export default function AdminDispatchPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          bookingIds: Array.from(checkedIds),
+          bookingIds: Array.from(checkedIds).filter((id) =>
+            filteredBookings.some((b) => b.id === id),
+          ),
           driverId: driver.id,
           driverName: driver.name,
         }),
@@ -333,7 +352,7 @@ export default function AdminDispatchPage() {
 
   // 배차 해제
   async function handleUnassign(bookingId: string) {
-    if (!token) return;
+    if (!token || dispatching) return;
     if (!confirm("배차를 해제하시겠습니까?")) return;
 
     setDispatching(true);
@@ -359,11 +378,14 @@ export default function AdminDispatchPage() {
     }
   }
 
-  // 날짜 이동
+  // 날짜 이동 (시간대 무관 순수 날짜 산술)
   function moveDate(delta: number) {
-    const d = new Date(selectedDate + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setSelectedDate(d.toISOString().slice(0, 10));
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d + delta);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    setSelectedDate(`${yyyy}-${mm}-${dd}`);
   }
 
   if (!token) return null;
@@ -426,20 +448,28 @@ export default function AdminDispatchPage() {
               ))}
             </select>
 
-            {/* 범례 */}
-            <div className="ml-auto flex items-center gap-3 text-xs text-text-muted">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: UNASSIGNED_COLOR }} /> 미배차
-              </span>
-              {driverStats.map((stat) => (
-                <span key={stat.driverId} className="flex items-center gap-1">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: driverColorMap.get(stat.driverId) || "#10B981" }}
-                  />
-                  {stat.driverName}
+            {/* 범례 + 가이드 */}
+            <div className="ml-auto flex items-center gap-2 text-xs">
+              {/* 색상 범례 */}
+              <div className="flex items-center gap-2.5 text-text-muted">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: UNASSIGNED_COLOR }} />
+                  미배차
                 </span>
-              ))}
+                {driverStats.map((stat) => (
+                  <span key={stat.driverId} className="flex items-center gap-1">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ background: driverColorMap.get(stat.driverId) || "#10B981" }}
+                    />
+                    {stat.driverName}
+                  </span>
+                ))}
+              </div>
+              {/* 조작 가이드 */}
+              <span className="hidden sm:inline-block text-[10px] text-text-muted border-l border-border-light pl-2">
+                체크 선택 → 기사 지정 → 일괄 배차
+              </span>
             </div>
           </div>
         </div>
@@ -464,7 +494,7 @@ export default function AdminDispatchPage() {
           {/* ── 모바일 탭 전환 ── */}
           <div className="lg:hidden flex border-b border-border-light bg-bg">
             <button
-              onClick={() => setMobileTab("list")}
+              onClick={() => { setMobileTab("list"); setMobileDetail(false); }}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 mobileTab === "list"
                   ? "text-primary border-b-2 border-primary"
@@ -474,7 +504,7 @@ export default function AdminDispatchPage() {
               주문 목록
             </button>
             <button
-              onClick={() => setMobileTab("map")}
+              onClick={() => { setMobileTab("map"); setMobileDetail(false); }}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 mobileTab === "map"
                   ? "text-primary border-b-2 border-primary"
@@ -785,13 +815,13 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
 
           {/* 2줄: 주소 */}
           <div className="text-xs text-text-muted truncate mb-0.5">
-            {booking.address}
+            {booking.address || "-"}
           </div>
 
           {/* 3줄: 품목 + 큐브 */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-text-sub truncate">
-              {itemsSummary(booking.items)}
+              {itemsSummary(Array.isArray(booking.items) ? booking.items : [])}
             </span>
             <span className="text-xs font-semibold text-primary flex-shrink-0">
               {cube}m&sup3;
@@ -856,13 +886,13 @@ function OverlayCard({
   onDetail: () => void;
   onClose: () => void;
 }) {
-  const [selectedDriverId, setSelectedDriverId] = useState(booking.driverId || "");
+  const [selectedDriverId, setSelectedDriverId] = useState(booking.driverId ?? "");
 
   useEffect(() => {
-    setSelectedDriverId(booking.driverId || "");
+    setSelectedDriverId(booking.driverId ?? "");
   }, [booking.id, booking.driverId]);
 
-  const cube = (booking.totalLoadingCube || 0).toFixed(1);
+  const cube = (booking.totalLoadingCube ?? 0).toFixed(1);
 
   return (
     <div className="p-4 space-y-3">
@@ -893,14 +923,16 @@ function OverlayCard({
 
       {/* 주문 정보 */}
       <div className="space-y-1.5 text-sm">
-        <div className="flex items-center gap-2">
-          <a href={`tel:${booking.phone}`} className="text-xs text-primary">{booking.phone}</a>
-        </div>
+        {booking.phone && (
+          <div className="flex items-center gap-2">
+            <a href={`tel:${booking.phone}`} className="text-xs text-primary">{booking.phone}</a>
+          </div>
+        )}
         <div className="text-xs text-text-muted">
-          {booking.address} {booking.addressDetail}
+          {booking.address || ""} {booking.addressDetail || ""}
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span>{SLOT_LABELS[booking.timeSlot] || booking.timeSlot}</span>
+          <span>{SLOT_LABELS[booking.timeSlot] || booking.timeSlot || "-"}</span>
           <span className="font-semibold text-primary">{cube}m&sup3;</span>
           <span className="text-text-muted">
             엘베 {booking.hasElevator ? "O" : "X"} / 주차 {booking.hasParking ? "O" : "X"}
@@ -908,12 +940,16 @@ function OverlayCard({
         </div>
 
         {/* 품목 */}
-        {booking.items.length > 0 && (
+        {Array.isArray(booking.items) && booking.items.length > 0 && (
           <div className="bg-bg-warm rounded-lg p-2 space-y-0.5">
             {booking.items.map((item: BookingItem, idx: number) => (
               <div key={idx} className="flex justify-between text-xs">
-                <span className="text-text-sub">{item.category} {item.name} x{item.quantity}</span>
-                <span className="text-text-muted">{(item.loadingCube * item.quantity).toFixed(1)}m&sup3;</span>
+                <span className="text-text-sub">
+                  {item?.category || ""} {item?.name || ""} x{item?.quantity ?? 0}
+                </span>
+                <span className="text-text-muted">
+                  {((item?.loadingCube ?? 0) * (item?.quantity ?? 0)).toFixed(1)}m&sup3;
+                </span>
               </div>
             ))}
           </div>
