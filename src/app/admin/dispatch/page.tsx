@@ -111,6 +111,8 @@ export default function AdminDispatchPage() {
   const [mobileTab, setMobileTab] = useState<"map" | "list">("list");
   // 모바일 상세 바텀시트
   const [mobileDetail, setMobileDetail] = useState(false);
+  // 기사 적재 현황 패널 (지도 우측 상단)
+  const [driverPanelOpen, setDriverPanelOpen] = useState(true);
 
   // 기사별 색상 매핑
   const driverColorMap = useMemo(() => {
@@ -133,15 +135,18 @@ export default function AdminDispatchPage() {
   }, [router]);
 
   // 데이터 로드 (AbortController로 race condition 방어)
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
+    const silent = opts?.silent ?? false;
 
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setLoading(true);
-    setFetchError(false);
+    if (!silent) {
+      setLoading(true);
+      setFetchError(false);
+    }
     try {
       const res = await fetch(`/api/admin/dispatch?date=${selectedDate}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -154,7 +159,7 @@ export default function AdminDispatchPage() {
         return;
       }
       if (!res.ok) {
-        setFetchError(true);
+        if (!silent) setFetchError(true);
         return;
       }
       const data = await res.json();
@@ -162,10 +167,12 @@ export default function AdminDispatchPage() {
       setBookings(data.bookings || []);
       setDrivers(data.drivers || []);
       setDriverStats(data.driverStats || []);
-      setCheckedIds(new Set());
-      setSelectedBookingId(null);
+      if (!silent) {
+        setCheckedIds(new Set());
+        setSelectedBookingId(null);
+      }
     } catch (e) {
-      if ((e as Error).name !== "AbortError") {
+      if ((e as Error).name !== "AbortError" && !silent) {
         setFetchError(true);
       }
     } finally {
@@ -279,10 +286,30 @@ export default function AdminDispatchPage() {
     }
   }
 
-  // 단건 배차
+  // 단건 배차 (옵티미스틱 업데이트)
   async function handleDispatch(bookingId: string, driverId: string) {
     const driver = drivers.find((d) => d.id === driverId);
     if (!driver || !token || dispatching) return;
+
+    // 옵티미스틱: 로컬 상태 즉시 반영
+    const prevBooking = bookings.find((b) => b.id === bookingId);
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId ? { ...b, driverId: driver.id, driverName: driver.name } : b,
+      ),
+    );
+    setDriverStats((prev) =>
+      prev.map((stat) => {
+        const cube = prevBooking?.totalLoadingCube || 0;
+        if (stat.driverId === driver.id) {
+          return { ...stat, assignedCount: stat.assignedCount + 1, totalLoadingCube: stat.totalLoadingCube + cube };
+        }
+        if (prevBooking?.driverId && stat.driverId === prevBooking.driverId) {
+          return { ...stat, assignedCount: Math.max(0, stat.assignedCount - 1), totalLoadingCube: Math.max(0, stat.totalLoadingCube - cube) };
+        }
+        return stat;
+      }),
+    );
 
     setDispatching(true);
     try {
@@ -299,22 +326,60 @@ export default function AdminDispatchPage() {
         }),
       });
       if (res.ok) {
-        await fetchData();
+        fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));
         alert(data.error || "배차 실패");
+        fetchData(); // 롤백
       }
     } catch {
       alert("네트워크 오류");
+      fetchData();
     } finally {
       setDispatching(false);
     }
   }
 
-  // 일괄 배차 (현재 필터에 보이는 것만 배차)
+  // 일괄 배차 (옵티미스틱 업데이트)
   async function handleBatchDispatch() {
     const driver = drivers.find((d) => d.id === batchDriverId);
     if (!driver || !token || checkedIds.size === 0 || dispatching) return;
+
+    const targetIds = Array.from(checkedIds).filter((id) =>
+      filteredBookings.some((b) => b.id === id),
+    );
+
+    // 옵티미스틱: 로컬 상태 즉시 반영 (재배차 시 기존 기사 차감 포함)
+    const targetBookings = targetIds.map((id) => bookings.find((bk) => bk.id === id)).filter(Boolean) as Booking[];
+    const prevDriverDeltas = new Map<string, { count: number; cube: number }>();
+    let newCubeTotal = 0;
+    targetBookings.forEach((b) => {
+      const cube = b.totalLoadingCube || 0;
+      newCubeTotal += cube;
+      if (b.driverId && b.driverId !== driver.id) {
+        const prev = prevDriverDeltas.get(b.driverId) || { count: 0, cube: 0 };
+        prevDriverDeltas.set(b.driverId, { count: prev.count + 1, cube: prev.cube + cube });
+      }
+    });
+    setBookings((prev) =>
+      prev.map((b) =>
+        targetIds.includes(b.id) ? { ...b, driverId: driver.id, driverName: driver.name } : b,
+      ),
+    );
+    setDriverStats((prev) =>
+      prev.map((stat) => {
+        if (stat.driverId === driver.id) {
+          return { ...stat, assignedCount: stat.assignedCount + targetIds.length, totalLoadingCube: stat.totalLoadingCube + newCubeTotal };
+        }
+        const delta = prevDriverDeltas.get(stat.driverId);
+        if (delta) {
+          return { ...stat, assignedCount: Math.max(0, stat.assignedCount - delta.count), totalLoadingCube: Math.max(0, stat.totalLoadingCube - delta.cube) };
+        }
+        return stat;
+      }),
+    );
+    setCheckedIds(new Set());
+    setBatchDriverId("");
 
     setDispatching(true);
     try {
@@ -325,9 +390,7 @@ export default function AdminDispatchPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          bookingIds: Array.from(checkedIds).filter((id) =>
-            filteredBookings.some((b) => b.id === id),
-          ),
+          bookingIds: targetIds,
           driverId: driver.id,
           driverName: driver.name,
         }),
@@ -337,23 +400,41 @@ export default function AdminDispatchPage() {
         if (data.partialFailure) {
           alert(`${data.updated?.length || 0}건 성공, ${data.failed?.length || 0}건 실패`);
         }
-        await fetchData();
-        setBatchDriverId("");
+        fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));
         alert(data.error || "배차 실패");
+        fetchData(); // 롤백
       }
     } catch {
       alert("네트워크 오류");
+      fetchData();
     } finally {
       setDispatching(false);
     }
   }
 
-  // 배차 해제
+  // 배차 해제 (옵티미스틱 업데이트)
   async function handleUnassign(bookingId: string) {
     if (!token || dispatching) return;
     if (!confirm("배차를 해제하시겠습니까?")) return;
+
+    // 옵티미스틱: 로컬 상태 즉시 반영
+    const target = bookings.find((b) => b.id === bookingId);
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId ? { ...b, driverId: null, driverName: null } : b,
+      ),
+    );
+    if (target?.driverId) {
+      setDriverStats((prev) =>
+        prev.map((stat) =>
+          stat.driverId === target.driverId
+            ? { ...stat, assignedCount: Math.max(0, stat.assignedCount - 1), totalLoadingCube: Math.max(0, stat.totalLoadingCube - (target.totalLoadingCube || 0)) }
+            : stat,
+        ),
+      );
+    }
 
     setDispatching(true);
     try {
@@ -366,13 +447,15 @@ export default function AdminDispatchPage() {
         body: JSON.stringify({ driverId: null, driverName: null }),
       });
       if (res.ok) {
-        await fetchData();
+        fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));
         alert(data.error || "배차 해제 실패");
+        fetchData(); // 롤백
       }
     } catch {
       alert("네트워크 오류");
+      fetchData();
     } finally {
       setDispatching(false);
     }
@@ -395,18 +478,16 @@ export default function AdminDispatchPage() {
       {/* ── 헤더 ── */}
       <div className="sticky top-0 z-20 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[100rem] mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push("/admin/calendar")}
-                className="text-text-sub hover:text-text-primary transition-colors"
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <h1 className="text-lg font-bold">배차 관리</h1>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => router.push("/admin/calendar")}
+              className="text-text-sub hover:text-text-primary transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <h1 className="text-lg font-bold">배차 관리</h1>
 
             {/* 날짜 선택 */}
             <div className="flex items-center gap-2">
@@ -483,7 +564,7 @@ export default function AdminDispatchPage() {
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-text-muted">데이터를 불러오지 못했습니다</p>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData()}
             className="px-4 py-2 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary-bg transition-colors"
           >
             다시 시도
@@ -586,70 +667,6 @@ export default function AdminDispatchPage() {
                 )}
               </div>
 
-              {/* 기사 적재 현황 */}
-              <div className="border-t border-border-light bg-bg px-4 py-3">
-                <h3 className="text-xs font-semibold text-text-sub mb-2">기사별 적재 현황</h3>
-                <div className="space-y-2">
-                  {driverStats.map((stat) => {
-                    const pct = getLoadingPercent(stat.totalLoadingCube, stat.vehicleCapacity);
-                    const isOver = stat.totalLoadingCube > stat.vehicleCapacity;
-                    const color = driverColorMap.get(stat.driverId) || "#10B981";
-                    return (
-                      <button
-                        key={stat.driverId}
-                        onClick={() => {
-                          setFilterDriverId(
-                            filterDriverId === stat.driverId ? "all" : stat.driverId,
-                          );
-                        }}
-                        className={`w-full p-2.5 rounded-lg border transition-all text-left ${
-                          filterDriverId === stat.driverId
-                            ? "border-primary bg-primary-bg"
-                            : "border-border-light hover:border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ background: color }}
-                          />
-                          <span className="text-sm font-semibold">{stat.driverName}</span>
-                          <span className="text-[10px] text-text-muted">{stat.vehicleType}</span>
-                          {stat.licensePlate && (
-                            <span className="text-[10px] text-text-muted">{stat.licensePlate}</span>
-                          )}
-                          <span className="ml-auto text-xs text-text-muted">{stat.assignedCount}건</span>
-                        </div>
-                        <div
-                          className="h-2 bg-fill-tint rounded-full overflow-hidden mb-1"
-                          role="progressbar"
-                          aria-valuenow={Math.round(stat.totalLoadingCube * 10) / 10}
-                          aria-valuemin={0}
-                          aria-valuemax={stat.vehicleCapacity}
-                        >
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(100, pct)}%`,
-                              background: isOver ? "#EF4444" : pct > 80 ? "#F97316" : color,
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className={isOver ? "text-semantic-red font-semibold" : "text-text-muted"}>
-                            {stat.totalLoadingCube.toFixed(1)}/{stat.vehicleCapacity}m&sup3;
-                          </span>
-                          {isOver && <span className="text-semantic-red font-medium">적재 초과</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {driverStats.length === 0 && (
-                    <div className="text-xs text-text-muted py-2">활성 기사가 없습니다</div>
-                  )}
-                </div>
-              </div>
-
               {/* 일괄 배차 바 */}
               {checkedIds.size > 0 && (
                 <div className="border-t border-border-light bg-bg px-4 py-3">
@@ -700,6 +717,79 @@ export default function AdminDispatchPage() {
                 <div>전체 {activeBookings.length}건</div>
                 <div style={{ color: UNASSIGNED_COLOR }}>미배차 {unassignedCount}건</div>
               </div>
+
+              {/* 기사 적재 현황 오버레이 — 우측 상단 */}
+              {driverStats.length > 0 && (
+                <div className="hidden lg:block absolute top-4 right-4 z-10">
+                  {driverPanelOpen ? (
+                    <div className="w-[220px] bg-bg/95 backdrop-blur-sm rounded-lg border border-border-light shadow-md overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border-light">
+                        <span className="text-xs font-semibold text-text-sub">기사 적재 현황</span>
+                        <button
+                          onClick={() => setDriverPanelOpen(false)}
+                          className="p-0.5 text-text-muted hover:text-text-primary"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M3 3L11 11M11 3L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="p-2 space-y-1.5 max-h-[300px] overflow-y-auto">
+                        {driverStats.map((stat) => {
+                          const pct = getLoadingPercent(stat.totalLoadingCube, stat.vehicleCapacity);
+                          const isOver = stat.totalLoadingCube > stat.vehicleCapacity;
+                          const color = driverColorMap.get(stat.driverId) || "#10B981";
+                          return (
+                            <button
+                              key={stat.driverId}
+                              onClick={() => setFilterDriverId(filterDriverId === stat.driverId ? "all" : stat.driverId)}
+                              className={`w-full p-2 rounded-md border transition-all text-left ${
+                                filterDriverId === stat.driverId
+                                  ? "border-primary bg-primary-bg"
+                                  : "border-transparent hover:bg-fill-tint"
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                                <span className="text-xs font-semibold truncate">{stat.driverName}</span>
+                                <span className="text-[10px] text-text-muted">{stat.vehicleType}</span>
+                                <span className="ml-auto text-[10px] text-text-muted">{stat.assignedCount}건</span>
+                              </div>
+                              <div className="h-1.5 bg-fill-tint rounded-full overflow-hidden mb-0.5">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${Math.min(100, pct)}%`,
+                                    background: isOver ? "#EF4444" : pct > 80 ? "#F97316" : color,
+                                  }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className={isOver ? "text-semantic-red font-semibold" : "text-text-muted"}>
+                                  {stat.totalLoadingCube.toFixed(1)}/{stat.vehicleCapacity}m&sup3;
+                                </span>
+                                {isOver && <span className="text-semantic-red font-medium">초과</span>}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDriverPanelOpen(true)}
+                      className="bg-bg/95 backdrop-blur-sm rounded-lg border border-border-light shadow-md px-3 py-2 text-xs font-semibold text-text-sub hover:bg-fill-tint transition-colors flex items-center gap-1"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="2" y="3" width="10" height="1.5" rx="0.75" fill="currentColor"/>
+                        <rect x="2" y="6.25" width="7" height="1.5" rx="0.75" fill="currentColor"/>
+                        <rect x="2" y="9.5" width="4" height="1.5" rx="0.75" fill="currentColor"/>
+                      </svg>
+                      기사 현황
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* 지도 위 선택된 주문 오버레이 — 데스크톱 */}
               {selectedBooking && (
@@ -855,8 +945,12 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
           <button
             onClick={(e) => { e.stopPropagation(); onUnassign(); }}
             disabled={dispatching}
-            className="text-[10px] text-semantic-red px-2 py-1 rounded hover:bg-semantic-red-tint transition-colors flex-shrink-0 mt-1"
+            className="flex items-center gap-0.5 text-[11px] font-medium text-semantic-red bg-semantic-red-tint px-2 py-1 rounded-md hover:bg-semantic-red/10 transition-colors flex-shrink-0 mt-0.5"
+            title="배차 해제"
           >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="flex-shrink-0">
+              <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
             해제
           </button>
         )}

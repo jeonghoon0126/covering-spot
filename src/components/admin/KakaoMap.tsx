@@ -83,6 +83,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   }, []);
 
   const initializeMap = useCallback(() => {
+    if (mapRef.current) return; // 이중 초기화 방지
     if (!mapContainerRef.current || !window.kakao?.maps) return;
     try {
       const { kakao } = window;
@@ -258,14 +259,14 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
 
   // SDK 재방문 대응 + 타임아웃
   useEffect(() => {
-    if (window.kakao?.maps) {
+    if (!mapRef.current && window.kakao?.maps) {
       window.kakao.maps.load(() => {
         setSdkLoaded(true);
         initializeMap();
       });
     }
     const timeout = setTimeout(() => {
-      if (!isMapReady) {
+      if (!mapRef.current) {
         const host = typeof window !== "undefined" ? window.location.hostname : "";
         setMapError(
           `지도 로드 시간 초과. Kakao 개발자 콘솔에서 "${host}" 도메인을 등록해주세요.`
@@ -273,7 +274,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       }
     }, 10000);
     return () => clearTimeout(timeout);
-  }, [initializeMap, isMapReady]);
+  }, [initializeMap]);
 
   const handleScriptLoad = useCallback(() => {
     if (window.kakao?.maps) {

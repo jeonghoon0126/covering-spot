@@ -6,28 +6,21 @@ GitHub: jeonghoon0126/covering-spot (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동 배포
 
-### 최근 작업 (2026-02-20)
+### 최근 작업 (2026-02-21)
 
-**배차 페이지 크리티컬 버그 수정 (55b1e84)**
-- 마커/카드 클릭 시 client-side exception 수정 (useCallback 안정화)
-- 배차 해제 실패 수정 (Zod driverId/driverName nullable 허용)
-- CSS injection 방어 (sanitizeColor + 개별 style 속성)
-- renderMarkers 최적화 (selectedIdRef 패턴, 선택 시 전체 재생성 방지)
-- fetchData race condition 방지 (AbortController)
-- 시간대 버그 수정 (formatDateShort, moveDate 순수 날짜 연산)
-- 배차 중복 클릭 방지 (dispatching 가드 전체 적용)
-- 지도 마커에 고객명 라벨 표시 + 줌 반응형
-- 모바일 탭 전환 시 바텀시트 닫기
+**배차 페이지 2차 수정 — 버그 + UX 개선**
+- 지도 마커 안 보이는 버그 수정 (KakaoMap initializeMap 이중 초기화 방지)
+- 옵티미스틱 배차 업데이트 (배차/일괄배차/해제 시 스피너 없이 즉시 반영)
+  - fetchData({ silent: true }) 패턴: 로딩 없이 백그라운드 동기화
+  - 재배차 시 기존 기사 stats 차감 로직 포함
+  - API 실패 시 fetchData() 전체 새로고침으로 롤백
+- 기사 적재 현황: 좌측 패널 하단 → 지도 우측 상단 접이식 오버레이로 이동
+- 배차 해제 버튼: X 아이콘 + 빨간 배경(bg-semantic-red-tint)으로 직관성 개선
+- 헤더: justify-between → gap-3 flex-wrap (왼쪽 정렬)
 
-**배차 UI/UX 전면 개선 (44c1a4e)**
-- 좌우 분할 레이아웃: 왼쪽 주문리스트(400px) + 오른쪽 지도
-- 기사별 고유 색상 마커 (10색 팔레트, 미배차=파란)
-- 시간대별 주문 그룹핑 (10~12시, 12~14시, 14~16시, 15~17시)
-- 체크박스 다중 선택 + 일괄 배차 (기존 API 활용)
-- 주문 카드 클릭 → 지도 panTo 연동 (KakaoMap forwardRef)
-- KakaoMap: HEX 색상 직접 전달, panTo useImperativeHandle
-- 모바일: 지도/목록 탭 전환 + 바텀시트 상세
-- 기사 적재 현황: 왼쪽 패널 하단 세로 카드 (색상 도트 포함)
+**이전 작업 (2026-02-20)**
+- 배차 페이지 크리티컬 버그 수정 (55b1e84): client-side exception, Zod nullable, CSS injection 방어, renderMarkers 최적화, AbortController, 시간대 버그, 중복 클릭 방지, 마커 라벨, 모바일 바텀시트
+- 배차 UI/UX 전면 개선 (44c1a4e): 좌우 분할, 기사별 색상 마커, 시간대 그룹핑, 일괄 배차, panTo, 모바일 탭
 
 **테스트 데이터**
 - 기사 3명: 유대현(1톤), 김민수(1.4톤), 박정호(2.5톤)
@@ -71,4 +64,5 @@ src/lib/geocode.ts               → 카카오 지오코딩
 ### TODO
 1. DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com
 2. Rate Limiting 적용 (최소 인증 엔드포인트)
-3. 배차 드래그앤드롭 또는 경로 최적화 (향후)
+3. 하차지(언로딩 포인트): 기사 루트 중간에 하차지 추가, 적재량 비움 후 재수거 (다음 스프린트)
+4. 배차 드래그앤드롭 또는 경로 최적화 (향후)
