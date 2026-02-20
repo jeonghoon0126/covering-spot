@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 
 declare global {
   interface Window {
@@ -23,7 +23,11 @@ export interface MapMarker {
   lat: number;
   lng: number;
   label?: string;
-  color: "blue" | "green" | "yellow" | "red";
+  color: string; // HEX color 직접 지원 (예: "#3B82F6")
+}
+
+export interface KakaoMapHandle {
+  panTo: (lat: number, lng: number) => void;
 }
 
 interface KakaoMapProps {
@@ -33,19 +37,10 @@ interface KakaoMapProps {
   className?: string;
 }
 
-const COLOR_MAP = {
-  blue: "#3B82F6",
-  green: "#10B981",
-  yellow: "#F59E0B",
-  red: "#EF4444",
-};
-
-export default function KakaoMap({
-  markers,
-  selectedMarkerId,
-  onMarkerClick,
-  className = "",
-}: KakaoMapProps) {
+const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
+  { markers, selectedMarkerId, onMarkerClick, className = "" },
+  ref,
+) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<unknown>(null);
   const overlaysRef = useRef<unknown[]>([]);
@@ -54,6 +49,15 @@ export default function KakaoMap({
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+
+  // panTo 외부 호출용
+  useImperativeHandle(ref, () => ({
+    panTo: (lat: number, lng: number) => {
+      if (!mapRef.current || !window.kakao?.maps) return;
+      const pos = new window.kakao.maps.LatLng(lat, lng);
+      (mapRef.current as any).panTo(pos);
+    },
+  }), []);
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.kakao?.maps) return;
@@ -105,7 +109,7 @@ export default function KakaoMap({
     markers.forEach((marker) => {
       const position = new kakao.maps.LatLng(marker.lat, marker.lng);
       const isSelected = marker.id === selectedMarkerId;
-      const color = COLOR_MAP[marker.color];
+      const color = marker.color;
       const size = isSelected ? 28 : 22;
 
       const el = document.createElement("div");
@@ -165,12 +169,12 @@ export default function KakaoMap({
     // 이전 선택 해제
     if (prev) {
       const m = markers.find((mk) => mk.id === prev);
-      if (m) updateMarkerStyle(prev, false, COLOR_MAP[m.color]);
+      if (m) updateMarkerStyle(prev, false, m.color);
     }
     // 새 선택 하이라이트
     if (selectedMarkerId) {
       const m = markers.find((mk) => mk.id === selectedMarkerId);
-      if (m) updateMarkerStyle(selectedMarkerId, true, COLOR_MAP[m.color]);
+      if (m) updateMarkerStyle(selectedMarkerId, true, m.color);
     }
     prevSelectedRef.current = selectedMarkerId ?? null;
   }, [selectedMarkerId, isMapReady, markers, updateMarkerStyle]);
@@ -254,4 +258,6 @@ export default function KakaoMap({
       </div>
     </>
   );
-}
+});
+
+export default KakaoMap;
