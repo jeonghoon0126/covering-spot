@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef, forwardRef } from "r
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import KakaoMap from "@/components/admin/KakaoMap";
-import type { KakaoMapHandle, MapMarker } from "@/components/admin/KakaoMap";
-import type { Booking, BookingItem } from "@/types/booking";
+import type { KakaoMapHandle, MapMarker, UnloadingMarker, RouteLine } from "@/components/admin/KakaoMap";
+import type { Booking, BookingItem, UnloadingPoint } from "@/types/booking";
+import type { AutoDispatchResult, DriverPlan } from "@/lib/optimizer/types";
 
 /* ── 타입 ── */
 
@@ -107,6 +108,15 @@ export default function AdminDispatchPage() {
   const [dispatching, setDispatching] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
+  // 하차지
+  const [unloadingPoints, setUnloadingPoints] = useState<UnloadingPoint[]>([]);
+  const [showUnloadingModal, setShowUnloadingModal] = useState(false);
+
+  // 자동배차
+  const [autoMode, setAutoMode] = useState<"idle" | "loading" | "preview">("idle");
+  const [autoResult, setAutoResult] = useState<AutoDispatchResult | null>(null);
+  const [autoApplying, setAutoApplying] = useState(false);
+
   // 모바일 탭 (지도 / 목록)
   const [mobileTab, setMobileTab] = useState<"map" | "list">("list");
   // 모바일 상세 바텀시트
@@ -187,6 +197,89 @@ export default function AdminDispatchPage() {
     return () => abortRef.current?.abort();
   }, [fetchData]);
 
+  // 하차지 조회
+  const fetchUnloadingPoints = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUnloadingPoints(data.points || []);
+      }
+    } catch {}
+  }, [token]);
+
+  useEffect(() => {
+    fetchUnloadingPoints();
+  }, [fetchUnloadingPoints]);
+
+  // 자동배차 실행 (미리보기)
+  const handleAutoDispatch = useCallback(async () => {
+    if (!token || autoMode === "loading") return;
+    setAutoMode("loading");
+    try {
+      const res = await fetch("/api/admin/dispatch-auto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ date: selectedDate }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || data.message || "자동배차 실패");
+        setAutoMode("idle");
+        return;
+      }
+      const result = await res.json() as AutoDispatchResult & { message?: string };
+      if (result.plan.length === 0 && result.stats.totalBookings === 0) {
+        alert(result.message || "미배차 주문이 없습니다");
+        setAutoMode("idle");
+        return;
+      }
+      setAutoResult(result);
+      setAutoMode("preview");
+    } catch {
+      alert("네트워크 오류");
+      setAutoMode("idle");
+    }
+  }, [token, selectedDate, autoMode]);
+
+  // 자동배차 적용
+  const handleAutoApply = useCallback(async () => {
+    if (!token || !autoResult || autoApplying) return;
+    setAutoApplying(true);
+    try {
+      const res = await fetch("/api/admin/dispatch-auto", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: autoResult.plan }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.partialFailure) {
+          alert(`${data.updated?.length || 0}건 성공, ${data.failed?.length || 0}건 실패`);
+        }
+        setAutoMode("idle");
+        setAutoResult(null);
+        fetchData({ silent: true });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "적용 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setAutoApplying(false);
+    }
+  }, [token, autoResult, autoApplying, fetchData]);
+
+  // 자동배차 취소
+  const handleAutoCancel = useCallback(() => {
+    setAutoMode("idle");
+    setAutoResult(null);
+  }, []);
+
   // 활성 예약 (취소/거부 제외)
   const activeBookings = useMemo(() => {
     return bookings.filter((b) => b.status !== "cancelled" && b.status !== "rejected");
@@ -241,6 +334,57 @@ export default function AdminDispatchPage() {
   const unassignedCount = useMemo(() => {
     return activeBookings.filter((b) => !b.driverId).length;
   }, [activeBookings]);
+
+  // 자동배차 미리보기용 마커 (배차 계획의 기사 색상 적용)
+  const previewMapMarkers: MapMarker[] = useMemo(() => {
+    if (autoMode !== "preview" || !autoResult) return [];
+    const result: MapMarker[] = [];
+    autoResult.plan.forEach((dp) => {
+      const color = driverColorMap.get(dp.driverId) || "#10B981";
+      dp.bookings.forEach((b) => {
+        const booking = bookings.find((bk) => bk.id === b.id);
+        if (booking?.latitude && booking?.longitude) {
+          result.push({
+            id: b.id,
+            lat: booking.latitude,
+            lng: booking.longitude,
+            label: String(b.routeOrder),
+            subtitle: b.customerName,
+            color,
+          });
+        }
+      });
+    });
+    return result;
+  }, [autoMode, autoResult, bookings, driverColorMap]);
+
+  // 하차지 마커 (자동배차 미리보기 시에만 표시)
+  const unloadingMapMarkers: UnloadingMarker[] = useMemo(() => {
+    if (autoMode !== "preview" || !autoResult) return [];
+    const pointIds = new Set<string>();
+    autoResult.plan.forEach((dp) => {
+      dp.unloadingStops.forEach((s) => pointIds.add(s.pointId));
+    });
+    return unloadingPoints
+      .filter((p) => pointIds.has(p.id))
+      .map((p) => ({ id: p.id, lat: p.latitude, lng: p.longitude, name: p.name }));
+  }, [autoMode, autoResult, unloadingPoints]);
+
+  // 경로 폴리라인 (자동배차 미리보기 시)
+  const mapRouteLines: RouteLine[] = useMemo(() => {
+    if (autoMode !== "preview" || !autoResult) return [];
+    return autoResult.plan.map((dp) => {
+      const color = driverColorMap.get(dp.driverId) || "#10B981";
+      const points: { lat: number; lng: number }[] = [];
+      dp.bookings.forEach((b) => {
+        const booking = bookings.find((bk) => bk.id === b.id);
+        if (booking?.latitude && booking?.longitude) {
+          points.push({ lat: booking.latitude, lng: booking.longitude });
+        }
+      });
+      return { driverId: dp.driverId, color, points };
+    });
+  }, [autoMode, autoResult, bookings, driverColorMap]);
 
   // 선택된 예약
   const selectedBooking = useMemo(() => {
@@ -602,8 +746,8 @@ export default function AdminDispatchPage() {
             <div className={`lg:w-[400px] lg:flex-shrink-0 lg:border-r border-border-light bg-bg flex flex-col overflow-hidden ${
               mobileTab === "list" ? "flex" : "hidden lg:flex"
             }`}>
-              {/* 요약 + 전체선택 */}
-              <div className="px-4 py-3 border-b border-border-light bg-bg-warm">
+              {/* 요약 + 버튼 */}
+              <div className="px-4 py-3 border-b border-border-light bg-bg-warm space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-sm">
                     <span className="font-semibold">{formatDateShort(selectedDate)}</span>
@@ -614,7 +758,7 @@ export default function AdminDispatchPage() {
                       </span>
                     )}
                   </div>
-                  {unassignedCount > 0 && (
+                  {autoMode === "idle" && unassignedCount > 0 && (
                     <button
                       onClick={toggleAllUnassigned}
                       className="text-xs text-primary font-medium hover:underline"
@@ -626,11 +770,51 @@ export default function AdminDispatchPage() {
                     </button>
                   )}
                 </div>
+                {/* 자동배차 + 하차지 관리 버튼 */}
+                {autoMode === "idle" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAutoDispatch}
+                      disabled={unassignedCount === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M7 1.75V12.25M1.75 7H12.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                      자동배차
+                    </button>
+                    <button
+                      onClick={() => setShowUnloadingModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-text-sub hover:bg-fill-tint transition-colors"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M7 3.5V10.5M7 3.5L5.25 5.25M7 3.5L8.75 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="2.5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                      </svg>
+                      하차지 관리
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* 주문 목록 (시간대별) */}
+              {/* 주문 목록 또는 자동배차 미리보기 */}
               <div className="flex-1 overflow-y-auto">
-                {filteredBookings.length === 0 ? (
+                {autoMode === "loading" ? (
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 gap-3">
+                    <LoadingSpinner size="md" />
+                    <span className="text-sm text-text-muted">자동배차 계산 중...</span>
+                  </div>
+                ) : autoMode === "preview" && autoResult ? (
+                  <AutoDispatchPreview
+                    result={autoResult}
+                    bookings={bookings}
+                    driverColorMap={driverColorMap}
+                    unloadingPoints={unloadingPoints}
+                    applying={autoApplying}
+                    onApply={handleAutoApply}
+                    onCancel={handleAutoCancel}
+                  />
+                ) : filteredBookings.length === 0 ? (
                   <div className="p-8 text-center text-sm text-text-muted">
                     해당 날짜에 주문이 없습니다
                   </div>
@@ -705,7 +889,9 @@ export default function AdminDispatchPage() {
             }`}>
               <KakaoMap
                 ref={mapRef}
-                markers={mapMarkers}
+                markers={autoMode === "preview" ? previewMapMarkers : mapMarkers}
+                unloadingMarkers={unloadingMapMarkers}
+                routeLines={mapRouteLines}
                 selectedMarkerId={selectedBookingId}
                 onMarkerClick={handleMarkerClick}
                 className="w-full h-full min-h-[400px]"
@@ -809,6 +995,16 @@ export default function AdminDispatchPage() {
             </div>
           </div>
 
+          {/* ── 하차지 관리 모달 ── */}
+          {showUnloadingModal && (
+            <UnloadingModal
+              token={token}
+              points={unloadingPoints}
+              onClose={() => setShowUnloadingModal(false)}
+              onRefresh={fetchUnloadingPoints}
+            />
+          )}
+
           {/* ── 모바일 바텀시트 ── */}
           {mobileDetail && selectedBooking && (
             <div
@@ -897,7 +1093,8 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
             </span>
             <span className="text-sm font-semibold truncate">{booking.customerName}</span>
             {booking.driverId && booking.driverName && (
-              <span className="text-[10px] text-text-muted ml-auto flex-shrink-0">
+              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded ml-auto flex-shrink-0"
+                style={{ background: `${driverColor || "#10B981"}18`, color: driverColor || "#10B981" }}>
                 {booking.driverName}
               </span>
             )}
@@ -1101,6 +1298,361 @@ function OverlayCard({
             현재: {booking.driverName}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── 자동배차 미리보기 ── */
+
+function AutoDispatchPreview({
+  result,
+  bookings,
+  driverColorMap,
+  unloadingPoints,
+  applying,
+  onApply,
+  onCancel,
+}: {
+  result: AutoDispatchResult;
+  bookings: Booking[];
+  driverColorMap: Map<string, string>;
+  unloadingPoints: UnloadingPoint[];
+  applying: boolean;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* 상단 요약 */}
+      <div className="px-4 py-3 bg-primary-bg border-b border-primary/20">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm font-bold text-primary">자동배차 제안</span>
+          <span className="text-xs text-text-muted">
+            {result.stats.assigned}건 배차 / 총 거리 {result.stats.totalDistance}km
+          </span>
+        </div>
+        {result.unassigned.length > 0 && (
+          <div className="text-xs text-semantic-orange">
+            미배차 {result.unassigned.length}건 (용량 부족/좌표 없음)
+          </div>
+        )}
+      </div>
+
+      {/* 기사별 플랜 목록 */}
+      <div className="flex-1 overflow-y-auto">
+        {result.plan.map((dp) => {
+          const color = driverColorMap.get(dp.driverId) || "#10B981";
+          return (
+            <div key={dp.driverId} className="border-b border-border-light">
+              <div className="px-4 py-2 bg-bg-warm flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <span className="text-xs font-bold">{dp.driverName}</span>
+                <span className="text-[10px] text-text-muted">{dp.vehicleType}</span>
+                <span className="ml-auto text-[10px] text-text-muted">
+                  {dp.bookings.length}건 · {dp.totalLoad.toFixed(1)}/{dp.vehicleCapacity}m³ · {dp.totalDistance.toFixed(1)}km
+                </span>
+              </div>
+              <div className="px-4 py-1.5">
+                {dp.bookings.map((b, idx) => {
+                  // 하차지 삽입 위치 확인
+                  const stopAfterThis = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
+                  const booking = bookings.find((bk) => bk.id === b.id);
+                  return (
+                    <div key={b.id}>
+                      <div className="flex items-center gap-2 py-1">
+                        <span
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                          style={{ background: color }}
+                        >
+                          {b.routeOrder}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium truncate">{b.customerName}</div>
+                          <div className="text-[10px] text-text-muted truncate">{b.address}</div>
+                        </div>
+                        <span className="text-[10px] font-semibold text-primary flex-shrink-0">
+                          {b.loadCube.toFixed(1)}m³
+                        </span>
+                      </div>
+                      {/* 하차지 삽입 표시 */}
+                      {stopAfterThis && (
+                        <div className="flex items-center gap-2 py-1.5 pl-2">
+                          <div className="flex-1 border-t border-dashed border-purple-300" />
+                          <span className="text-[10px] font-bold text-purple-600 whitespace-nowrap px-1">
+                            ◆ {stopAfterThis.pointName}
+                          </span>
+                          <div className="flex-1 border-t border-dashed border-purple-300" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 레그별 적재 현황 바 */}
+              {dp.legs > 1 && (
+                <div className="px-4 pb-2">
+                  <LegLoadBars driverPlan={dp} color={color} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* 미배차 */}
+        {result.unassigned.length > 0 && (
+          <div className="border-b border-border-light">
+            <div className="px-4 py-2 bg-semantic-orange-tint/50">
+              <span className="text-xs font-bold text-semantic-orange">미배차 {result.unassigned.length}건</span>
+            </div>
+            <div className="px-4 py-1.5 space-y-1">
+              {result.unassigned.map((u) => {
+                const booking = bookings.find((b) => b.id === u.id);
+                return (
+                  <div key={u.id} className="flex items-center gap-2 text-xs py-0.5">
+                    <span className="text-text-sub truncate flex-1">
+                      {booking?.customerName || u.id} · {booking?.address || ""}
+                    </span>
+                    <span className="text-text-muted flex-shrink-0">{u.reason}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 하단 액션 바 */}
+      <div className="border-t border-border-light px-4 py-3 flex items-center gap-2 bg-bg">
+        <button
+          onClick={onCancel}
+          disabled={applying}
+          className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-border text-text-sub hover:bg-fill-tint transition-colors disabled:opacity-40"
+        >
+          취소
+        </button>
+        <button
+          onClick={onApply}
+          disabled={applying || result.plan.length === 0}
+          className="flex-1 px-4 py-2 rounded-lg text-sm font-bold bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-40"
+        >
+          {applying ? "적용 중..." : `${result.stats.assigned}건 배차 적용`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── 레그별 적재량 바 ── */
+
+function LegLoadBars({ driverPlan, color }: { driverPlan: DriverPlan; color: string }) {
+  // 하차지를 기준으로 레그 분할
+  const legs: { bookings: typeof driverPlan.bookings; load: number }[] = [];
+  let currentLeg: typeof driverPlan.bookings = [];
+  let currentLoad = 0;
+  const stopOrders = new Set(driverPlan.unloadingStops.map((s) => s.afterRouteOrder));
+
+  for (const b of driverPlan.bookings) {
+    currentLeg.push(b);
+    currentLoad += b.loadCube;
+    if (stopOrders.has(b.routeOrder)) {
+      legs.push({ bookings: currentLeg, load: currentLoad });
+      currentLeg = [];
+      currentLoad = 0;
+    }
+  }
+  if (currentLeg.length > 0) {
+    legs.push({ bookings: currentLeg, load: currentLoad });
+  }
+
+  const cap = driverPlan.vehicleCapacity;
+
+  return (
+    <div className="space-y-1">
+      {legs.map((leg, i) => {
+        const pct = cap > 0 ? Math.min(100, Math.round((leg.load / cap) * 100)) : 0;
+        const isOver = leg.load > cap;
+        return (
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-[10px] text-text-muted w-8">{i + 1}차</span>
+            <div className="flex-1 h-1.5 bg-fill-tint rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${Math.min(100, pct)}%`, background: isOver ? "#EF4444" : color }}
+              />
+            </div>
+            <span className={`text-[10px] ${isOver ? "text-semantic-red font-semibold" : "text-text-muted"}`}>
+              {leg.load.toFixed(1)}/{cap}m³
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── 하차지 관리 모달 ── */
+
+function UnloadingModal({
+  token,
+  points,
+  onClose,
+  onRefresh,
+}: {
+  token: string;
+  points: UnloadingPoint[];
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const [newName, setNewName] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleCreate() {
+    if (!newName.trim() || !newAddress.trim() || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newName.trim(), address: newAddress.trim() }),
+      });
+      if (res.ok) {
+        setNewName("");
+        setNewAddress("");
+        onRefresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "생성 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("하차지를 삭제하시겠습니까?")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        onRefresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "삭제 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleToggleActive(point: UnloadingPoint) {
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: point.id, active: !point.active }),
+      });
+      if (res.ok) onRefresh();
+    } catch {}
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40"
+      role="dialog"
+      aria-modal="true"
+      aria-label="하차지 관리"
+    >
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] max-h-[80vh] bg-bg rounded-xl shadow-xl overflow-hidden flex flex-col">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
+          <h2 className="text-base font-bold">하차지 관리</h2>
+          <button onClick={onClose} className="p-1 text-text-muted hover:text-text-primary">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* 목록 */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {points.length === 0 ? (
+            <div className="text-center text-sm text-text-muted py-8">
+              등록된 하차지가 없습니다
+            </div>
+          ) : (
+            points.map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                  p.active ? "border-border-light bg-bg" : "border-border-light bg-bg-warm opacity-60"
+                }`}
+              >
+                <span className="mt-0.5 w-5 h-5 flex items-center justify-center text-purple-600 flex-shrink-0">◆</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">{p.name}</div>
+                  <div className="text-xs text-text-muted truncate">{p.address}</div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleToggleActive(p)}
+                    className={`text-[10px] px-2 py-0.5 rounded ${
+                      p.active ? "bg-semantic-green-tint text-semantic-green" : "bg-fill-tint text-text-muted"
+                    }`}
+                  >
+                    {p.active ? "활성" : "비활성"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    disabled={deletingId === p.id}
+                    className="text-xs text-semantic-red hover:bg-semantic-red-tint px-1.5 py-0.5 rounded transition-colors"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* 추가 폼 */}
+        <div className="border-t border-border-light px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="하차지 이름"
+              className="w-24 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg"
+            />
+            <input
+              type="text"
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              placeholder="주소 (도로명)"
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+              className="flex-1 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={creating || !newName.trim() || !newAddress.trim()}
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-primary text-white disabled:opacity-40 hover:bg-primary-dark transition-colors"
+            >
+              {creating ? "..." : "추가"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

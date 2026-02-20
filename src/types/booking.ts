@@ -53,6 +53,18 @@ export interface Booking {
   totalLoadingCube?: number; // 주문 전체 적재큐브 합계 (m³)
   latitude?: number | null;  // 주소 좌표 (위도)
   longitude?: number | null; // 주소 좌표 (경도)
+  routeOrder?: number | null; // 기사 루트 내 순서 (1, 2, 3...)
+}
+
+export interface UnloadingPoint {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TimeSlot {

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Booking } from "@/types/booking";
+import type { Booking, UnloadingPoint } from "@/types/booking";
 
 export interface BlockedSlot {
   id?: string;
@@ -59,6 +59,7 @@ const FIELD_MAP: Record<string, string> = {
   totalLoadingCube: "total_loading_cube",
   latitude: "latitude",
   longitude: "longitude",
+  routeOrder: "route_order",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -101,6 +102,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     totalLoadingCube: (row.total_loading_cube as number) || 0,
     latitude: row.latitude != null ? (row.latitude as number) : null,
     longitude: row.longitude != null ? (row.longitude as number) : null,
+    routeOrder: row.route_order != null ? (row.route_order as number) : null,
   };
 }
 
@@ -142,6 +144,7 @@ function bookingToRow(b: Booking) {
     total_loading_cube: b.totalLoadingCube ?? 0,
     latitude: b.latitude ?? null,
     longitude: b.longitude ?? null,
+    route_order: b.routeOrder ?? null,
   };
 }
 
@@ -474,4 +477,72 @@ export async function deleteDriver(id: string): Promise<boolean> {
   // soft-delete: active = false
   const result = await updateDriver(id, { active: false });
   return result !== null;
+}
+
+/* ── 하차지 (Unloading Points) ── */
+
+function rowToUnloadingPoint(row: Record<string, unknown>): UnloadingPoint {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    address: row.address as string,
+    latitude: row.latitude as number,
+    longitude: row.longitude as number,
+    active: (row.active as boolean) ?? true,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+export async function getUnloadingPoints(activeOnly = true): Promise<UnloadingPoint[]> {
+  let query = supabase.from("unloading_points").select("*").order("name");
+  if (activeOnly) query = query.eq("active", true);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map(rowToUnloadingPoint);
+}
+
+export async function createUnloadingPoint(
+  name: string,
+  address: string,
+  latitude: number,
+  longitude: number,
+): Promise<UnloadingPoint> {
+  const { data, error } = await supabase
+    .from("unloading_points")
+    .insert({ name, address, latitude, longitude })
+    .select()
+    .single();
+  if (error) throw error;
+  return rowToUnloadingPoint(data);
+}
+
+export async function updateUnloadingPoint(
+  id: string,
+  updates: { name?: string; address?: string; latitude?: number; longitude?: number; active?: boolean },
+): Promise<UnloadingPoint | null> {
+  const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) row.name = updates.name;
+  if (updates.address !== undefined) row.address = updates.address;
+  if (updates.latitude !== undefined) row.latitude = updates.latitude;
+  if (updates.longitude !== undefined) row.longitude = updates.longitude;
+  if (updates.active !== undefined) row.active = updates.active;
+
+  const { data, error } = await supabase
+    .from("unloading_points")
+    .update(row)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return data ? rowToUnloadingPoint(data) : null;
+}
+
+export async function deleteUnloadingPoint(id: string): Promise<boolean> {
+  const { error } = await supabase.from("unloading_points").delete().eq("id", id);
+  if (error) throw error;
+  return true;
 }

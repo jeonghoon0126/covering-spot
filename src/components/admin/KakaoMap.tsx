@@ -12,6 +12,7 @@ declare global {
         Map: new (container: HTMLElement, options: unknown) => unknown;
         LatLngBounds: new () => unknown;
         CustomOverlay: new (options: unknown) => unknown;
+        Polyline: new (options: unknown) => unknown;
         event: { addListener: (target: unknown, type: string, handler: () => void) => void };
       };
     };
@@ -27,12 +28,27 @@ export interface MapMarker {
   color: string; // HEX color (예: "#3B82F6")
 }
 
+export interface UnloadingMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+}
+
+export interface RouteLine {
+  driverId: string;
+  color: string;
+  points: { lat: number; lng: number }[];
+}
+
 export interface KakaoMapHandle {
   panTo: (lat: number, lng: number) => void;
 }
 
 interface KakaoMapProps {
   markers: MapMarker[];
+  unloadingMarkers?: UnloadingMarker[];
+  routeLines?: RouteLine[];
   selectedMarkerId?: string | null;
   onMarkerClick?: (id: string) => void;
   className?: string;
@@ -44,12 +60,14 @@ function sanitizeColor(c: string): string {
 }
 
 const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
-  { markers, selectedMarkerId, onMarkerClick, className = "" },
+  { markers, unloadingMarkers, routeLines, selectedMarkerId, onMarkerClick, className = "" },
   ref,
 ) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<unknown>(null);
   const overlaysRef = useRef<unknown[]>([]);
+  const unloadingOverlaysRef = useRef<unknown[]>([]);
+  const polylinesRef = useRef<unknown[]>([]);
   const dotElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const labelElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const selectedIdRef = useRef<string | null>(null);
@@ -225,6 +243,92 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
     }
   }, [markers, onMarkerClick, updateDotStyle]); // selectedMarkerId 제거!
 
+  // 하차지 마커 렌더
+  const renderUnloadingMarkers = useCallback(() => {
+    if (!mapRef.current || !window.kakao?.maps) return;
+    const { kakao } = window;
+
+    unloadingOverlaysRef.current.forEach((o: any) => {
+      try { o.setMap(null); } catch {}
+    });
+    unloadingOverlaysRef.current = [];
+
+    if (!unloadingMarkers || unloadingMarkers.length === 0) return;
+
+    unloadingMarkers.forEach((point) => {
+      const position = new kakao.maps.LatLng(point.lat, point.lng);
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+
+      // ◆ 다이아몬드 마커
+      const diamond = document.createElement("div");
+      diamond.style.width = "22px";
+      diamond.style.height = "22px";
+      diamond.style.background = "#7C3AED";
+      diamond.style.border = "2.5px solid white";
+      diamond.style.borderRadius = "3px";
+      diamond.style.transform = "rotate(45deg)";
+      diamond.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+      diamond.style.flexShrink = "0";
+      container.appendChild(diamond);
+
+      // 라벨
+      const label = document.createElement("div");
+      label.style.fontSize = "9px";
+      label.style.fontWeight = "700";
+      label.style.color = "#7C3AED";
+      label.style.whiteSpace = "nowrap";
+      label.style.background = "rgba(255,255,255,0.93)";
+      label.style.padding = "1px 4px";
+      label.style.borderRadius = "3px";
+      label.style.marginTop = "4px";
+      label.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+      label.style.pointerEvents = "none";
+      label.textContent = point.name;
+      container.appendChild(label);
+
+      const overlay = new kakao.maps.CustomOverlay({
+        position,
+        content: container,
+        xAnchor: 0.5,
+        yAnchor: 0.5,
+      });
+      (overlay as any).setMap(mapRef.current);
+      unloadingOverlaysRef.current.push(overlay);
+    });
+  }, [unloadingMarkers]);
+
+  // 경로 폴리라인 렌더
+  const renderRouteLines = useCallback(() => {
+    if (!mapRef.current || !window.kakao?.maps) return;
+    const { kakao } = window;
+
+    polylinesRef.current.forEach((p: any) => {
+      try { p.setMap(null); } catch {}
+    });
+    polylinesRef.current = [];
+
+    if (!routeLines || routeLines.length === 0) return;
+
+    routeLines.forEach((line) => {
+      if (line.points.length < 2) return;
+      const path = line.points.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
+      const safe = sanitizeColor(line.color);
+
+      const polyline = new kakao.maps.Polyline({
+        path,
+        strokeWeight: 3,
+        strokeColor: safe,
+        strokeOpacity: 0.7,
+        strokeStyle: "solid",
+      });
+      (polyline as any).setMap(mapRef.current);
+      polylinesRef.current.push(polyline);
+    });
+  }, [routeLines]);
+
   // 선택 변경: dot 스타일만 업데이트 (전체 리빌드 없음)
   useEffect(() => {
     if (!isMapReady) return;
@@ -249,11 +353,21 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   }, [isMapReady, renderMarkers]);
 
   useEffect(() => {
+    if (isMapReady) renderUnloadingMarkers();
+  }, [isMapReady, renderUnloadingMarkers]);
+
+  useEffect(() => {
+    if (isMapReady) renderRouteLines();
+  }, [isMapReady, renderRouteLines]);
+
+  useEffect(() => {
     return () => {
-      overlaysRef.current.forEach((overlay: any) => {
-        try { overlay.setMap(null); } catch {}
-      });
+      overlaysRef.current.forEach((o: any) => { try { o.setMap(null); } catch {} });
       overlaysRef.current = [];
+      unloadingOverlaysRef.current.forEach((o: any) => { try { o.setMap(null); } catch {} });
+      unloadingOverlaysRef.current = [];
+      polylinesRef.current.forEach((p: any) => { try { p.setMap(null); } catch {} });
+      polylinesRef.current = [];
     };
   }, []);
 

@@ -1173,99 +1173,116 @@ function BookingPageContent() {
 
       {/* Step 5: 견적 확인 + 예약 확정 */}
       {step === 5 && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* 수거 신청 요약 */}
           <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
-            <h3 className="font-semibold mb-3">수거 신청내용을 확인해주세요</h3>
-            <div className="space-y-2 text-sm">
+            <h3 className="font-semibold text-base mb-5">수거 신청내용을 확인해주세요</h3>
+
+            {/* 고객 정보 */}
+            <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-sub">고객명</span>
+                <span className="text-text-sub shrink-0 w-20">고객명</span>
                 <span className="font-medium">{customerName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">연락처</span>
+                <span className="text-text-sub shrink-0 w-20">연락처</span>
                 <span className="font-medium">{phone}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub shrink-0">주소</span>
-                <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
+                <span className="text-text-sub shrink-0 w-20">주소</span>
+                <span className="font-medium text-right max-w-[65%] break-words [overflow-wrap:anywhere]">
                   {address} {addressDetail}
                 </span>
               </div>
+            </div>
+
+            {/* 수거 일정 */}
+            <div className="border-t border-border-light mt-4 pt-4 space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-sub">날짜</span>
+                <span className="text-text-sub shrink-0 w-20">날짜</span>
                 <span className="font-medium">{selectedDate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">시간대</span>
+                <span className="text-text-sub shrink-0 w-20">시간대</span>
                 <span className="font-medium">{TIME_LABELS[selectedTime] || selectedTime}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">지역</span>
+                <span className="text-text-sub shrink-0 w-20">지역</span>
                 <span className="font-medium">{selectedArea}</span>
               </div>
-              {/* 품목 상세 리스트 */}
-              <div className="border-t border-border-light pt-2 mt-1">
-                <span className="text-text-sub text-xs">품목 ({selectedItems.length}종)</span>
-                <div className="mt-1.5 space-y-1">
-                  {selectedItems.map((item, i) => (
-                    <div key={i} className="flex justify-between text-xs">
-                      <span className="text-text-primary truncate max-w-[65%]">
-                        {item.displayName || item.name} x{item.quantity}
+            </div>
+
+            {/* 품목 */}
+            <div className="border-t border-border-light mt-4 pt-4">
+              <span className="text-text-sub text-xs font-medium">품목 ({selectedItems.length}종)</span>
+              <div className="mt-2 space-y-2">
+                {selectedItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between bg-bg-warm/50 rounded-md px-3 py-2.5">
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-text-primary">
+                        {item.category} - {item.name}
                       </span>
-                      <span className="text-text-sub">
-                        {item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}
-                      </span>
+                      <span className="text-text-muted text-xs ml-1.5">x{item.quantity}</span>
                     </div>
-                  ))}
-                </div>
+                    <span className="text-sm font-semibold text-text-primary shrink-0 ml-3">
+                      {item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 작업 환경 */}
+            <div className="border-t border-border-light mt-4 pt-4 space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-text-sub shrink-0 w-20">엘리베이터</span>
+                <span className="font-medium">{hasElevator ? "사용 가능" : "사용 불가"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">엘리베이터</span>
-                <span className="font-medium">
-                  {hasElevator ? "사용 가능" : "사용 불가"}
-                </span>
+                <span className="text-text-sub shrink-0 w-20">주차</span>
+                <span className="font-medium">{hasParking ? "가능" : "불가능"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-sub">주차</span>
+                <span className="text-text-sub shrink-0 w-20">사다리차</span>
                 <span className="font-medium">
-                  {hasParking ? "가능" : "불가능"}
+                  {needLadder ? `필요 (${ladderType})` : "불필요"}
                 </span>
               </div>
               {photos.length > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-text-sub">첨부 사진</span>
+                  <span className="text-text-sub shrink-0 w-20">첨부 사진</span>
                   <span className="font-medium">{photos.length}장</span>
                 </div>
               )}
-              {/* 요청사항 */}
-              <div className="border-t border-border-light pt-2 mt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-text-sub">요청사항</span>
-                  <button
-                    type="button"
-                    onClick={() => setEditingMemo(!editingMemo)}
-                    className="text-xs text-primary font-medium hover:underline"
-                  >
-                    {editingMemo ? "완료" : "수정"}
-                  </button>
-                </div>
-                {editingMemo ? (
-                  <div className="mt-2">
-                    <TextArea
-                      value={memo}
-                      onChange={(e) => setMemo(e.target.value)}
-                      rows={3}
-                      maxLength={200}
-                      placeholder="요청사항을 입력하세요 (선택)"
-                    />
-                  </div>
-                ) : (
-                  <p className="text-sm text-text-primary mt-1 whitespace-pre-wrap break-words">
-                    {memo || "없음"}
-                  </p>
-                )}
+            </div>
+
+            {/* 요청사항 */}
+            <div className="border-t border-border-light mt-4 pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-text-sub text-sm">요청사항</span>
+                <button
+                  type="button"
+                  onClick={() => setEditingMemo(!editingMemo)}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  {editingMemo ? "완료" : "수정"}
+                </button>
               </div>
+              {editingMemo ? (
+                <div className="mt-2">
+                  <TextArea
+                    value={memo}
+                    onChange={(e) => setMemo(e.target.value)}
+                    rows={3}
+                    maxLength={200}
+                    placeholder="요청사항을 입력하세요 (선택)"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-text-primary mt-1.5 whitespace-pre-wrap break-words">
+                  {memo || "없음"}
+                </p>
+              )}
             </div>
           </div>
 
@@ -1274,16 +1291,21 @@ function BookingPageContent() {
             <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
               <h3 className="font-semibold mb-3">견적 금액</h3>
               <div className="space-y-2 text-sm">
-                {quote.breakdown.map((b, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="text-text-sub truncate max-w-[60%]">
-                      {b.name} x{b.quantity}
-                    </span>
-                    <span>
-                      {b.unitPrice === 0 ? "가격 미정" : `${formatPrice(b.subtotal)}원`}
-                    </span>
-                  </div>
-                ))}
+                {quote.breakdown.map((b, i) => {
+                  // displayName에서 category - name 부분만 추출 (크기/무게/가격 제거)
+                  const parts = b.name.split(" - ");
+                  const shortName = parts.length >= 2 ? `${parts[0]} - ${parts[1]}` : b.name;
+                  return (
+                    <div key={i} className="flex justify-between">
+                      <span className="text-text-sub">
+                        {shortName} <span className="text-text-muted">x{b.quantity}</span>
+                      </span>
+                      <span className="font-medium">
+                        {b.unitPrice === 0 ? "가격 미정" : `${formatPrice(b.subtotal)}원`}
+                      </span>
+                    </div>
+                  );
+                })}
                 <div className="border-t border-border-light pt-2 flex justify-between">
                   <span className="text-text-sub">품목 합계</span>
                   <span className="font-medium">
