@@ -8,6 +8,17 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
 
 ### 최근 작업 (2026-02-20)
 
+**배차 페이지 크리티컬 버그 수정 (55b1e84)**
+- 마커/카드 클릭 시 client-side exception 수정 (useCallback 안정화)
+- 배차 해제 실패 수정 (Zod driverId/driverName nullable 허용)
+- CSS injection 방어 (sanitizeColor + 개별 style 속성)
+- renderMarkers 최적화 (selectedIdRef 패턴, 선택 시 전체 재생성 방지)
+- fetchData race condition 방지 (AbortController)
+- 시간대 버그 수정 (formatDateShort, moveDate 순수 날짜 연산)
+- 배차 중복 클릭 방지 (dispatching 가드 전체 적용)
+- 지도 마커에 고객명 라벨 표시 + 줌 반응형
+- 모바일 탭 전환 시 바텀시트 닫기
+
 **배차 UI/UX 전면 개선 (44c1a4e)**
 - 좌우 분할 레이아웃: 왼쪽 주문리스트(400px) + 오른쪽 지도
 - 기사별 고유 색상 마커 (10색 팔레트, 미배차=파란)
@@ -17,7 +28,6 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
 - KakaoMap: HEX 색상 직접 전달, panTo useImperativeHandle
 - 모바일: 지도/목록 탭 전환 + 바텀시트 상세
 - 기사 적재 현황: 왼쪽 패널 하단 세로 카드 (색상 도트 포함)
-- 코드 리뷰 수정: 부분실패 피드백, 필터 체크상태 초기화, json 방어
 
 **테스트 데이터**
 - 기사 3명: 유대현(1톤), 김민수(1.4톤), 박정호(2.5톤)
@@ -33,7 +43,7 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
 - 코드 리뷰 Low (미수정):
   - 기사 11명 이상 시 색상 중복 (10색 팔레트)
   - 모바일 바텀시트 포커스 트랩 없음
-  - dispatching 전역 상태로 모든 버튼 동시 차단
+  - alert() 대신 토스트 사용 권장
 - 누적 Medium (이전 Phase부터):
   - GET /api/bookings/{id} 토큰 없이 address/customerName 노출
   - Rate Limiting 전체 부재
