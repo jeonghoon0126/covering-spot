@@ -21,15 +21,19 @@ function formatPrice(n: number): string {
 
 const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null) => string> = {
   quote_confirmed: (finalPrice) =>
-    `[커버링 방문수거] 견적이 확정되었어요! 최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.`,
-  in_progress: () => "[커버링 방문수거] 수거 팀이 출발했어요! 도착 예정 시간에 맞춰 준비 부탁드려요.",
-  completed: () => "[커버링 방문수거] 수거가 완료되었어요! 이용해 주셔서 감사합니다.",
+    `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
+  in_progress: () =>
+    "[커버링 방문수거] 수거 팀이 출발했어요!\n\n도착 예정 시간에 맞춰 문 앞에 품목을 준비해 주시면 더 빠르게 진행돼요.\n감사합니다!",
+  completed: () =>
+    "[커버링 방문수거] 수거가 완료되었어요!\n\n이용해 주셔서 감사합니다.\n다음에도 필요하시면 편하게 신청해 주세요.",
   payment_requested: (_finalPrice, paymentUrl) =>
     "[커버링 방문수거] 정산 안내드려요." +
-    (paymentUrl ? `\n결제 링크: ${paymentUrl}` : "") +
-    "\n\n결제 완료 후 정산이 확정돼요.",
-  cancelled: () => "[커버링 방문수거] 수거 신청이 취소되었어요.\n새로운 수거가 필요하시면 언제든 신청해 주세요!",
-  rejected: () => "[커버링 방문수거] 죄송합니다. 해당 건은 수거가 어려운 상황이에요.\n자세한 문의는 카카오톡 채널로 연락해 주세요.",
+    (paymentUrl ? `\n\n아래 링크에서 결제를 진행해 주세요.\n결제 링크: ${paymentUrl}` : "") +
+    "\n\n결제 완료 후 정산이 확정돼요.\n문의사항은 카카오톡 채널로 연락 주세요!",
+  cancelled: () =>
+    "[커버링 방문수거] 수거 신청이 취소되었어요.\n\n새로운 수거가 필요하시면 언제든 편하게 신청해 주세요!\n감사합니다.",
+  rejected: () =>
+    "[커버링 방문수거] 죄송합니다. 해당 건은 수거가 어려운 상황이에요.\n\n자세한 사유가 궁금하시면 카카오톡 채널로 문의해 주세요.\n불편을 드려 죄송합니다.",
 };
 
 /**

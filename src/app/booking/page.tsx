@@ -28,6 +28,12 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
+/** 만원 단위 포맷: 220000 → "22만", 270000 → "27만" */
+function formatManWon(n: number): string {
+  const man = Math.round(n / 10000);
+  return `${man}만`;
+}
+
 function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -932,7 +938,7 @@ export default function BookingPage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-primary">예상 견적 (사다리차 별도)</p>
                 <p className="text-lg font-bold text-primary">
-                  {formatPrice(previewQuote.estimateMin)}~{formatPrice(previewQuote.estimateMax)}원
+                  {formatManWon(previewQuote.estimateMin)}~{formatManWon(previewQuote.estimateMax)}원
                 </p>
               </div>
               <p className="text-xs text-text-muted mt-1">
@@ -1145,9 +1151,21 @@ export default function BookingPage() {
                 <span className="text-text-sub">지역</span>
                 <span className="font-medium">{selectedArea}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-text-sub">품목 수</span>
-                <span className="font-medium">{selectedItems.length}종</span>
+              {/* 품목 상세 리스트 */}
+              <div className="border-t border-border-light pt-2 mt-1">
+                <span className="text-text-sub text-xs">품목 ({selectedItems.length}종)</span>
+                <div className="mt-1.5 space-y-1">
+                  {selectedItems.map((item, i) => (
+                    <div key={i} className="flex justify-between text-xs">
+                      <span className="text-text-primary truncate max-w-[65%]">
+                        {item.displayName || item.name} x{item.quantity}
+                      </span>
+                      <span className="text-text-sub">
+                        {item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-sub">엘리베이터</span>
@@ -1167,6 +1185,22 @@ export default function BookingPage() {
                   <span className="font-medium">{photos.length}장</span>
                 </div>
               )}
+              {/* 요청사항 */}
+              <div className="border-t border-border-light pt-2 mt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-sub">요청사항</span>
+                  <button
+                    type="button"
+                    onClick={() => setStep(0)}
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    수정
+                  </button>
+                </div>
+                <p className="text-sm text-text-primary mt-1 whitespace-pre-wrap">
+                  {memo || "없음"}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1211,7 +1245,7 @@ export default function BookingPage() {
                   <div className="flex justify-between text-xl max-sm:text-lg font-extrabold text-primary">
                     <span>예상 견적</span>
                     <span>
-                      {formatPrice(quote.estimateMin)} ~ {formatPrice(quote.estimateMax)}원
+                      {formatManWon(quote.estimateMin)} ~ {formatManWon(quote.estimateMax)}원
                     </span>
                   </div>
                   <p className="text-xs text-text-muted mt-2">

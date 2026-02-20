@@ -15,6 +15,11 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
+function formatManWon(n: number): string {
+  const man = Math.round(n / 10000);
+  return `${man}만`;
+}
+
 export default function BookingCompletePage() {
   return (
     <Suspense
@@ -197,7 +202,7 @@ function BookingCompleteContent() {
         <div className="flex justify-between items-center">
           <span className="font-semibold">예상 견적</span>
           <span className="text-xl font-bold text-primary">
-            {formatPrice(booking.estimateMin)} ~ {formatPrice(booking.estimateMax)}원
+            {formatManWon(booking.estimateMin)} ~ {formatManWon(booking.estimateMax)}원
           </span>
         </div>
         <p className="text-xs text-text-muted mt-2">

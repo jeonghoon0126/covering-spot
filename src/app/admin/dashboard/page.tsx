@@ -51,6 +51,10 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
+function formatManWon(n: number): string {
+  return Math.round(n / 10000) + "만";
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { experimentName, variant } = useExperiment();
@@ -496,13 +500,13 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">
-                          {b.customerName} | {b.phone}
+                          {b.customerName} <span className="text-text-muted max-sm:hidden">|</span> <span className="max-sm:hidden">{b.phone}</span>
                         </p>
                         <p className="text-xs text-text-sub mt-0.5 truncate">
-                          {b.date} {b.timeSlot} | {b.area} | 품목 {b.items.length}종
+                          {b.date} {b.timeSlot} · {b.area} · {b.items.length}종
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -512,8 +516,7 @@ export default function AdminDashboardPage() {
                           </p>
                         ) : b.estimateMin && b.estimateMax ? (
                           <p className="text-sm font-medium text-text-neutral">
-                            {formatPrice(b.estimateMin)}~
-                            {formatPrice(b.estimateMax)}원
+                            {formatManWon(b.estimateMin)}~{formatManWon(b.estimateMax)}원
                           </p>
                         ) : (
                           <p className="text-sm font-medium text-text-neutral">

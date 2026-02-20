@@ -14,6 +14,11 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
+function formatManWon(n: number): string {
+  const man = Math.round(n / 10000);
+  return `${man}만`;
+}
+
 /** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
 function canEdit(b: Booking): boolean {
   if (b.status !== "pending") return false;
@@ -330,7 +335,7 @@ export default function BookingManagePage() {
                     </p>
                     <p className="text-[15px] text-primary font-bold mt-0.5">
                       {b.estimateMin > 0 && b.estimateMax > 0
-                        ? `${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}원`
+                        ? `${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}원`
                         : `${formatPrice(b.totalPrice)}원`}
                     </p>
                   </div>
@@ -464,7 +469,7 @@ export default function BookingManagePage() {
                           <div className="flex justify-between py-2.5 border-b border-border-light">
                             <span className="text-text-sub">예상 견적</span>
                             <span className="font-medium">
-                              {formatPrice(b.estimateMin)} ~ {formatPrice(b.estimateMax)}원
+                              {formatManWon(b.estimateMin)} ~ {formatManWon(b.estimateMax)}원
                             </span>
                           </div>
                         )}

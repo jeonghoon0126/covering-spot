@@ -164,10 +164,10 @@ export async function PUT(
       }
       // 푸시 알림 (fire-and-forget)
       const STATUS_MSG: Record<string, string> = {
-        quote_confirmed: "견적이 확정되었습니다",
-        in_progress: "수거가 시작되었습니다",
-        completed: "수거가 완료되었습니다",
-        payment_completed: "정산이 완료되었습니다",
+        quote_confirmed: `견적이 확정되었어요! ${updated.finalPrice ? `최종 견적: ${updated.finalPrice.toLocaleString("ko-KR")}원` : "자세한 내용을 확인해 주세요."}`,
+        in_progress: "수거 팀이 출발했어요! 도착 예정 시간에 맞춰 준비 부탁드려요.",
+        completed: "수거가 완료되었어요! 이용해 주셔서 감사합니다.",
+        payment_completed: "정산이 완료되었습니다. 감사합니다!",
       };
       if (STATUS_MSG[newStatus]) {
         fetch(new URL("/api/push/send", req.url), {

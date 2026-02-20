@@ -46,13 +46,13 @@ export function FloatingCTA() {
             className="flex-1 flex items-center justify-center gap-2 bg-kakao text-text-primary text-[15px] font-bold py-3.5 rounded-md hover:bg-kakao-hover active:scale-[0.98] transition-all"
           >
             <KakaoIcon />
-            <span>카카오톡으로 5분만에 신청하기</span>
+            <span>카톡으로 신청하기</span>
           </CTALink>
           <Link
             href="/booking"
             className="flex-1 flex items-center justify-center bg-primary text-white text-[15px] font-semibold py-3.5 rounded-md shadow-sm shadow-primary/20 hover:bg-primary-light active:scale-[0.98] transition-all"
           >
-            5분만에 수거신청하기
+            수거 신청하기
           </Link>
         </div>
       </div>

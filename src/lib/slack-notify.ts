@@ -33,6 +33,10 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
 }
 
+function formatManWon(n: number): string {
+  return Math.round(n / 10000) + "만원";
+}
+
 function getDayName(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00+09:00");
   return DAYS[d.getDay()];
@@ -166,7 +170,7 @@ export async function sendBookingCreated(b: Booking): Promise<string | null> {
       fields: [
         {
           type: "mrkdwn",
-          text: `*예상 견적 범위*\n${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}`,
+          text: `*예상 견적 범위*\n${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}`,
         },
         {
           type: "mrkdwn",
@@ -289,7 +293,7 @@ export async function sendQuoteConfirmed(b: Booking): Promise<void> {
     const lines = [
       `💰 견적 확정`,
       `최종 금액: ${b.finalPrice != null ? formatPrice(b.finalPrice) : "미정"}`,
-      `예상 범위: ${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}`,
+      `예상 범위: ${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}`,
     ];
     if (b.adminMemo) lines.push(`관리자 메모: ${b.adminMemo}`);
     await sendThreadReply(b.slackThreadTs, lines.join("\n"));
@@ -325,7 +329,7 @@ export async function sendQuoteConfirmed(b: Booking): Promise<void> {
       fields: [
         {
           type: "mrkdwn",
-          text: `*예상 견적 범위*\n${formatPrice(b.estimateMin)} ~ ${formatPrice(b.estimateMax)}`,
+          text: `*예상 견적 범위*\n${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}`,
         },
         {
           type: "mrkdwn",

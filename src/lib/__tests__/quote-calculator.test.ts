@@ -69,8 +69,8 @@ describe("calculateQuote", () => {
     const result = calculateQuote(input);
 
     // itemsTotalMax = 100000 * 1.15 + 100000 * 0.1 = 115000 + 10000 = 125000
-    // estimateMax = 125000 + crewPrice(50000) = 175000
-    expect(result.estimateMax).toBe(175000);
+    // estimateMax raw = 125000 + crewPrice(50000) = 175000 → ceil to 만원 = 180000
+    expect(result.estimateMax).toBe(180000);
   });
 
   // 해체 품목 + 일반 품목 혼합
@@ -87,7 +87,7 @@ describe("calculateQuote", () => {
 
     // itemsTotal = 200000
     // itemsTotalMax = 200000 * 1.15 + 100000(장롱만) * 0.1 = 230000 + 10000 = 240000
-    // estimateMax = 240000 + crewPrice(50000) = 290000
+    // estimateMax raw = 240000 + crewPrice(50000) = 290000 → ceil to 만원 = 290000
     expect(result.estimateMax).toBe(290000);
   });
 

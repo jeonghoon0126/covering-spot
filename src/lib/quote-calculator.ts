@@ -64,7 +64,11 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     itemsTotalMax += disassemblyTotal * 0.1;
   }
 
-  const estimateMax = Math.round(itemsTotalMax + crewPrice + ladderPrice);
+  const estimateMaxRaw = Math.round(itemsTotalMax + crewPrice + ladderPrice);
+
+  // 만원 단위로 반올림 (min: 내림, max: 올림) — 고객에게 깔끔한 레인지 제공
+  const estimateMinRounded = Math.floor(estimateMin / 10000) * 10000;
+  const estimateMaxRounded = Math.ceil(estimateMaxRaw / 10000) * 10000;
 
   return {
     itemsTotal,
@@ -72,8 +76,8 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     crewPrice,
     ladderPrice,
     totalPrice,
-    estimateMin,
-    estimateMax,
+    estimateMin: estimateMinRounded,
+    estimateMax: estimateMaxRounded,
     breakdown,
   };
 }

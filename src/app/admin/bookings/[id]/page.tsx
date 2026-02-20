@@ -563,8 +563,8 @@ export default function AdminBookingDetailPage() {
               <div className="flex justify-between py-2.5 border-b border-border-light">
                 <span className="text-text-sub">예상 견적</span>
                 <span className="font-medium">
-                  {formatPrice(booking.estimateMin)} ~{" "}
-                  {formatPrice(booking.estimateMax)}원
+                  {Math.round(booking.estimateMin / 10000)}만 ~{" "}
+                  {Math.round(booking.estimateMax / 10000)}만원
                 </span>
               </div>
             )}
@@ -593,7 +593,7 @@ export default function AdminBookingDetailPage() {
                 }
                 placeholder={
                   booking.estimateMin != null && booking.estimateMax != null
-                    ? `${formatPrice(booking.estimateMin)} ~ ${formatPrice(booking.estimateMax)}`
+                    ? `${Math.round(booking.estimateMin / 10000)}만 ~ ${Math.round(booking.estimateMax / 10000)}만원`
                     : "금액 입력"
                 }
               />
