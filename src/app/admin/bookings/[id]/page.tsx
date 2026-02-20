@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import type { Booking } from "@/types/booking";
+import { formatPrice, formatManWon } from "@/lib/format";
 
 interface AuditLog {
   id: string;
@@ -59,10 +60,6 @@ const NEXT_STATUS: Record<string, { status: string; label: string }[]> = {
   completed: [{ status: "payment_requested", label: "정산 요청" }],
   payment_requested: [{ status: "payment_completed", label: "정산 완료" }],
 };
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
 
 export default function AdminBookingDetailPage() {
   const router = useRouter();
@@ -563,8 +560,8 @@ export default function AdminBookingDetailPage() {
               <div className="flex justify-between py-2.5 border-b border-border-light">
                 <span className="text-text-sub">예상 견적</span>
                 <span className="font-medium">
-                  {Math.round(booking.estimateMin / 10000)}만 ~{" "}
-                  {Math.round(booking.estimateMax / 10000)}만원
+                  {formatManWon(booking.estimateMin)} ~{" "}
+                  {formatManWon(booking.estimateMax)}원
                 </span>
               </div>
             )}
@@ -593,7 +590,7 @@ export default function AdminBookingDetailPage() {
                 }
                 placeholder={
                   booking.estimateMin != null && booking.estimateMax != null
-                    ? `${Math.round(booking.estimateMin / 10000)}만 ~ ${Math.round(booking.estimateMax / 10000)}만원`
+                    ? `${formatManWon(booking.estimateMin)} ~ ${formatManWon(booking.estimateMax)}원`
                     : "금액 입력"
                 }
               />

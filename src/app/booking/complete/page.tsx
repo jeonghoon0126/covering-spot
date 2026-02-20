@@ -10,15 +10,7 @@ import { subscribeToPush } from "@/lib/push-subscription";
 import { KAKAO_CHAT_URL } from "@/lib/constants";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { track } from "@/lib/analytics";
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-function formatManWon(n: number): string {
-  const man = Math.round(n / 10000);
-  return `${man}만`;
-}
+import { formatPrice, formatManWon } from "@/lib/format";
 
 export default function BookingCompletePage() {
   return (

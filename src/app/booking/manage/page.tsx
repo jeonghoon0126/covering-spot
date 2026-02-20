@@ -7,17 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { formatPhoneNumber } from "@/lib/format";
+import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 import { track } from "@/lib/analytics";
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-function formatManWon(n: number): string {
-  const man = Math.round(n / 10000);
-  return `${man}만`;
-}
 
 /** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
 function canEdit(b: Booking): boolean {

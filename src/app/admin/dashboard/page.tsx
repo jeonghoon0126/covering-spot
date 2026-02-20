@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import type { Booking } from "@/types/booking";
+import { formatPrice, formatManWon } from "@/lib/format";
 
 const STATUS_TABS = [
   { key: "all", label: "전체" },
@@ -46,14 +47,6 @@ const QUICK_ACTIONS: Record<string, { status: string; label: string; color: stri
   completed: { status: "payment_requested", label: "정산 요청", color: "bg-semantic-orange text-white" },
   payment_requested: { status: "payment_completed", label: "정산 완료", color: "bg-semantic-green text-white" },
 };
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-function formatManWon(n: number): string {
-  return Math.round(n / 10000) + "만";
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter();

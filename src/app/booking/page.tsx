@@ -16,23 +16,13 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
-import { formatPhoneNumber } from "@/lib/format";
+import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
 // 견적 미리보기 debounce용
 const QUOTE_PREVIEW_DEBOUNCE = 800;
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-/** 만원 단위 포맷: 220000 → "22만", 270000 → "27만" */
-function formatManWon(n: number): string {
-  const man = Math.round(n / 10000);
-  return `${man}만`;
-}
 
 function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month, 1).getDay();
