@@ -53,19 +53,25 @@ export default function KakaoMap({
   const prevSelectedRef = useRef<string | null>(null);
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.kakao?.maps) return;
 
-    const { kakao } = window;
-    const container = mapContainerRef.current;
-    const options = {
-      center: new kakao.maps.LatLng(37.5665, 126.978),
-      level: 11,
-    };
+    try {
+      const { kakao } = window;
+      const container = mapContainerRef.current;
+      const options = {
+        center: new kakao.maps.LatLng(37.5665, 126.978),
+        level: 11,
+      };
 
-    mapRef.current = new kakao.maps.Map(container, options);
-    setIsMapReady(true);
+      mapRef.current = new kakao.maps.Map(container, options);
+      setIsMapReady(true);
+    } catch (e) {
+      console.error("[KakaoMap] 초기화 실패:", e);
+      setMapError("지도 초기화에 실패했습니다");
+    }
   }, []);
 
   // 마커 DOM 스타일만 업데이트 (선택 변경 시)
@@ -188,7 +194,17 @@ export default function KakaoMap({
         initializeMap();
       });
     }
-  }, [initializeMap]);
+    // 10초 타임아웃: SDK 로드 실패 감지
+    const timeout = setTimeout(() => {
+      if (!isMapReady) {
+        const host = typeof window !== "undefined" ? window.location.hostname : "";
+        setMapError(
+          `지도 로드 시간 초과. Kakao 개발자 콘솔에서 "${host}" 도메인을 등록해주세요.`
+        );
+      }
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, [initializeMap, isMapReady]);
 
   const handleScriptLoad = useCallback(() => {
     if (window.kakao?.maps) {
@@ -196,6 +212,8 @@ export default function KakaoMap({
         setSdkLoaded(true);
         initializeMap();
       });
+    } else {
+      setMapError("Kakao Maps SDK 로드에 실패했습니다. API 키를 확인해주세요.");
     }
   }, [initializeMap]);
 
@@ -210,8 +228,22 @@ export default function KakaoMap({
       )}
       <div className={`relative ${className}`}>
         {!isMapReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-            <div className="text-gray-500 text-sm">지도를 불러오는 중...</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
+            {mapError ? (
+              <div className="text-center px-4">
+                <p className="text-red-500 text-sm font-medium mb-2">{mapError}</p>
+                <a
+                  href="https://developers.kakao.com/console/app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-500 underline"
+                >
+                  Kakao 개발자 콘솔 열기
+                </a>
+              </div>
+            ) : (
+              <div className="text-gray-500 text-sm">지도를 불러오는 중...</div>
+            )}
           </div>
         )}
         <div
