@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBookings, getBlockedSlots } from "@/lib/db";
 import { isDateBookable } from "@/lib/booking-utils";
 
-const DEFAULT_SLOTS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
+const DEFAULT_SLOTS = ["10:00", "12:00", "14:00", "15:00"];
 
-// 2시간 단위 슬롯 표시 레이블
+// 2시간 단위 슬롯 표시 레이블 (운영시간: 10시~17시)
 const SLOT_LABELS: Record<string, string> = {
-  "09:00": "09:00~11:00",
-  "11:00": "11:00~13:00",
-  "13:00": "13:00~15:00",
+  "10:00": "10:00~12:00",
+  "12:00": "12:00~14:00",
+  "14:00": "14:00~16:00",
   "15:00": "15:00~17:00",
-  "17:00": "17:00~19:00",
 };
 
 // 시간대별 최대 예약 수
@@ -21,23 +20,25 @@ function mapTo2HourSlot(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const totalMinutes = h * 60 + m;
 
-  // 09:00~11:00 -> "09:00"
-  if (totalMinutes >= 9 * 60 && totalMinutes < 11 * 60) return "09:00";
-  // 11:00~13:00 -> "11:00"
-  if (totalMinutes >= 11 * 60 && totalMinutes < 13 * 60) return "11:00";
-  // 13:00~15:00 -> "13:00"
-  if (totalMinutes >= 13 * 60 && totalMinutes < 15 * 60) return "13:00";
+  // 구 슬롯(09:00~10:00) 호환: 가장 가까운 10:00 슬롯으로 매핑
+  if (totalMinutes >= 9 * 60 && totalMinutes < 10 * 60) return "10:00";
+  // 10:00~12:00 -> "10:00"
+  if (totalMinutes >= 10 * 60 && totalMinutes < 12 * 60) return "10:00";
+  // 12:00~14:00 -> "12:00"
+  if (totalMinutes >= 12 * 60 && totalMinutes < 14 * 60) return "12:00";
+  // 14:00~15:00 -> "14:00"
+  if (totalMinutes >= 14 * 60 && totalMinutes < 15 * 60) return "14:00";
   // 15:00~17:00 -> "15:00"
   if (totalMinutes >= 15 * 60 && totalMinutes < 17 * 60) return "15:00";
-  // 17:00~19:00 -> "17:00"
-  if (totalMinutes >= 17 * 60 && totalMinutes < 19 * 60) return "17:00";
+  // 구 슬롯(17:00~19:00) 호환: 가장 가까운 15:00 슬롯으로 매핑
+  if (totalMinutes >= 17 * 60 && totalMinutes < 19 * 60) return "15:00";
 
   return time; // fallback
 }
 
 // 2시간 슬롯이 blocked_slots의 timeStart~timeEnd와 겹치는지 확인
 function isSlotBlockedByRange(slotStart: string, timeStart: string, timeEnd: string): boolean {
-  // 슬롯의 2시간 범위 계산 (예: "09:00" -> 09:00~11:00)
+  // 슬롯의 2시간 범위 계산 (예: "10:00" -> 10:00~12:00)
   const [sh, sm] = slotStart.split(":").map(Number);
   const slotStartMinutes = sh * 60 + sm;
   const slotEndMinutes = slotStartMinutes + 120; // 2시간 = 120분

@@ -11,10 +11,7 @@ import { ModalHeader } from "@/components/ui/ModalHeader";
 
 const SOURCE_OPTIONS = ["카카오톡 상담", "전화 상담", "기타"];
 
-const TIME_SLOTS = Array.from({ length: 10 }, (_, i) => {
-  const hour = i + 9;
-  return `${String(hour).padStart(2, "0")}:00`;
-});
+const TIME_SLOTS = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);

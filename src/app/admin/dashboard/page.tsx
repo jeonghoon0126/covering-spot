@@ -283,6 +283,16 @@ export default function AdminDashboardPage() {
               <span className="max-sm:hidden">캘린더</span>
             </button>
             <button
+              onClick={() => router.push("/admin/dispatch")}
+              className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1.5 4.5L7 1L12.5 4.5V10L7 13L1.5 10V4.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+              </svg>
+              <span className="max-sm:hidden">배차</span>
+            </button>
+            <button
               onClick={() => router.push("/admin/driver")}
               className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2"
             >

@@ -65,11 +65,13 @@ const STATUS_MESSAGES: Record<string, string> = {
   rejected: "수거가 불가한 건입니다",
 };
 
-const TIME_SLOTS = [
-  "오전 (09~12시)",
-  "오후 (13~18시)",
-  "종일 가능",
-];
+const TIME_SLOTS = ["10:00", "12:00", "14:00", "15:00"];
+const TIME_SLOT_LABELS: Record<string, string> = {
+  "10:00": "오전 10~12시",
+  "12:00": "오후 12~14시",
+  "14:00": "오후 14~16시",
+  "15:00": "오후 15~17시",
+};
 
 interface EditForm {
   date: string;
@@ -376,7 +378,7 @@ export default function BookingManagePage() {
                                     : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
                                 }`}
                               >
-                                {slot}
+                                {TIME_SLOT_LABELS[slot] || slot}
                               </button>
                             ))}
                           </div>

@@ -231,13 +231,17 @@ function BookingCompleteContent() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold">진행 상황 알림 받기</p>
-            <p className="text-xs text-text-sub">견적 확정, 수거 완료 등 알림을 받으세요</p>
+            <p className="text-xs text-text-sub">견적 확정, 수거 출발, 수거 완료 시 브라우저 푸시 알림을 보내드려요</p>
           </div>
           <button
             onClick={async () => {
               if (booking) {
                 const ok = await subscribeToPush(booking.id);
-                if (ok) setPushSubscribed(true);
+                if (ok) {
+                  setPushSubscribed(true);
+                } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+                  setPushDenied(true);
+                }
               }
             }}
             className="shrink-0 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md"
@@ -256,11 +260,17 @@ function BookingCompleteContent() {
         </div>
       )}
       {pushSubscribed && (
-        <div className="bg-semantic-green-tint rounded-lg p-4 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <p className="text-sm text-semantic-green font-medium">알림이 설정되었습니다</p>
+        <div className="bg-semantic-green-tint rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <p className="text-sm text-semantic-green font-medium">알림이 설정되었습니다</p>
+          </div>
+          <p className="text-xs text-text-sub pl-6">
+            견적 확정, 수거 출발, 수거 완료 시 이 브라우저로 푸시 알림이 전송됩니다.
+            문자 알림도 함께 발송되니 안심하세요.
+          </p>
         </div>
       )}
 

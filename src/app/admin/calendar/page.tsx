@@ -58,15 +58,16 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-fill-tint text-text-muted",
 };
 
-const TIME_SLOTS = Array.from({ length: 19 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 9;
+// 일간 타임라인: 10:00~17:00 (30분 단위, 15개)
+const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
+  const hour = Math.floor(i / 2) + 10;
   const min = i % 2 === 0 ? "00" : "30";
   return `${String(hour).padStart(2, "0")}:${min}`;
 });
 
-// 슬롯 관리 타임라인: 07:00 ~ 24:00 (1시간 단위, 18개)
-const SLOT_MGMT_HOURS = Array.from({ length: 18 }, (_, i) => {
-  const hour = i + 7;
+// 슬롯 관리 타임라인: 10:00 ~ 17:00 (1시간 단위, 8개)
+const SLOT_MGMT_HOURS = Array.from({ length: 8 }, (_, i) => {
+  const hour = i + 10;
   return `${String(hour).padStart(2, "0")}:00`;
 });
 
@@ -79,9 +80,7 @@ function formatDate(dateStr: string): string {
 }
 
 function getToday(): string {
-  const now = new Date();
-  now.setHours(now.getHours() + 9); // KST
-  return now.toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 }
 
 function addDays(dateStr: string, days: number): string {

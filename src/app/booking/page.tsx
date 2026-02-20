@@ -20,13 +20,12 @@ import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
-const TIME_OPTIONS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
+const TIME_OPTIONS = ["10:00", "12:00", "14:00", "15:00"];
 const TIME_LABELS: Record<string, string> = {
-  "09:00": "오전 09~11시",
-  "11:00": "오전 11~13시",
-  "13:00": "오후 13~15시",
+  "10:00": "오전 10~12시",
+  "12:00": "오후 12~14시",
+  "14:00": "오후 14~16시",
   "15:00": "오후 15~17시",
-  "17:00": "오후 17~19시",
 };
 // 견적 미리보기 debounce용
 const QUOTE_PREVIEW_DEBOUNCE = 800;
@@ -75,9 +74,7 @@ function BookingPageContent() {
 
   // 시간대별 슬롯 잔여 (-1 = 아직 로드 안됨, 로딩 중 마감 표시 방지)
   const [timeSlotCounts, setTimeSlotCounts] = useState<Record<string, number>>({
-    "오전 (09~12시)": -1,
-    "오후 (13~18시)": -1,
-    "종일 가능": -1,
+    "10:00": -1, "12:00": -1, "14:00": -1, "15:00": -1,
   });
   const [slotsLoading, setSlotsLoading] = useState(false);
 
@@ -210,7 +207,7 @@ function BookingPageContent() {
   useEffect(() => {
     setSelectedTime("");
     setTimeSlotCounts({
-      "09:00": -1, "11:00": -1, "13:00": -1, "15:00": -1, "17:00": -1,
+      "10:00": -1, "12:00": -1, "14:00": -1, "15:00": -1,
     });
   }, [selectedDate]);
 
