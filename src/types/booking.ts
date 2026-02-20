@@ -4,6 +4,7 @@ export interface BookingItem {
   displayName: string;
   price: number;
   quantity: number;
+  loadingCube: number; // 적재큐브 (m³)
 }
 
 export interface Booking {
@@ -49,6 +50,9 @@ export interface Booking {
   driverId?: string | null;
   driverName?: string | null;
   source?: string | null;
+  totalLoadingCube?: number; // 주문 전체 적재큐브 합계 (m³)
+  latitude?: number | null;  // 주소 좌표 (위도)
+  longitude?: number | null; // 주소 좌표 (경도)
 }
 
 export interface TimeSlot {

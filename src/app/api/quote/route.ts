@@ -10,6 +10,7 @@ const QuoteRequestSchema = z.object({
     price: z.number().min(0),
     quantity: z.number().int().min(1).max(100),
     displayName: z.string().default(""),
+    loadingCube: z.number().min(0).default(0),
   })).min(1),
   needLadder: z.boolean(),
   ladderType: z.string().optional(),

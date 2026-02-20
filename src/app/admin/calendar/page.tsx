@@ -24,7 +24,15 @@ interface Driver {
   phone: string | null;
   active: boolean;
   createdAt: string;
+  vehicleType: string;
+  vehicleCapacity: number;
+  licensePlate: string | null;
 }
+
+const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
+const VEHICLE_CAPACITY: Record<string, number> = {
+  "1톤": 4.8, "1.4톤": 6.5, "2.5톤": 10.5, "5톤": 20.0,
+};
 
 /* ── 상수 ── */
 
@@ -131,10 +139,14 @@ export default function AdminCalendarPage() {
   const [showDriverForm, setShowDriverForm] = useState(false);
   const [newDriverName, setNewDriverName] = useState("");
   const [newDriverPhone, setNewDriverPhone] = useState("");
+  const [newDriverVehicleType, setNewDriverVehicleType] = useState("1톤");
+  const [newDriverLicensePlate, setNewDriverLicensePlate] = useState("");
   const [driverSaving, setDriverSaving] = useState(false);
   const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
   const [editDriverName, setEditDriverName] = useState("");
   const [editDriverPhone, setEditDriverPhone] = useState("");
+  const [editDriverVehicleType, setEditDriverVehicleType] = useState("1톤");
+  const [editDriverLicensePlate, setEditDriverLicensePlate] = useState("");
 
   const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
@@ -371,11 +383,16 @@ export default function AdminCalendarPage() {
         body: JSON.stringify({
           name: newDriverName.trim(),
           phone: newDriverPhone.trim() || undefined,
+          vehicleType: newDriverVehicleType,
+          vehicleCapacity: VEHICLE_CAPACITY[newDriverVehicleType] || 4.8,
+          licensePlate: newDriverLicensePlate.trim() || undefined,
         }),
       });
       if (res.ok) {
         setNewDriverName("");
         setNewDriverPhone("");
+        setNewDriverVehicleType("1톤");
+        setNewDriverLicensePlate("");
         setShowDriverForm(false);
         fetchDrivers();
       } else {
@@ -402,6 +419,9 @@ export default function AdminCalendarPage() {
           id,
           name: editDriverName.trim() || undefined,
           phone: editDriverPhone.trim() || undefined,
+          vehicleType: editDriverVehicleType,
+          vehicleCapacity: VEHICLE_CAPACITY[editDriverVehicleType] || 4.8,
+          licensePlate: editDriverLicensePlate.trim() || undefined,
         }),
       });
       if (res.ok) {
@@ -577,6 +597,15 @@ export default function AdminCalendarPage() {
                 <path d="M2 12L6 4L10 9L14 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               기사님
+            </button>
+            <button
+              onClick={() => router.push("/admin/dispatch")}
+              className="text-sm text-primary hover:text-primary-dark transition-colors flex items-center gap-1 px-2 py-2 font-medium"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2L14 8L8 14M14 8H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              배차
             </button>
           </div>
         </div>
@@ -1016,6 +1045,30 @@ export default function AdminCalendarPage() {
                       className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-text-muted font-medium mb-1">차량종류</label>
+                      <select
+                        value={newDriverVehicleType}
+                        onChange={(e) => setNewDriverVehicleType(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                      >
+                        {VEHICLE_TYPES.map((v) => (
+                          <option key={v} value={v}>{v} ({VEHICLE_CAPACITY[v]}m³)</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-text-muted font-medium mb-1">차량번호</label>
+                      <input
+                        type="text"
+                        value={newDriverLicensePlate}
+                        onChange={(e) => setNewDriverLicensePlate(e.target.value)}
+                        placeholder="서울12가3456"
+                        className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                      />
+                    </div>
+                  </div>
                   <button
                     onClick={handleCreateDriver}
                     disabled={driverSaving || !newDriverName.trim()}
@@ -1062,6 +1115,24 @@ export default function AdminCalendarPage() {
                             placeholder="연락처"
                             className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                           />
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={editDriverVehicleType}
+                              onChange={(e) => setEditDriverVehicleType(e.target.value)}
+                              className="h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            >
+                              {VEHICLE_TYPES.map((v) => (
+                                <option key={v} value={v}>{v}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              value={editDriverLicensePlate}
+                              onChange={(e) => setEditDriverLicensePlate(e.target.value)}
+                              placeholder="차량번호"
+                              className="h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateDriver(driver.id)}
@@ -1088,9 +1159,12 @@ export default function AdminCalendarPage() {
                             <span className="text-sm font-medium text-text-primary truncate">
                               {driver.name}
                             </span>
-                            {driver.phone && (
+                            <span className="text-[11px] text-primary font-medium shrink-0">
+                              {driver.vehicleType || "1톤"}
+                            </span>
+                            {driver.licensePlate && (
                               <span className="text-[11px] text-text-muted shrink-0">
-                                {driver.phone}
+                                {driver.licensePlate}
                               </span>
                             )}
                             {!driver.active && (
@@ -1105,6 +1179,8 @@ export default function AdminCalendarPage() {
                                 setEditingDriverId(driver.id);
                                 setEditDriverName(driver.name);
                                 setEditDriverPhone(driver.phone || "");
+                                setEditDriverVehicleType(driver.vehicleType || "1톤");
+                                setEditDriverLicensePlate(driver.licensePlate || "");
                               }}
                               className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
                             >

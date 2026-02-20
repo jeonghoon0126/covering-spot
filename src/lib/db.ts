@@ -18,6 +18,9 @@ export interface Driver {
   phone: string | null;
   active: boolean;
   createdAt: string;
+  vehicleType: string;       // '1톤', '1.4톤', '2.5톤', '5톤'
+  vehicleCapacity: number;   // 적재 용량 (m³)
+  licensePlate: string | null; // 차량번호
 }
 
 /* ── camelCase ↔ snake_case 매핑 ── */
@@ -53,6 +56,9 @@ const FIELD_MAP: Record<string, string> = {
   driverId: "driver_id",
   driverName: "driver_name",
   source: "source",
+  totalLoadingCube: "total_loading_cube",
+  latitude: "latitude",
+  longitude: "longitude",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -92,6 +98,9 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     driverId: (row.driver_id as string) || null,
     driverName: (row.driver_name as string) || null,
     source: (row.source as string) || null,
+    totalLoadingCube: (row.total_loading_cube as number) || 0,
+    latitude: row.latitude != null ? (row.latitude as number) : null,
+    longitude: row.longitude != null ? (row.longitude as number) : null,
   };
 }
 
@@ -130,6 +139,9 @@ function bookingToRow(b: Booking) {
     driver_id: b.driverId ?? null,
     driver_name: b.driverName ?? null,
     source: b.source ?? null,
+    total_loading_cube: b.totalLoadingCube ?? 0,
+    latitude: b.latitude ?? null,
+    longitude: b.longitude ?? null,
   };
 }
 
@@ -390,6 +402,9 @@ function rowToDriver(row: Record<string, unknown>): Driver {
     phone: (row.phone as string) || null,
     active: row.active as boolean,
     createdAt: row.created_at as string,
+    vehicleType: (row.vehicle_type as string) || "1톤",
+    vehicleCapacity: (row.vehicle_capacity as number) || 4.8,
+    licensePlate: (row.license_plate as string) || null,
   };
 }
 
@@ -406,12 +421,21 @@ export async function getDrivers(activeOnly = true): Promise<Driver[]> {
   return (data || []).map(rowToDriver);
 }
 
-export async function createDriver(name: string, phone?: string): Promise<Driver> {
+export async function createDriver(
+  name: string,
+  phone?: string,
+  vehicleType?: string,
+  vehicleCapacity?: number,
+  licensePlate?: string,
+): Promise<Driver> {
   const { data, error } = await supabase
     .from("drivers")
     .insert({
       name,
       phone: phone || null,
+      vehicle_type: vehicleType || "1톤",
+      vehicle_capacity: vehicleCapacity ?? 4.8,
+      license_plate: licensePlate || null,
     })
     .select()
     .single();
@@ -422,12 +446,15 @@ export async function createDriver(name: string, phone?: string): Promise<Driver
 
 export async function updateDriver(
   id: string,
-  updates: { name?: string; phone?: string; active?: boolean },
+  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string },
 ): Promise<Driver | null> {
   const row: Record<string, unknown> = {};
   if (updates.name !== undefined) row.name = updates.name;
   if (updates.phone !== undefined) row.phone = updates.phone;
   if (updates.active !== undefined) row.active = updates.active;
+  if (updates.vehicleType !== undefined) row.vehicle_type = updates.vehicleType;
+  if (updates.vehicleCapacity !== undefined) row.vehicle_capacity = updates.vehicleCapacity;
+  if (updates.licensePlate !== undefined) row.license_plate = updates.licensePlate;
 
   const { data, error } = await supabase
     .from("drivers")

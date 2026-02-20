@@ -21,6 +21,7 @@ const CustomerUpdateSchema = z.object({
     category: z.string(),
     price: z.number(),
     quantity: z.number().int().positive(),
+    loadingCube: z.number().min(0).default(0),
   })).optional(),
   memo: z.string().max(500).optional(),
   photos: z.array(z.string().url()).optional(),

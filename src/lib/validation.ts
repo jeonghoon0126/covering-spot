@@ -12,6 +12,7 @@ export const BookingCreateSchema = z.object({
         displayName: z.string().optional(),
         price: z.number().min(0),
         quantity: z.number().int().min(1).max(100),
+        loadingCube: z.number().min(0).default(0),
       }),
     )
     .min(1),
@@ -61,6 +62,7 @@ export const BookingUpdateSchema = z.object({
         displayName: z.string().optional(),
         price: z.number().min(0),
         quantity: z.number().int().min(1),
+        loadingCube: z.number().min(0).default(0),
       }),
     )
     .optional(),

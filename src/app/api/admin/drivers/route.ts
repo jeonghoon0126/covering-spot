@@ -6,6 +6,7 @@ import {
   deleteDriver,
 } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
+import { z } from "zod";
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +31,16 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const phoneRegex = /^01[0-9]\d{7,8}$/;
+
+const createDriverSchema = z.object({
+  name: z.string().min(1, "name 필드가 필요합니다").max(50),
+  phone: z.string().regex(phoneRegex, "올바른 전화번호 형식이 아닙니다").optional(),
+  vehicleType: z.enum(['1톤', '1.4톤', '2.5톤', '5톤']).optional().default('1톤'),
+  vehicleCapacity: z.number().min(0).max(50).optional(),
+  licensePlate: z.string().max(20).optional(),
+});
+
 export async function POST(req: NextRequest) {
   try {
     if (!validateToken(req)) {
@@ -41,14 +52,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    if (!body.name) {
+    const parsed = createDriverSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "name 필드가 필요합니다" },
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
 
-    const driver = await createDriver(body.name, body.phone);
+    const { name, phone, vehicleType, vehicleCapacity, licensePlate } = parsed.data;
+    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate);
     return NextResponse.json({ driver }, { status: 201 });
   } catch (e) {
     console.error("[admin/drivers/POST]", e);
@@ -58,6 +71,16 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+const updateDriverSchema = z.object({
+  id: z.string().min(1, "id 필드가 필요합니다"),
+  name: z.string().min(1).max(50).optional(),
+  phone: z.string().regex(phoneRegex, "올바른 전화번호 형식이 아닙니다").optional(),
+  active: z.boolean().optional(),
+  vehicleType: z.enum(['1톤', '1.4톤', '2.5톤', '5톤']).optional(),
+  vehicleCapacity: z.number().min(0).max(50).optional(),
+  licensePlate: z.string().max(20).optional(),
+});
 
 export async function PUT(req: NextRequest) {
   try {
@@ -70,19 +93,32 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
 
-    if (!body.id) {
+    const parsed = updateDriverSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "id 필드가 필요합니다" },
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
 
-    const updates: { name?: string; phone?: string; active?: boolean } = {};
-    if (body.name !== undefined) updates.name = body.name;
-    if (body.phone !== undefined) updates.phone = body.phone;
-    if (body.active !== undefined) updates.active = body.active;
+    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate } = parsed.data;
 
-    const driver = await updateDriver(body.id, updates);
+    const updates: {
+      name?: string;
+      phone?: string;
+      active?: boolean;
+      vehicleType?: string;
+      vehicleCapacity?: number;
+      licensePlate?: string;
+    } = {};
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (active !== undefined) updates.active = active;
+    if (vehicleType !== undefined) updates.vehicleType = vehicleType;
+    if (vehicleCapacity !== undefined) updates.vehicleCapacity = vehicleCapacity;
+    if (licensePlate !== undefined) updates.licensePlate = licensePlate;
+
+    const driver = await updateDriver(id, updates);
     if (!driver) {
       return NextResponse.json(
         { error: "기사를 찾을 수 없습니다" },

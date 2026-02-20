@@ -20,7 +20,14 @@ import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
-const TIME_OPTIONS = ["오전 (09~12시)", "오후 (13~18시)", "종일 가능"];
+const TIME_OPTIONS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
+const TIME_LABELS: Record<string, string> = {
+  "09:00": "오전 09~11시",
+  "11:00": "오전 11~13시",
+  "13:00": "오후 13~15시",
+  "15:00": "오후 15~17시",
+  "17:00": "오후 17~19시",
+};
 // 견적 미리보기 debounce용
 const QUOTE_PREVIEW_DEBOUNCE = 800;
 
@@ -203,9 +210,7 @@ function BookingPageContent() {
   useEffect(() => {
     setSelectedTime("");
     setTimeSlotCounts({
-      "오전 (09~12시)": -1,
-      "오후 (13~18시)": -1,
-      "종일 가능": -1,
+      "09:00": -1, "11:00": -1, "13:00": -1, "15:00": -1, "17:00": -1,
     });
   }, [selectedDate]);
 
@@ -217,19 +222,11 @@ function BookingPageContent() {
       .then((r) => r.json())
       .then((data) => {
         const slots = data.slots || [];
-        let am = 0;
-        let pm = 0;
+        const counts: Record<string, number> = {};
         for (const s of slots) {
-          if (!s.available) continue;
-          const h = parseInt(s.time.split(":")[0]);
-          if (h < 13) am++;
-          else pm++;
+          counts[s.time] = s.available ? 1 : 0;
         }
-        setTimeSlotCounts({
-          "오전 (09~12시)": am,
-          "오후 (13~18시)": pm,
-          "종일 가능": am + pm,
-        });
+        setTimeSlotCounts(counts);
       })
       .catch(() => {})
       .finally(() => setSlotsLoading(false));
@@ -375,7 +372,10 @@ function BookingPageContent() {
         return next;
       }
       if (delta > 0) {
-        return [...prev, { category: cat, name, displayName, price, quantity: 1 }];
+        const spotCat = categories.find((c) => c.name === cat);
+        const spotItem = spotCat?.items.find((i) => i.name === name);
+        const loadingCube = spotItem?.loadingCube ?? 0;
+        return [...prev, { category: cat, name, displayName, price, quantity: 1, loadingCube }];
       }
       return prev;
     });
@@ -704,7 +704,7 @@ function BookingPageContent() {
                   <LoadingSpinner />
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 max-sm:grid-cols-2 gap-3">
                   {TIME_OPTIONS.map((opt) => {
                     const count = timeSlotCounts[opt] ?? -1;
                     const isFull = count === 0; // -1 = 미로드 (가능으로 표시), 0 = 마감
@@ -723,7 +723,7 @@ function BookingPageContent() {
                               : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
                         }`}
                       >
-                        {opt}
+                        {TIME_LABELS[opt] || opt}
                         {isFull && (
                           <span className="block text-xs mt-0.5 text-semantic-red/70">마감</span>
                         )}
@@ -1201,7 +1201,7 @@ function BookingPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-text-sub">시간대</span>
-                <span className="font-medium">{selectedTime}</span>
+                <span className="font-medium">{TIME_LABELS[selectedTime] || selectedTime}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-sub">지역</span>

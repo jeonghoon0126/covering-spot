@@ -2,30 +2,55 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBookings, getBlockedSlots } from "@/lib/db";
 import { isDateBookable } from "@/lib/booking-utils";
 
-const DEFAULT_SLOTS = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-];
+const DEFAULT_SLOTS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
+
+// 2시간 단위 슬롯 표시 레이블
+const SLOT_LABELS: Record<string, string> = {
+  "09:00": "09:00~11:00",
+  "11:00": "11:00~13:00",
+  "13:00": "13:00~15:00",
+  "15:00": "15:00~17:00",
+  "17:00": "17:00~19:00",
+};
 
 // 시간대별 최대 예약 수
 const MAX_PER_SLOT = 2;
+
+// 30분 단위 시간을 2시간 슬롯으로 매핑
+function mapTo2HourSlot(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const totalMinutes = h * 60 + m;
+
+  // 09:00~11:00 -> "09:00"
+  if (totalMinutes >= 9 * 60 && totalMinutes < 11 * 60) return "09:00";
+  // 11:00~13:00 -> "11:00"
+  if (totalMinutes >= 11 * 60 && totalMinutes < 13 * 60) return "11:00";
+  // 13:00~15:00 -> "13:00"
+  if (totalMinutes >= 13 * 60 && totalMinutes < 15 * 60) return "13:00";
+  // 15:00~17:00 -> "15:00"
+  if (totalMinutes >= 15 * 60 && totalMinutes < 17 * 60) return "15:00";
+  // 17:00~19:00 -> "17:00"
+  if (totalMinutes >= 17 * 60 && totalMinutes < 19 * 60) return "17:00";
+
+  return time; // fallback
+}
+
+// 2시간 슬롯이 blocked_slots의 timeStart~timeEnd와 겹치는지 확인
+function isSlotBlockedByRange(slotStart: string, timeStart: string, timeEnd: string): boolean {
+  // 슬롯의 2시간 범위 계산 (예: "09:00" -> 09:00~11:00)
+  const [sh, sm] = slotStart.split(":").map(Number);
+  const slotStartMinutes = sh * 60 + sm;
+  const slotEndMinutes = slotStartMinutes + 120; // 2시간 = 120분
+
+  // blocked 범위 계산
+  const [bh1, bm1] = timeStart.split(":").map(Number);
+  const [bh2, bm2] = timeEnd.split(":").map(Number);
+  const blockedStartMinutes = bh1 * 60 + bm1;
+  const blockedEndMinutes = bh2 * 60 + bm2;
+
+  // 겹침 판정: 슬롯 범위와 blocked 범위가 교집합이 있는지
+  return !(slotEndMinutes <= blockedStartMinutes || slotStartMinutes >= blockedEndMinutes);
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,21 +84,27 @@ export async function GET(req: NextRequest) {
       ]);
       for (const b of bookings) {
         if (b.confirmedTime && (!excludeId || b.id !== excludeId)) {
-          confirmedCounts[b.confirmedTime] =
-            (confirmedCounts[b.confirmedTime] || 0) + 1;
+          // 기존 30분 단위 예약을 2시간 슬롯으로 변환
+          const mapped2HourSlot = mapTo2HourSlot(b.confirmedTime);
+          confirmedCounts[mapped2HourSlot] =
+            (confirmedCounts[mapped2HourSlot] || 0) + 1;
         }
       }
 
       for (const bs of blocked) {
-        // timeStart ~ timeEnd 범위에 해당하는 모든 슬롯을 차단
+        // timeStart ~ timeEnd 범위와 겹치는 2시간 슬롯을 차단
         for (const slot of DEFAULT_SLOTS) {
-          if (slot >= bs.timeStart && slot < bs.timeEnd) {
+          if (isSlotBlockedByRange(slot, bs.timeStart, bs.timeEnd)) {
             blockedTimes.add(slot);
           }
         }
       }
-    } catch {
-      // DB 미연결 시 모든 슬롯 available로 표시
+    } catch (dbErr) {
+      console.error("[slots/GET] DB 조회 실패", dbErr);
+      return NextResponse.json(
+        { error: "슬롯 조회 중 오류가 발생했습니다" },
+        { status: 500 },
+      );
     }
 
     // KST 기준 오늘 날짜 계산
@@ -93,6 +124,7 @@ export async function GET(req: NextRequest) {
       const isBlocked = blockedTimes.has(time);
       return {
         time,
+        label: SLOT_LABELS[time],
         available: count < MAX_PER_SLOT && !isPast && !isBlocked,
         count,
         blocked: isBlocked,

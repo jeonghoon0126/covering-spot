@@ -9,7 +9,8 @@ import { sendBookingCreated } from "@/lib/slack-notify";
 import { isDateBookable } from "@/lib/booking-utils";
 import { generateBookingToken, validateBookingToken } from "@/lib/booking-token";
 import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
-import type { Booking } from "@/types/booking";
+import { geocodeAddress } from "@/lib/geocode";
+import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,8 +64,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const validData = parsed.data;
+
     // 전날 12시 마감 정책 검증
-    if (!isDateBookable(body.date)) {
+    if (!isDateBookable(validData.date)) {
       return NextResponse.json(
         { error: "예약 마감된 날짜입니다. 전날 12시까지 신청 가능합니다." },
         { status: 400 },
@@ -72,47 +75,71 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date().toISOString();
+
+    // 적재큐브 합계 계산
+    const items: BookingItem[] = (validData.items || []).map((item) => ({
+      ...item,
+      displayName: item.displayName || item.name,
+    }));
+    const totalLoadingCube = items.reduce(
+      (sum: number, item: BookingItem) => sum + (item.loadingCube || 0) * item.quantity,
+      0,
+    );
+
     const booking: Booking = {
       id: uuidv4(),
-      date: body.date,
-      timeSlot: body.timeSlot,
-      area: body.area,
-      items: body.items || [],
-      totalPrice: body.totalPrice || 0,
-      crewSize: body.crewSize || 1,
-      needLadder: body.needLadder || false,
-      ladderType: body.ladderType || "",
-      ladderHours: body.ladderHours,
-      ladderPrice: body.ladderPrice || 0,
-      customerName: body.customerName,
-      phone: body.phone,
-      address: body.address,
-      addressDetail: body.addressDetail || "",
-      memo: body.memo || "",
+      date: validData.date,
+      timeSlot: validData.timeSlot,
+      area: validData.area,
+      items,
+      totalPrice: validData.totalPrice || 0,
+      crewSize: validData.crewSize || 1,
+      needLadder: validData.needLadder || false,
+      ladderType: validData.ladderType || "",
+      ladderHours: validData.ladderHours,
+      ladderPrice: validData.ladderPrice || 0,
+      customerName: validData.customerName,
+      phone: validData.phone,
+      address: validData.address,
+      addressDetail: validData.addressDetail || "",
+      memo: validData.memo || "",
       status: "pending",
       createdAt: now,
       updatedAt: now,
-      hasElevator: body.hasElevator || false,
-      hasParking: body.hasParking || false,
-      estimateMin: body.estimateMin || 0,
-      estimateMax: body.estimateMax || 0,
+      hasElevator: validData.hasElevator || false,
+      hasParking: validData.hasParking || false,
+      estimateMin: validData.estimateMin || 0,
+      estimateMax: validData.estimateMax || 0,
       finalPrice: null,
-      photos: body.photos || [],
+      photos: validData.photos || [],
       adminMemo: "",
       confirmedTime: null,
       slackThreadTs: null,
+      totalLoadingCube: Math.round(totalLoadingCube * 100) / 100,
     };
 
     await createBooking(booking);
 
-    // Slack 알림 -> thread_ts 저장 (실패해도 예약은 성공)
-    sendBookingCreated(booking)
-      .then((threadTs) => {
-        if (threadTs) {
-          updateBooking(booking.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+    // Fire-and-forget: Geocoding + Slack 알림
+    (async () => {
+      try {
+        const [coords, threadTs] = await Promise.all([
+          geocodeAddress(validData.address),
+          sendBookingCreated(booking),
+        ]);
+        const updates: Partial<Booking> = {};
+        if (coords) {
+          updates.latitude = coords.lat;
+          updates.longitude = coords.lng;
         }
-      })
-      .catch(() => {});
+        if (threadTs) {
+          updates.slackThreadTs = threadTs;
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateBooking(booking.id, updates);
+        }
+      } catch { /* fire-and-forget */ }
+    })();
 
     // 예약 생성 시 bookingToken 반환 (고객이 조회/수정/삭제에 사용)
     const bookingToken = generateBookingToken(booking.phone);

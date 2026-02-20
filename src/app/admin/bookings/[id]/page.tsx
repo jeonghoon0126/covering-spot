@@ -399,11 +399,25 @@ export default function AdminBookingDetailPage() {
               </div>
             )}
             {booking.memo && (
-              <div className="flex justify-between py-2.5">
+              <div className="flex justify-between py-2.5 border-b border-border-light">
                 <span className="text-text-sub shrink-0">요청사항</span>
                 <span className="font-medium text-right max-w-[60%] break-words [overflow-wrap:anywhere]">
                   {booking.memo}
                 </span>
+              </div>
+            )}
+            {(booking.totalLoadingCube ?? 0) > 0 && (
+              <div className={`flex justify-between py-2.5 ${booking.driverName ? "border-b border-border-light" : ""}`}>
+                <span className="text-text-sub">적재 큐브</span>
+                <span className="font-semibold text-primary">
+                  {(booking.totalLoadingCube || 0).toFixed(1)}m&sup3;
+                </span>
+              </div>
+            )}
+            {booking.driverName && (
+              <div className="flex justify-between py-2.5">
+                <span className="text-text-sub">배차 기사</span>
+                <span className="font-medium">{booking.driverName}</span>
               </div>
             )}
           </div>
