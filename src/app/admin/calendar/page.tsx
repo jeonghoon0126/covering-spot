@@ -744,7 +744,15 @@ export default function AdminCalendarPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               {/* 기사 선택 */}
               <div className="flex-1">
-                <label className="block text-[11px] text-text-muted font-medium mb-1">기사 선택</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] text-text-muted font-medium">기사 선택</label>
+                  <button
+                    onClick={() => router.push("/admin/driver")}
+                    className="text-[11px] text-primary font-medium hover:underline"
+                  >
+                    기사 관리 →
+                  </button>
+                </div>
                 <select
                   value={selectedDriverId}
                   onChange={(e) => setSelectedDriverId(e.target.value)}
