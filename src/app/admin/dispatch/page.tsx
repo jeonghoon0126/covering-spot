@@ -253,8 +253,12 @@ export default function AdminDispatchPage() {
       if (res.ok) {
         const data = await res.json();
         setUnloadingPoints(data.points || []);
+      } else {
+        console.warn("[unloading-points] 조회 실패:", res.status);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("[unloading-points] 네트워크 오류:", e);
+    }
   }, [token]);
 
   useEffect(() => {

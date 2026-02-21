@@ -33,12 +33,24 @@ export async function POST(req: NextRequest) {
 
     const { date, driverSlotFilters } = parsed.data;
 
+    // 배차 날짜 요일 계산 (KST 기준)
+    // workDays = "월,화,수,목,금" 등 쉼표 구분 한국어 요일
+    const KO_DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    const [dy, dm, dd] = date.split("-").map(Number);
+    const dayOfWeek = KO_DAYS[new Date(dy, dm - 1, dd).getDay()];
+
     // 병렬 조회
-    const [allBookings, drivers, unloadingPoints] = await Promise.all([
+    const [allBookings, allDrivers, unloadingPoints] = await Promise.all([
       getBookings(date),
       getDrivers(true),
       getUnloadingPoints(true),
     ]);
+
+    // 해당 요일에 근무하는 기사만 필터링 (workDays 미설정 시 항상 근무로 간주)
+    const drivers = allDrivers.filter((d) => {
+      if (!d.workDays) return true;
+      return d.workDays.split(",").map((s) => s.trim()).includes(dayOfWeek);
+    });
 
     // 미배차 + 활성 주문만 (취소/거부 제외)
     // 좌표 없는 주문(lat=0 또는 lng=0)은 별도 unassigned 처리 (0,0 = 아프리카 근해)

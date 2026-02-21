@@ -140,10 +140,13 @@ export function insertUnloadingStops(
   for (let i = 0; i < route.length; i++) {
     cumLoad += route[i].totalLoadingCube;
 
-    // 다음 주문 적재 후 용량 초과 여부 미리 확인
-    // i < route.length - 1 조건: 마지막 픽업 후에는 삽입 불필요 (루트가 하차지로 자연 종료)
-    const nextLoad = i + 1 < route.length ? route[i + 1].totalLoadingCube : 0;
-    if (cumLoad + nextLoad > capacity && i < route.length - 1) {
+    const isLast = i === route.length - 1;
+    const nextLoad = isLast ? 0 : route[i + 1].totalLoadingCube;
+
+    // 하차지 삽입 조건:
+    // 1) 현재 누적이 이미 용량 초과 → 마지막 픽업이어도 반드시 삽입 (과적재 방지)
+    // 2) 마지막이 아닌데 다음 픽업 후 초과 예상 → 선제적 삽입
+    if (cumLoad > capacity || (!isLast && cumLoad + nextLoad > capacity)) {
       // 현재 위치에서 가장 가까운 하차지 찾기
       const nearest = findNearestUnloadingPoint(route[i], unloadingPoints);
       if (nearest) {

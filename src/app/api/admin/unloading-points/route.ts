@@ -22,8 +22,9 @@ export async function GET(req: NextRequest) {
 }
 
 const CreateSchema = z.object({
-  name: z.string().min(1).max(50),
-  address: z.string().min(1).max(200),
+  // trim()으로 공백만 입력된 경우 방어 (예: "   " → "" → min(1) 실패)
+  name: z.string().trim().min(1).max(50),
+  address: z.string().trim().min(1).max(200),
 });
 
 /**
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
 
 const UpdateSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1).max(50).optional(),
-  address: z.string().min(1).max(200).optional(),
+  name: z.string().trim().min(1).max(50).optional(),
+  address: z.string().trim().min(1).max(200).optional(),
   active: z.boolean().optional(),
 });
 
