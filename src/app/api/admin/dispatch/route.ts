@@ -76,6 +76,7 @@ const BatchDispatchSchema = z.object({
   bookingIds: z.array(z.string().min(1)).min(1).max(50),
   driverId: z.string().min(1),
   driverName: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date 형식이 올바르지 않습니다 (YYYY-MM-DD)").optional(),
 });
 
 /**
@@ -98,7 +99,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { bookingIds, driverId, driverName } = parsed.data;
+    const { bookingIds, driverId, driverName, date } = parsed.data;
+
+    // 근무요일 체크: date가 제공된 경우 해당 기사의 근무요일 확인
+    if (date) {
+      const drivers = await getDrivers(true);
+      const driver = drivers.find((d) => d.id === driverId);
+      if (driver && driver.workDays) {
+        const KO_DAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
+        const dayOfWeek = KO_DAYS[new Date(date + "T00:00:00").getDay()];
+        const workDaySet = new Set(driver.workDays.split(",").map((d) => d.trim()));
+        if (!workDaySet.has(dayOfWeek)) {
+          return NextResponse.json(
+            { error: `${driver.name} 기사는 ${dayOfWeek}요일 휴무입니다 (근무일: ${driver.workDays})` },
+            { status: 422 }
+          );
+        }
+      }
+    }
 
     // 모든 주문 업데이트 (Promise.allSettled로 부분 실패 안전 처리)
     const results = await Promise.allSettled(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
@@ -27,12 +27,47 @@ interface Driver {
   vehicleType: string;
   vehicleCapacity: number;
   licensePlate: string | null;
+  workDays: string;
 }
 
 const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
 const VEHICLE_CAPACITY: Record<string, number> = {
   "1톤": 4.8, "1.4톤": 6.5, "2.5톤": 10.5, "5톤": 20.0,
 };
+const ALL_WORK_DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
+
+/** 근무요일 토글 컴포넌트 */
+function WorkDayToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const selected = new Set(value ? value.split(",") : []);
+  function toggle(day: string) {
+    const next = new Set(selected);
+    if (next.has(day)) next.delete(day);
+    else next.add(day);
+    // 요일 순서 유지
+    onChange(ALL_WORK_DAYS.filter((d) => next.has(d)).join(","));
+  }
+  return (
+    <div className="flex gap-1">
+      {ALL_WORK_DAYS.map((day) => {
+        const active = selected.has(day);
+        return (
+          <button
+            key={day}
+            type="button"
+            onClick={() => toggle(day)}
+            className={`flex-1 h-8 text-xs font-semibold rounded-sm border transition-colors ${
+              active
+                ? "bg-primary text-white border-primary"
+                : "bg-bg-warm text-text-muted border-border-light"
+            } ${day === "토" || day === "일" ? (active ? "bg-primary/80" : "text-text-muted/60") : ""}`}
+          >
+            {day}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ── 상수 ── */
 
@@ -140,12 +175,22 @@ export default function AdminCalendarPage() {
   const [newDriverPhone, setNewDriverPhone] = useState("");
   const [newDriverVehicleType, setNewDriverVehicleType] = useState("1톤");
   const [newDriverLicensePlate, setNewDriverLicensePlate] = useState("");
+  const [newDriverWorkDays, setNewDriverWorkDays] = useState("월,화,수,목,금,토");
   const [driverSaving, setDriverSaving] = useState(false);
   const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
   const [editDriverName, setEditDriverName] = useState("");
   const [editDriverPhone, setEditDriverPhone] = useState("");
   const [editDriverVehicleType, setEditDriverVehicleType] = useState("1톤");
   const [editDriverLicensePlate, setEditDriverLicensePlate] = useState("");
+  const [editDriverWorkDays, setEditDriverWorkDays] = useState("월,화,수,목,금,토");
+  // 기사 토스트 (alert 대체)
+  const [driverToast, setDriverToast] = useState<string | null>(null);
+  const driverToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showDriverToast(msg: string) {
+    if (driverToastTimer.current) clearTimeout(driverToastTimer.current);
+    setDriverToast(msg);
+    driverToastTimer.current = setTimeout(() => setDriverToast(null), 3000);
+  }
 
   const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
@@ -385,6 +430,7 @@ export default function AdminCalendarPage() {
           vehicleType: newDriverVehicleType,
           vehicleCapacity: VEHICLE_CAPACITY[newDriverVehicleType] || 4.8,
           licensePlate: newDriverLicensePlate.trim() || undefined,
+          workDays: newDriverWorkDays,
         }),
       });
       if (res.ok) {
@@ -392,14 +438,15 @@ export default function AdminCalendarPage() {
         setNewDriverPhone("");
         setNewDriverVehicleType("1톤");
         setNewDriverLicensePlate("");
+        setNewDriverWorkDays("월,화,수,목,금,토");
         setShowDriverForm(false);
         fetchDrivers();
       } else {
         const data = await res.json();
-        alert(data.error || "추가 실패");
+        showDriverToast(data.error || "추가 실패");
       }
     } catch {
-      alert("네트워크 오류");
+      showDriverToast("네트워크 오류");
     } finally {
       setDriverSaving(false);
     }
@@ -421,6 +468,7 @@ export default function AdminCalendarPage() {
           vehicleType: editDriverVehicleType,
           vehicleCapacity: VEHICLE_CAPACITY[editDriverVehicleType] || 4.8,
           licensePlate: editDriverLicensePlate.trim() || undefined,
+          workDays: editDriverWorkDays,
         }),
       });
       if (res.ok) {
@@ -428,10 +476,10 @@ export default function AdminCalendarPage() {
         fetchDrivers();
       } else {
         const data = await res.json();
-        alert(data.error || "수정 실패");
+        showDriverToast(data.error || "수정 실패");
       }
     } catch {
-      alert("네트워크 오류");
+      showDriverToast("네트워크 오류");
     } finally {
       setDriverSaving(false);
     }
@@ -539,6 +587,7 @@ export default function AdminCalendarPage() {
   const headerTitle = viewMode === "daily" ? "일간 캘린더" : viewMode === "weekly" ? "주간 캘린더" : "슬롯 관리";
 
   return (
+    <>
     <div className="min-h-screen bg-bg-warm">
       {/* 헤더 */}
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
@@ -1068,6 +1117,10 @@ export default function AdminCalendarPage() {
                       />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
+                    <WorkDayToggle value={newDriverWorkDays} onChange={setNewDriverWorkDays} />
+                  </div>
                   <button
                     onClick={handleCreateDriver}
                     disabled={driverSaving || !newDriverName.trim()}
@@ -1132,6 +1185,10 @@ export default function AdminCalendarPage() {
                               className="h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                             />
                           </div>
+                          <div>
+                            <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
+                            <WorkDayToggle value={editDriverWorkDays} onChange={setEditDriverWorkDays} />
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateDriver(driver.id)}
@@ -1166,6 +1223,11 @@ export default function AdminCalendarPage() {
                                 {driver.licensePlate}
                               </span>
                             )}
+                            {driver.workDays && driver.workDays !== "월,화,수,목,금,토" && (
+                              <span className="text-[10px] text-text-muted shrink-0">
+                                ({driver.workDays})
+                              </span>
+                            )}
                             {!driver.active && (
                               <span className="text-[10px] font-medium text-text-muted bg-fill-tint px-1.5 py-0.5 rounded shrink-0">
                                 비활성
@@ -1180,6 +1242,7 @@ export default function AdminCalendarPage() {
                                 setEditDriverPhone(driver.phone || "");
                                 setEditDriverVehicleType(driver.vehicleType || "1톤");
                                 setEditDriverLicensePlate(driver.licensePlate || "");
+                                setEditDriverWorkDays(driver.workDays || "월,화,수,목,금,토");
                               }}
                               className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
                             >
@@ -1207,5 +1270,13 @@ export default function AdminCalendarPage() {
         )}
       </div>
     </div>
+
+    {/* 기사 토스트 */}
+    {driverToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-text-primary text-bg text-sm font-medium px-4 py-2.5 rounded-full shadow-lg pointer-events-none">
+        {driverToast}
+      </div>
+    )}
+    </>
   );
 }

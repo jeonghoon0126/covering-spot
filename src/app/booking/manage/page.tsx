@@ -65,12 +65,12 @@ const STATUS_MESSAGES: Record<string, string> = {
   rejected: "수거가 불가한 건입니다",
 };
 
-const TIME_SLOTS = ["10:00", "12:00", "14:00", "15:00"];
+const TIME_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
 const TIME_SLOT_LABELS: Record<string, string> = {
   "10:00": "오전 10~12시",
   "12:00": "오후 12~14시",
   "14:00": "오후 14~16시",
-  "15:00": "오후 15~17시",
+  "16:00": "오후 16~18시",
 };
 
 interface EditForm {

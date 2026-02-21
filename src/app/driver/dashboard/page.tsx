@@ -20,9 +20,9 @@ const SLOT_LABELS: Record<string, string> = {
   "10:00": "10~12시",
   "12:00": "12~14시",
   "14:00": "14~16시",
-  "15:00": "15~17시",
+  "16:00": "16~18시",
 };
-const SLOT_ORDER = ["10:00", "12:00", "14:00", "15:00"];
+const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"];
 
 // 드라이버가 직접 변경 가능한 퀵 액션
 const QUICK_ACTIONS: Record<string, { status: string; label: string }> = {

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBookings, getBlockedSlots } from "@/lib/db";
 import { isDateBookable } from "@/lib/booking-utils";
 
-const DEFAULT_SLOTS = ["10:00", "12:00", "14:00", "15:00"];
+const DEFAULT_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
 
-// 2시간 단위 슬롯 표시 레이블 (운영시간: 10시~17시)
+// 2시간 단위 슬롯 표시 레이블 (운영시간: 10시~18시)
 const SLOT_LABELS: Record<string, string> = {
   "10:00": "10:00~12:00",
   "12:00": "12:00~14:00",
   "14:00": "14:00~16:00",
-  "15:00": "15:00~17:00",
+  "16:00": "16:00~18:00",
 };
 
 // 시간대별 최대 예약 수
@@ -26,12 +26,14 @@ function mapTo2HourSlot(time: string): string {
   if (totalMinutes >= 10 * 60 && totalMinutes < 12 * 60) return "10:00";
   // 12:00~14:00 -> "12:00"
   if (totalMinutes >= 12 * 60 && totalMinutes < 14 * 60) return "12:00";
-  // 14:00~15:00 -> "14:00"
-  if (totalMinutes >= 14 * 60 && totalMinutes < 15 * 60) return "14:00";
-  // 15:00~17:00 -> "15:00"
-  if (totalMinutes >= 15 * 60 && totalMinutes < 17 * 60) return "15:00";
-  // 구 슬롯(17:00~19:00) 호환: 가장 가까운 15:00 슬롯으로 매핑
-  if (totalMinutes >= 17 * 60 && totalMinutes < 19 * 60) return "15:00";
+  // 14:00~16:00 -> "14:00"
+  if (totalMinutes >= 14 * 60 && totalMinutes < 16 * 60) return "14:00";
+  // 16:00~18:00 -> "16:00"
+  if (totalMinutes >= 16 * 60 && totalMinutes < 18 * 60) return "16:00";
+  // 구 슬롯(15:00) 호환: 16:00 슬롯으로 매핑
+  if (totalMinutes >= 15 * 60 && totalMinutes < 16 * 60) return "16:00";
+  // 구 슬롯(18:00~19:00) 호환: 가장 가까운 16:00 슬롯으로 매핑
+  if (totalMinutes >= 18 * 60 && totalMinutes < 19 * 60) return "16:00";
 
   return time; // fallback
 }

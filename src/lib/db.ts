@@ -21,6 +21,7 @@ export interface Driver {
   vehicleType: string;       // '1톤', '1.4톤', '2.5톤', '5톤'
   vehicleCapacity: number;   // 적재 용량 (m³)
   licensePlate: string | null; // 차량번호
+  workDays: string;          // 근무요일 (예: '월,화,수,목,금,토') — 기본값: 월~토
 }
 
 /* ── camelCase ↔ snake_case 매핑 ── */
@@ -408,6 +409,7 @@ function rowToDriver(row: Record<string, unknown>): Driver {
     vehicleType: (row.vehicle_type as string) || "1톤",
     vehicleCapacity: (row.vehicle_capacity as number) || 4.8,
     licensePlate: (row.license_plate as string) || null,
+    workDays: (row.work_days as string) || "월,화,수,목,금,토",
   };
 }
 
@@ -430,6 +432,7 @@ export async function createDriver(
   vehicleType?: string,
   vehicleCapacity?: number,
   licensePlate?: string,
+  workDays?: string,
 ): Promise<Driver> {
   const { data, error } = await supabase
     .from("drivers")
@@ -439,6 +442,7 @@ export async function createDriver(
       vehicle_type: vehicleType || "1톤",
       vehicle_capacity: vehicleCapacity ?? 4.8,
       license_plate: licensePlate || null,
+      work_days: workDays || "월,화,수,목,금,토",
     })
     .select()
     .single();
@@ -449,7 +453,7 @@ export async function createDriver(
 
 export async function updateDriver(
   id: string,
-  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string },
+  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string; workDays?: string },
 ): Promise<Driver | null> {
   const row: Record<string, unknown> = {};
   if (updates.name !== undefined) row.name = updates.name;
@@ -458,6 +462,7 @@ export async function updateDriver(
   if (updates.vehicleType !== undefined) row.vehicle_type = updates.vehicleType;
   if (updates.vehicleCapacity !== undefined) row.vehicle_capacity = updates.vehicleCapacity;
   if (updates.licensePlate !== undefined) row.license_plate = updates.licensePlate;
+  if (updates.workDays !== undefined) row.work_days = updates.workDays;
 
   const { data, error } = await supabase
     .from("drivers")

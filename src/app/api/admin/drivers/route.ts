@@ -33,12 +33,20 @@ export async function GET(req: NextRequest) {
 
 const phoneRegex = /^01[0-9]\d{7,8}$/;
 
+const VALID_WORK_DAYS = ["월", "화", "수", "목", "금", "토", "일"];
+
+function validateWorkDays(val: string): boolean {
+  if (!val) return false;
+  return val.split(",").every((d) => VALID_WORK_DAYS.includes(d.trim()));
+}
+
 const createDriverSchema = z.object({
   name: z.string().min(1, "name 필드가 필요합니다").max(50),
   phone: z.string().regex(phoneRegex, "올바른 전화번호 형식이 아닙니다").optional(),
   vehicleType: z.enum(['1톤', '1.4톤', '2.5톤', '5톤']).optional().default('1톤'),
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
+  workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
 });
 
 export async function POST(req: NextRequest) {
@@ -63,8 +71,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, vehicleType, vehicleCapacity, licensePlate } = parsed.data;
-    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate);
+    const { name, phone, vehicleType, vehicleCapacity, licensePlate, workDays } = parsed.data;
+    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate, workDays);
     return NextResponse.json({ driver }, { status: 201 });
   } catch (e) {
     console.error("[admin/drivers/POST]", e);
@@ -83,6 +91,7 @@ const updateDriverSchema = z.object({
   vehicleType: z.enum(['1톤', '1.4톤', '2.5톤', '5톤']).optional(),
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
+  workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
 });
 
 export async function PUT(req: NextRequest) {
@@ -107,7 +116,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate } = parsed.data;
+    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate, workDays } = parsed.data;
 
     const updates: {
       name?: string;
@@ -116,6 +125,7 @@ export async function PUT(req: NextRequest) {
       vehicleType?: string;
       vehicleCapacity?: number;
       licensePlate?: string;
+      workDays?: string;
     } = {};
     if (name !== undefined) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
@@ -123,6 +133,7 @@ export async function PUT(req: NextRequest) {
     if (vehicleType !== undefined) updates.vehicleType = vehicleType;
     if (vehicleCapacity !== undefined) updates.vehicleCapacity = vehicleCapacity;
     if (licensePlate !== undefined) updates.licensePlate = licensePlate;
+    if (workDays !== undefined) updates.workDays = workDays;
 
     const driver = await updateDriver(id, updates);
     if (!driver) {

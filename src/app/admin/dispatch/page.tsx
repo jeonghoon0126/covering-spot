@@ -65,13 +65,13 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "수거불가",
 };
 
-const SLOT_ORDER = ["10:00", "12:00", "14:00", "15:00"];
+const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"];
 
 const SLOT_LABELS: Record<string, string> = {
   "10:00": "10~12시",
   "12:00": "12~14시",
   "14:00": "14~16시",
-  "15:00": "15~17시",
+  "16:00": "16~18시",
 };
 
 const UNASSIGNED_COLOR = "#3B82F6";
@@ -602,6 +602,7 @@ export default function AdminDispatchPage() {
           bookingIds: [bookingId],
           driverId: driver.id,
           driverName: driver.name,
+          date: selectedDate,
         }),
       });
       if (res.ok) {
@@ -677,6 +678,7 @@ export default function AdminDispatchPage() {
           bookingIds: targetIds,
           driverId: driver.id,
           driverName: driver.name,
+          date: selectedDate,
         }),
       });
       if (res.ok) {
@@ -778,19 +780,22 @@ export default function AdminDispatchPage() {
       {/* ── 헤더 ── */}
       <div className="sticky top-0 z-20 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[100rem] mx-auto px-4 py-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => router.push("/admin/calendar")}
-              className="text-text-sub hover:text-text-primary transition-colors"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <h1 className="text-lg font-bold">배차 관리</h1>
+          {/* 1행: 제목(좌) + 날짜 선택(우) */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                onClick={() => router.push("/admin/calendar")}
+                className="text-text-sub hover:text-text-primary transition-colors shrink-0"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <h1 className="text-lg font-bold truncate">배차 관리</h1>
+            </div>
 
             {/* 날짜 선택 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => moveDate(-1)} className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
@@ -798,7 +803,7 @@ export default function AdminDispatchPage() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-1.5 text-sm font-medium border border-border rounded-lg bg-bg"
+                className="px-2 py-1.5 text-sm font-medium border border-border rounded-lg bg-bg"
               />
               <button onClick={() => moveDate(1)} className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -812,41 +817,42 @@ export default function AdminDispatchPage() {
             </div>
           </div>
 
-          {/* 필터 + 범례 */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <select
-              value={filterDriverId}
-              onChange={(e) => { setFilterDriverId(e.target.value); setCheckedIds(new Set()); }}
-              className="text-xs px-2 py-1.5 border border-border rounded-lg bg-bg"
-              aria-label="기사 필터"
-            >
-              <option value="all">전체 ({activeBookings.length}건)</option>
-              <option value="unassigned">미배차 ({unassignedCount}건)</option>
-              {driverStats.map((stat) => (
-                <option key={stat.driverId} value={stat.driverId}>
-                  {stat.driverName} ({stat.assignedCount}건)
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterSlot}
-              onChange={(e) => { setFilterSlot(e.target.value); setCheckedIds(new Set()); }}
-              className="text-xs px-2 py-1.5 border border-border rounded-lg bg-bg"
-              aria-label="시간대 필터"
-            >
-              <option value="all">전체 시간대</option>
-              {SLOT_ORDER.map((slot) => {
-                const cnt = activeBookings.filter((b) => b.timeSlot === slot).length;
-                return cnt > 0 ? (
-                  <option key={slot} value={slot}>{SLOT_LABELS[slot]} ({cnt}건)</option>
-                ) : null;
-              })}
-            </select>
+          {/* 2행: 필터(좌) + 범례(우) */}
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={filterDriverId}
+                onChange={(e) => { setFilterDriverId(e.target.value); setCheckedIds(new Set()); }}
+                className="text-xs px-2 py-1.5 border border-border rounded-lg bg-bg"
+                aria-label="기사 필터"
+              >
+                <option value="all">전체 ({activeBookings.length}건)</option>
+                <option value="unassigned">미배차 ({unassignedCount}건)</option>
+                {driverStats.map((stat) => (
+                  <option key={stat.driverId} value={stat.driverId}>
+                    {stat.driverName} ({stat.assignedCount}건)
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterSlot}
+                onChange={(e) => { setFilterSlot(e.target.value); setCheckedIds(new Set()); }}
+                className="text-xs px-2 py-1.5 border border-border rounded-lg bg-bg"
+                aria-label="시간대 필터"
+              >
+                <option value="all">전체 시간대</option>
+                {SLOT_ORDER.map((slot) => {
+                  const cnt = activeBookings.filter((b) => b.timeSlot === slot).length;
+                  return cnt > 0 ? (
+                    <option key={slot} value={slot}>{SLOT_LABELS[slot]} ({cnt}건)</option>
+                  ) : null;
+                })}
+              </select>
+            </div>
 
             {/* 범례 + 가이드 */}
-            <div className="ml-auto flex items-center gap-2 text-xs">
-              {/* 색상 범례 */}
-              <div className="flex items-center gap-2.5 text-text-muted">
+            <div className="flex items-center gap-2 text-xs shrink-0">
+              <div className="hidden sm:flex items-center gap-2.5 text-text-muted">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: UNASSIGNED_COLOR }} />
                   미배차
@@ -861,8 +867,7 @@ export default function AdminDispatchPage() {
                   </span>
                 ))}
               </div>
-              {/* 조작 가이드 */}
-              <span className="hidden sm:inline-block text-xs text-text-muted border-l border-border-light pl-2">
+              <span className="hidden md:inline-block text-xs text-text-muted border-l border-border-light pl-2">
                 체크 선택 → 기사 지정 → 일괄 배차
               </span>
             </div>
@@ -2068,7 +2073,7 @@ function UnloadingModal({
                     </button>
                     <div className="flex gap-1.5 justify-end pt-0.5">
                       <button
-                        onClick={() => setEditingId(null)}
+                        onClick={() => { setEditingId(null); setEditName(""); setEditAddress(""); }}
                         className="text-xs px-3 py-1 rounded-lg border border-border text-text-muted hover:bg-fill-tint transition-colors"
                       >
                         취소
@@ -2093,14 +2098,15 @@ function UnloadingModal({
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => { setEditingId(p.id); setEditName(p.name); setEditAddress(p.address); setDeleteConfirmId(null); }}
-                        disabled={updating}
+                        disabled={updating || editingId !== null}
                         className="text-xs px-2 py-0.5 rounded bg-fill-tint text-text-muted hover:text-text-primary transition-colors disabled:opacity-40"
                       >
                         수정
                       </button>
                       <button
                         onClick={() => handleToggleActive(p)}
-                        className={`text-xs px-2 py-0.5 rounded ${
+                        disabled={editingId !== null}
+                        className={`text-xs px-2 py-0.5 rounded disabled:opacity-40 ${
                           p.active ? "bg-semantic-green-tint text-semantic-green" : "bg-fill-tint text-text-muted"
                         }`}
                       >
@@ -2125,8 +2131,8 @@ function UnloadingModal({
                       ) : (
                         <button
                           onClick={() => setDeleteConfirmId(p.id)}
-                          disabled={deletingId === p.id}
-                          className="text-xs text-semantic-red hover:bg-semantic-red-tint px-1.5 py-0.5 rounded transition-colors"
+                          disabled={deletingId === p.id || editingId !== null}
+                          className="text-xs text-semantic-red hover:bg-semantic-red-tint px-1.5 py-0.5 rounded transition-colors disabled:opacity-40"
                         >
                           삭제
                         </button>
