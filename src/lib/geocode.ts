@@ -1,3 +1,7 @@
+// 인메모리 캐시 — 서버 프로세스 수명 동안 유효 (주소는 변하지 않으므로 TTL 불필요)
+// key: 정규화된 주소, value: 좌표 또는 null(실패 결과는 캐시 안 함)
+const geocodeCache = new Map<string, { lat: number; lng: number }>();
+
 /**
  * Geocode a Korean address using Kakao REST API
  * @param address - The address string to geocode
@@ -17,6 +21,11 @@ export async function geocodeAddress(
     console.error('[geocode] Address is empty');
     return null;
   }
+
+  // 캐시 히트 확인
+  const cacheKey = address.trim();
+  const cached = geocodeCache.get(cacheKey);
+  if (cached) return cached;
 
   try {
     const controller = new AbortController();
@@ -57,7 +66,9 @@ export async function geocodeAddress(
       return null;
     }
 
-    return { lat, lng };
+    const result = { lat, lng };
+    geocodeCache.set(cacheKey, result);
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {

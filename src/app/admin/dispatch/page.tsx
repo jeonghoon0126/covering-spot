@@ -141,6 +141,7 @@ export default function AdminDispatchPage() {
   const [autoMode, setAutoMode] = useState<"idle" | "loading" | "preview">("idle");
   const [autoResult, setAutoResult] = useState<AutoDispatchResult | null>(null);
   const [autoApplying, setAutoApplying] = useState(false);
+  const [partialFailedIds, setPartialFailedIds] = useState<string[]>([]);
   // 자동배차 고급 설정 — 기사별 시간대 제약
   const [showSlotConfig, setShowSlotConfig] = useState(false);
   const [driverSlotFilters, setDriverSlotFilters] = useState<Record<string, string[]>>({});
@@ -317,8 +318,10 @@ export default function AdminDispatchPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.partialFailure) {
+          setPartialFailedIds(data.failed || []);
           showToast(`${data.updated?.length || 0}건 성공, ${data.failed?.length || 0}건 실패`, "warning");
         } else {
+          setPartialFailedIds([]);
           showToast(`${data.updated?.length || 0}건 배차 적용 완료`, "success");
         }
         setAutoMode("idle");
@@ -341,7 +344,13 @@ export default function AdminDispatchPage() {
   const handleAutoCancel = useCallback(() => {
     setAutoMode("idle");
     setAutoResult(null);
+    setPartialFailedIds([]);
   }, []);
+
+  // 날짜 변경 시 배차 실패 배너 초기화
+  useEffect(() => {
+    setPartialFailedIds([]);
+  }, [selectedDate]);
 
   // 자동배차 미리보기 내 순서 변경 (drag-and-drop)
   const handleAutoReorder = useCallback((driverId: string, newIds: string[]) => {
@@ -1004,6 +1013,38 @@ export default function AdminDispatchPage() {
                   </div>
                 )}
               </div>
+
+              {/* 배차 실패 배너 (partialFailure) */}
+              {partialFailedIds.length > 0 && (
+                <div className="px-4 py-3 bg-semantic-orange-tint border-b border-semantic-orange/20">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-semantic-orange mb-1.5">
+                        ⚠ 배차 실패 {partialFailedIds.length}건 — 수동 배차 필요
+                      </div>
+                      <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                        {partialFailedIds.map((id) => {
+                          const b = bookings.find((bk) => bk.id === id);
+                          return (
+                            <div key={id} className="text-[11px] text-text-sub truncate">
+                              {b ? `${b.customerName} · ${b.address}` : id}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setPartialFailedIds([])}
+                      className="flex-shrink-0 text-text-muted hover:text-text-sub p-0.5"
+                      aria-label="닫기"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* 주문 목록 또는 자동배차 미리보기 */}
               <div className="flex-1 overflow-y-auto">
