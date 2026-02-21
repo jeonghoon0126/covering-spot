@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef, forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -114,6 +115,8 @@ export default function AdminDispatchPage() {
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const abortRef = useRef<AbortController | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // filteredBookings 최신값 추적 (scrollToNextUnassigned stale closure 방어)
+  const filteredBookingsRef = useRef<Booking[]>([]);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -124,6 +127,7 @@ export default function AdminDispatchPage() {
 
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [filterDriverId, setFilterDriverId] = useState<string>("all");
+  const [filterSlot, setFilterSlot] = useState<string>("all");
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [batchDriverId, setBatchDriverId] = useState("");
   const [dispatching, setDispatching] = useState(false);
@@ -264,6 +268,12 @@ export default function AdminDispatchPage() {
   // 자동배차 실행 (미리보기)
   const handleAutoDispatch = useCallback(async () => {
     if (!token || autoMode === "loading") return;
+    // 활성 하차지 없으면 자동배차 실행 불가
+    if (unloadingPoints.filter((p) => p.active).length === 0) {
+      showToast("활성 하차지가 없습니다. 하차지를 먼저 등록해주세요.", "warning");
+      setShowUnloadingModal(true);
+      return;
+    }
     setAutoMode("loading");
     try {
       const res = await fetch("/api/admin/dispatch-auto", {
@@ -292,7 +302,7 @@ export default function AdminDispatchPage() {
       showToast("네트워크 오류");
       setAutoMode("idle");
     }
-  }, [token, selectedDate, autoMode, driverSlotFilters]);
+  }, [token, selectedDate, autoMode, driverSlotFilters, unloadingPoints]);
 
   // 자동배차 적용
   const handleAutoApply = useCallback(async () => {
@@ -313,6 +323,8 @@ export default function AdminDispatchPage() {
         }
         setAutoMode("idle");
         setAutoResult(null);
+        setDriverSlotFilters({});
+        setShowSlotConfig(false);
         fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));
@@ -382,11 +394,16 @@ export default function AdminDispatchPage() {
   // 필터링된 예약
   const filteredBookings = useMemo(() => {
     return activeBookings.filter((b) => {
-      if (filterDriverId === "unassigned") return !b.driverId;
-      if (filterDriverId !== "all") return b.driverId === filterDriverId;
-      return true;
+      const driverMatch =
+        filterDriverId === "unassigned" ? !b.driverId :
+        filterDriverId !== "all" ? b.driverId === filterDriverId :
+        true;
+      const slotMatch = filterSlot === "all" || b.timeSlot === filterSlot;
+      return driverMatch && slotMatch;
     });
-  }, [activeBookings, filterDriverId]);
+  }, [activeBookings, filterDriverId, filterSlot]);
+  // 최신값 ref 동기화 (scrollToNextUnassigned stale closure 방어)
+  filteredBookingsRef.current = filteredBookings;
 
   // 시간대별 그룹핑
   const groupedBySlot = useMemo(() => {
@@ -516,7 +533,7 @@ export default function AdminDispatchPage() {
   // 전체 선택 (미배차만)
   function toggleAllUnassigned() {
     const unassigned = filteredBookings.filter((b) => !b.driverId);
-    const allChecked = unassigned.every((b) => checkedIds.has(b.id));
+    const allChecked = unassigned.length > 0 && unassigned.every((b) => checkedIds.has(b.id));
     if (allChecked) {
       setCheckedIds(new Set());
     } else {
@@ -525,9 +542,23 @@ export default function AdminDispatchPage() {
   }
 
   // 단건 배차 (옵티미스틱 업데이트)
+  // 배차 완료 후 다음 미배차 항목으로 스크롤 (ref 사용으로 stale closure 방어)
+  function scrollToNextUnassigned(excludeIds: string[]) {
+    const next = filteredBookingsRef.current.find((b) => !b.driverId && !excludeIds.includes(b.id ?? ""));
+    if (next?.id) {
+      const targetId = next.id;
+      setTimeout(() => {
+        cardRefs.current.get(targetId)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 50);
+    }
+  }
+
   async function handleDispatch(bookingId: string, driverId: string) {
     const driver = drivers.find((d) => d.id === driverId);
     if (!driver || !token || dispatching) return;
+
+    // 배차 직전에 다음 미배차 계산 (옵티미스틱 업데이트 전)
+    scrollToNextUnassigned([bookingId]);
 
     // 옵티미스틱: 로컬 상태 즉시 반영
     const prevBooking = bookings.find((b) => b.id === bookingId);
@@ -586,6 +617,9 @@ export default function AdminDispatchPage() {
     const targetIds = Array.from(checkedIds).filter((id) =>
       filteredBookings.some((b) => b.id === id),
     );
+
+    // 배차 직전에 다음 미배차 계산
+    scrollToNextUnassigned(targetIds);
 
     // 옵티미스틱: 로컬 상태 즉시 반영 (재배차 시 기존 기사 차감 포함)
     const targetBookings = targetIds.map((id) => bookings.find((bk) => bk.id === id)).filter(Boolean) as Booking[];
@@ -784,6 +818,20 @@ export default function AdminDispatchPage() {
                 </option>
               ))}
             </select>
+            <select
+              value={filterSlot}
+              onChange={(e) => { setFilterSlot(e.target.value); setCheckedIds(new Set()); }}
+              className="text-xs px-2 py-1.5 border border-border rounded-lg bg-bg"
+              aria-label="시간대 필터"
+            >
+              <option value="all">전체 시간대</option>
+              {SLOT_ORDER.map((slot) => {
+                const cnt = activeBookings.filter((b) => b.timeSlot === slot).length;
+                return cnt > 0 ? (
+                  <option key={slot} value={slot}>{SLOT_LABELS[slot]} ({cnt}건)</option>
+                ) : null;
+              })}
+            </select>
 
             {/* 범례 + 가이드 */}
             <div className="ml-auto flex items-center gap-2 text-xs">
@@ -804,7 +852,7 @@ export default function AdminDispatchPage() {
                 ))}
               </div>
               {/* 조작 가이드 */}
-              <span className="hidden sm:inline-block text-[10px] text-text-muted border-l border-border-light pl-2">
+              <span className="hidden sm:inline-block text-xs text-text-muted border-l border-border-light pl-2">
                 체크 선택 → 기사 지정 → 일괄 배차
               </span>
             </div>
@@ -888,7 +936,7 @@ export default function AdminDispatchPage() {
                     {/* 기사별 시간대 제약 설정 패널 */}
                     {showSlotConfig && drivers.length > 0 && (
                       <div className="bg-bg-warm border border-border-light rounded-lg p-2.5 space-y-1.5">
-                        <span className="text-[10px] text-text-muted font-medium">기사별 허용 시간대 (비활성 = 해당 슬롯 배제)</span>
+                        <span className="text-xs text-text-muted font-medium">기사별 허용 시간대 (비활성 = 해당 슬롯 배제)</span>
                         {drivers.map((d) => {
                           const allowed = driverSlotFilters[d.id] ?? [];
                           return (
@@ -900,7 +948,7 @@ export default function AdminDispatchPage() {
                                   <button
                                     key={slot}
                                     onClick={() => toggleDriverSlot(d.id, slot)}
-                                    className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
+                                    className={`text-xs px-1.5 py-0.5 rounded-full border transition-colors ${
                                       active
                                         ? "bg-primary text-white border-primary"
                                         : "text-text-muted border-border bg-bg"
@@ -928,14 +976,19 @@ export default function AdminDispatchPage() {
                       </button>
                       <button
                         onClick={() => setShowSlotConfig((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                           showSlotConfig
                             ? "border-primary text-primary bg-primary-bg"
                             : "border-border text-text-muted hover:bg-fill-tint"
                         }`}
                         title="기사별 시간대 제약 설정"
                       >
-                        ⚙
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M1.75 4.5h10.5M1.75 9.5h10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                          <circle cx="4.5" cy="4.5" r="1.75" fill="currentColor"/>
+                          <circle cx="9.5" cy="9.5" r="1.75" fill="currentColor"/>
+                        </svg>
+                        시간 제한
                       </button>
                       <button
                         onClick={() => setShowUnloadingModal(true)}
@@ -1094,8 +1147,8 @@ export default function AdminDispatchPage() {
                               <div className="flex items-center gap-1.5 mb-1">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                                 <span className="text-xs font-semibold truncate">{stat.driverName}</span>
-                                <span className="text-[10px] text-text-muted">{stat.vehicleType}</span>
-                                <span className="ml-auto text-[10px] text-text-muted">{stat.assignedCount}건</span>
+                                <span className="text-[11px] text-text-muted">{stat.vehicleType}</span>
+                                <span className="ml-auto text-[11px] text-text-muted">{stat.assignedCount}건</span>
                               </div>
                               <div className="h-1.5 bg-fill-tint rounded-full overflow-hidden mb-0.5">
                                 <div
@@ -1106,7 +1159,7 @@ export default function AdminDispatchPage() {
                                   }}
                                 />
                               </div>
-                              <div className="flex items-center justify-between text-[10px]">
+                              <div className="flex items-center justify-between text-[11px]">
                                 <span className={isOver ? "text-semantic-red font-semibold" : "text-text-muted"}>
                                   {stat.totalLoadingCube.toFixed(1)}/{stat.vehicleCapacity}m&sup3;
                                 </span>
@@ -1119,12 +1172,12 @@ export default function AdminDispatchPage() {
                                 return (
                                   <div className="flex flex-wrap gap-0.5 mt-1">
                                     {SLOT_ORDER.filter((s) => breakdown[s]).map((s) => (
-                                      <span key={s} className="text-[9px] px-1 py-0 rounded bg-fill-tint text-text-muted leading-4">
+                                      <span key={s} className="text-[11px] px-1.5 py-0.5 rounded bg-fill-tint text-text-muted leading-4">
                                         {SLOT_LABELS[s] || s} {breakdown[s]}
                                       </span>
                                     ))}
                                     {breakdown["기타"] ? (
-                                      <span className="text-[9px] px-1 py-0 rounded bg-fill-tint text-text-muted leading-4">
+                                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-fill-tint text-text-muted leading-4">
                                         기타 {breakdown["기타"]}
                                       </span>
                                     ) : null}
@@ -1265,7 +1318,7 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
         <div className="flex-1 min-w-0">
           {/* 1줄: 시간 + 고객명 + 상태 */}
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded"
+            <span className="text-xs font-semibold text-white px-1.5 py-0.5 rounded"
               style={{ background: booking.driverId ? (driverColor || "#10B981") : UNASSIGNED_COLOR }}>
               {SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
             </span>
@@ -1390,7 +1443,7 @@ function OverlayCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold">{booking.customerName}</h3>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
             booking.status === "pending" ? "bg-semantic-orange-tint text-semantic-orange"
             : booking.status === "in_progress" ? "bg-primary-tint text-primary"
             : "bg-semantic-green-tint text-semantic-green"
@@ -1570,16 +1623,16 @@ function SortableBookingRow({
       <div className="flex items-center gap-2 py-1">
         <DragHandle listeners={listeners} attributes={attributes} />
         <span
-          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+          className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
           style={{ background: color }}
         >
           {booking.routeOrder}
         </span>
         <div className="flex-1 min-w-0">
           <div className="text-xs font-medium truncate">{booking.customerName}</div>
-          <div className="text-[10px] text-text-muted truncate">{booking.address}</div>
+          <div className="text-[11px] text-text-muted truncate">{booking.address}</div>
         </div>
-        <span className="text-[10px] font-semibold text-primary flex-shrink-0">
+        <span className="text-[11px] font-semibold text-primary flex-shrink-0">
           {booking.loadCube.toFixed(1)}m³
         </span>
       </div>
@@ -1587,7 +1640,7 @@ function SortableBookingRow({
       {stopAfterThis && (
         <div className="flex items-center gap-2 py-1.5 pl-2">
           <div className="flex-1 border-t border-dashed border-purple-300" />
-          <span className="text-[10px] font-bold text-purple-600 whitespace-nowrap px-1">
+          <span className="text-[11px] font-bold text-purple-600 whitespace-nowrap px-1">
             ◆ {stopAfterThis.pointName}
           </span>
           <div className="flex-1 border-t border-dashed border-purple-300" />
@@ -1658,11 +1711,11 @@ function AutoDispatchPreview({
               <div className="px-4 py-2 bg-bg-warm flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                 <span className="text-xs font-bold">{dp.driverName}</span>
-                <span className="text-[10px] text-text-muted">{dp.vehicleType}</span>
-                <span className="ml-auto text-[10px] text-text-muted">
+                <span className="text-[11px] text-text-muted">{dp.vehicleType}</span>
+                <span className="ml-auto text-[11px] text-text-muted">
                   {dp.bookings.length}건 · {dp.totalLoad.toFixed(1)}/{dp.vehicleCapacity}m³ · {dp.totalDistance.toFixed(1)}km
                   {dp.estimatedDuration != null && (
-                    <span className="ml-1 text-[10px] font-medium text-primary">
+                    <span className="ml-1 text-[11px] font-medium text-primary">
                       · 약 {formatDuration(dp.estimatedDuration)} {dp.estimatedDistance != null ? `· ${formatDistance(dp.estimatedDistance)}` : ""}
                     </span>
                   )}
@@ -1779,14 +1832,14 @@ function LegLoadBars({ driverPlan, color }: { driverPlan: DriverPlan; color: str
         const isOver = leg.load > cap;
         return (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-[10px] text-text-muted w-8">{i + 1}차</span>
+            <span className="text-[11px] text-text-muted w-8">{i + 1}차</span>
             <div className="flex-1 h-1.5 bg-fill-tint rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${Math.min(100, pct)}%`, background: isOver ? "#EF4444" : color }}
               />
             </div>
-            <span className={`text-[10px] ${isOver ? "text-semantic-red font-semibold" : "text-text-muted"}`}>
+            <span className={`text-[11px] ${isOver ? "text-semantic-red font-semibold" : "text-text-muted"}`}>
               {leg.load.toFixed(1)}/{cap}m³
             </span>
           </div>
@@ -1819,6 +1872,39 @@ function UnloadingModal({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   // 주소 검색 팝업
   const [showAddrSearch, setShowAddrSearch] = useState(false);
+  const [portalMounted, setPortalMounted] = useState(false);
+  useEffect(() => setPortalMounted(true), []);
+  // 인라인 수정
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [showEditAddrSearch, setShowEditAddrSearch] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  async function handleUpdate(id: string) {
+    if (!editName.trim() || !editAddress.trim() || updating) return;
+    setUpdating(true);
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id, name: editName.trim(), address: editAddress.trim() }),
+      });
+      if (res.ok) {
+        // 저장 요청한 id와 현재 editingId가 같을 때만 닫음 (저장 중 다른 항목 수정 시작한 경우 보호)
+        setEditingId((current) => current === id ? null : current);
+        onToast("수정 완료", "success");
+        onRefresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        onToast(data.error || "수정 실패", "error");
+      }
+    } catch {
+      onToast("네트워크 오류", "error");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   async function handleCreate() {
     if (!newName.trim() || !newAddress.trim() || creating) return;
@@ -1916,50 +2002,96 @@ function UnloadingModal({
             points.map((p) => (
               <div
                 key={p.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                className={`p-3 rounded-lg border transition-colors ${
                   p.active ? "border-border-light bg-bg" : "border-border-light bg-bg-warm opacity-60"
                 }`}
               >
-                <span className="mt-0.5 w-5 h-5 flex items-center justify-center text-purple-600 flex-shrink-0">◆</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">{p.name}</div>
-                  <div className="text-xs text-text-muted truncate">{p.address}</div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => handleToggleActive(p)}
-                    className={`text-[10px] px-2 py-0.5 rounded ${
-                      p.active ? "bg-semantic-green-tint text-semantic-green" : "bg-fill-tint text-text-muted"
-                    }`}
-                  >
-                    {p.active ? "활성" : "비활성"}
-                  </button>
-                  {deleteConfirmId === p.id ? (
-                    <>
+                {editingId === p.id ? (
+                  /* 수정 모드 */
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="하차지 이름"
+                      className="w-full text-sm px-2.5 py-1.5 border border-border rounded-lg bg-bg focus:outline-none focus:ring-1 focus:ring-primary"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditAddrSearch(true)}
+                      className="w-full text-sm px-2.5 py-1.5 border border-border rounded-lg bg-bg text-left truncate"
+                    >
+                      {editAddress || <span className="text-text-muted">주소 검색 (클릭)</span>}
+                    </button>
+                    <div className="flex gap-1.5 justify-end pt-0.5">
                       <button
-                        onClick={() => handleDelete(p.id)}
-                        disabled={deletingId === p.id}
-                        className="text-[10px] font-semibold text-white bg-semantic-red px-2 py-0.5 rounded transition-colors"
-                      >
-                        삭제
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmId(null)}
-                        className="text-[10px] text-text-muted px-1 py-0.5"
+                        onClick={() => setEditingId(null)}
+                        className="text-xs px-3 py-1 rounded-lg border border-border text-text-muted hover:bg-fill-tint transition-colors"
                       >
                         취소
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirmId(p.id)}
-                      disabled={deletingId === p.id}
-                      className="text-xs text-semantic-red hover:bg-semantic-red-tint px-1.5 py-0.5 rounded transition-colors"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
+                      <button
+                        onClick={() => handleUpdate(p.id)}
+                        disabled={updating || !editName.trim() || !editAddress.trim()}
+                        className="text-xs px-3 py-1 rounded-lg bg-primary text-white font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                      >
+                        {updating ? "저장 중..." : "저장"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* 표시 모드 */
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 w-5 h-5 flex items-center justify-center text-purple-600 flex-shrink-0">◆</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold">{p.name}</div>
+                      <div className="text-xs text-text-muted truncate">{p.address}</div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => { setEditingId(p.id); setEditName(p.name); setEditAddress(p.address); setDeleteConfirmId(null); }}
+                        disabled={updating}
+                        className="text-xs px-2 py-0.5 rounded bg-fill-tint text-text-muted hover:text-text-primary transition-colors disabled:opacity-40"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(p)}
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          p.active ? "bg-semantic-green-tint text-semantic-green" : "bg-fill-tint text-text-muted"
+                        }`}
+                      >
+                        {p.active ? "활성" : "비활성"}
+                      </button>
+                      {deleteConfirmId === p.id ? (
+                        <>
+                          <button
+                            onClick={() => handleDelete(p.id)}
+                            disabled={deletingId === p.id}
+                            className="text-xs font-semibold text-white bg-semantic-red px-2 py-0.5 rounded transition-colors"
+                          >
+                            삭제
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="text-xs text-text-muted px-1 py-0.5"
+                          >
+                            취소
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirmId(p.id)}
+                          disabled={deletingId === p.id}
+                          className="text-xs text-semantic-red hover:bg-semantic-red-tint px-1.5 py-0.5 rounded transition-colors"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -1982,20 +2114,21 @@ function UnloadingModal({
             >
               {newAddress || <span className="text-text-muted">주소 검색 (클릭)</span>}
             </button>
-            {showAddrSearch && (
+            {showAddrSearch && portalMounted && createPortal(
               <div
-                className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center"
+                className="fixed inset-0 z-[9999] bg-black/50 flex items-end sm:items-center justify-center"
                 onClick={() => setShowAddrSearch(false)}
               >
                 <div
-                  className="bg-bg rounded-xl overflow-hidden w-[360px]"
+                  className="bg-bg rounded-t-2xl sm:rounded-xl w-full sm:w-[400px] sm:max-w-[calc(100vw-32px)]"
                   onClick={(e) => e.stopPropagation()}
+                  style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.12)' }}
                 >
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border-light">
+                  <div className="flex items-center justify-between px-4 py-3.5 border-b border-border-light">
                     <span className="text-sm font-semibold">주소 검색</span>
                     <button
                       onClick={() => setShowAddrSearch(false)}
-                      className="p-1 text-text-muted hover:text-text-primary"
+                      className="p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-fill-tint transition-colors"
                     >
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -2007,10 +2140,11 @@ function UnloadingModal({
                       setNewAddress(data.roadAddress || data.jibunAddress);
                       setShowAddrSearch(false);
                     }}
-                    style={{ height: 380 }}
+                    style={{ height: 420, width: '100%', display: 'block' }}
                   />
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
             <button
               onClick={handleCreate}
@@ -2022,6 +2156,39 @@ function UnloadingModal({
           </div>
         </div>
       </div>
+      {/* 수정 모드 주소 검색 portal */}
+      {showEditAddrSearch && portalMounted && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-black/50 flex items-end sm:items-center justify-center"
+          onClick={() => setShowEditAddrSearch(false)}
+        >
+          <div
+            className="bg-bg rounded-t-2xl sm:rounded-xl w-full sm:w-[400px] sm:max-w-[calc(100vw-32px)]"
+            onClick={(e) => e.stopPropagation()}
+            style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.12)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-border-light">
+              <span className="text-sm font-semibold">주소 검색</span>
+              <button
+                onClick={() => setShowEditAddrSearch(false)}
+                className="p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-fill-tint transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setEditAddress(data.roadAddress || data.jibunAddress);
+                setShowEditAddrSearch(false);
+              }}
+              style={{ height: 420, width: '100%', display: 'block' }}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

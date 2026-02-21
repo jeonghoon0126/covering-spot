@@ -67,7 +67,7 @@ export default function DriverDashboard() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Partial<Booking>[]>([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState<string | null>(null); // null = 아직 확인 전, "" = 없음
   const [driverName, setDriverName] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [showDate, setShowDate] = useState<"today" | "tomorrow">("today");
@@ -235,6 +235,9 @@ export default function DriverDashboard() {
 
   const pendingCount = statusCounts["quote_confirmed"] || 0;
   const inProgressCount = statusCounts["in_progress"] || 0;
+
+  // 토큰 확인 전(null) → 아무것도 렌더하지 않음 (플리커 방지)
+  if (token === null) return null;
 
   return (
     <div className="min-h-screen bg-bg-warm">

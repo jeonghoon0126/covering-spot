@@ -8,7 +8,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -28,7 +28,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 250000, quantity: 2 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 250000, quantity: 2, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -45,7 +45,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 500000, quantity: 2 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 500000, quantity: 2, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -62,7 +62,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 100000, quantity: 1 },
+        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 100000, quantity: 1, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -78,8 +78,8 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 100000, quantity: 1 },
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 100000, quantity: 1 },
+        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 100000, quantity: 1, loadingCube: 0 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 100000, quantity: 1, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -96,7 +96,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1, loadingCube: 0 },
       ],
       needLadder: true,
       ladderType: "10층 미만",
@@ -113,7 +113,7 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "구리",
       items: [
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 50000, quantity: 1, loadingCube: 0 },
       ],
       needLadder: false,
     };
@@ -128,8 +128,8 @@ describe("calculateQuote", () => {
     const input: QuoteInput = {
       area: "강남구",
       items: [
-        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 200000, quantity: 3 },
-        { category: "가전", name: "냉장고", displayName: "냉장고", price: 150000, quantity: 2 },
+        { category: "장롱", name: "장롱 3자", displayName: "장롱 3자", price: 200000, quantity: 3, loadingCube: 0 },
+        { category: "가전", name: "냉장고", displayName: "냉장고", price: 150000, quantity: 2, loadingCube: 0 },
       ],
       needLadder: true,
       ladderType: "10층 이상",

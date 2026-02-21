@@ -50,7 +50,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    let body: unknown;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ error: "유효하지 않은 JSON입니다" }, { status: 400 });
+    }
 
     const parsed = createDriverSchema.safeParse(body);
     if (!parsed.success) {
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest) {
 }
 
 const updateDriverSchema = z.object({
-  id: z.string().min(1, "id 필드가 필요합니다"),
+  id: z.string().uuid("유효하지 않은 id 형식입니다"),
   name: z.string().min(1).max(50).optional(),
   phone: z.string().regex(phoneRegex, "올바른 전화번호 형식이 아닙니다").optional(),
   active: z.boolean().optional(),
@@ -91,7 +94,10 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    let body: unknown;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ error: "유효하지 않은 JSON입니다" }, { status: 400 });
+    }
 
     const parsed = updateDriverSchema.safeParse(body);
     if (!parsed.success) {
@@ -149,6 +155,12 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "id 파라미터가 필요합니다" },
+        { status: 400 },
+      );
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 id 형식입니다" },
         { status: 400 },
       );
     }
