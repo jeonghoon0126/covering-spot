@@ -10,6 +10,7 @@ import {
   sendBookingDeleted,
 } from "@/lib/slack-notify";
 import { validateBookingToken } from "@/lib/booking-token";
+import { getCustomerDeadline } from "@/lib/booking-utils";
 
 /** 고객이 수정 가능한 필드만 허용 (admin 전용 필드 차단) */
 const CustomerUpdateSchema = z.object({
@@ -113,10 +114,8 @@ export async function PUT(
     }
 
     // 수정 가능 조건: 수거일 전날 22시(KST) 이전까지만
-    const pickupDate = new Date(existing.date + "T00:00:00+09:00");
-    const deadline = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000); // 전날 22시 = 당일 00시 - 2시간
     const now = new Date();
-    if (now >= deadline) {
+    if (now >= getCustomerDeadline(existing.date)) {
       return NextResponse.json(
         { error: "수거일 전날 22시 이후에는 수정할 수 없습니다" },
         { status: 400 },
@@ -204,6 +203,14 @@ export async function DELETE(
     if (booking.status !== "pending" && booking.status !== "quote_confirmed") {
       return NextResponse.json(
         { error: "수거 진행 중에는 취소할 수 없습니다" },
+        { status: 400 },
+      );
+    }
+
+    // 수거일 전날 22시(KST) 이후에는 취소 불가
+    if (new Date() >= getCustomerDeadline(booking.date)) {
+      return NextResponse.json(
+        { error: "수거일 전날 22시 이후에는 취소할 수 없습니다. 취소가 필요하시면 고객센터로 문의해 주세요." },
         { status: 400 },
       );
     }

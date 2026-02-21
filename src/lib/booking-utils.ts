@@ -25,3 +25,17 @@ export function getEarliestBookableDate(): string {
 export function isDateBookable(dateStr: string): boolean {
   return dateStr >= getEarliestBookableDate();
 }
+
+/**
+ * 수거일 기준 고객 수정/취소 마감 시각
+ * 정책: 수거일 전날 22시(KST) — 당일 00:00 기준 -2시간
+ */
+export function getCustomerDeadline(bookingDate: string): Date {
+  const pickupDate = new Date(bookingDate + "T00:00:00+09:00");
+  return new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+}
+
+/** 수정/취소 가능 여부 */
+export function isBeforeDeadline(bookingDate: string): boolean {
+  return new Date() < getCustomerDeadline(bookingDate);
+}

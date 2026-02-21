@@ -191,6 +191,23 @@ export async function getBookingById(
   return data ? rowToBooking(data) : null;
 }
 
+/** 관리자용: 취소된 건 포함하여 단건 조회 */
+export async function getBookingByIdAdmin(
+  id: string,
+): Promise<Booking | null> {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return data ? rowToBooking(data) : null;
+}
+
 export async function getBookingsByPhone(
   phone: string,
 ): Promise<Booking[]> {

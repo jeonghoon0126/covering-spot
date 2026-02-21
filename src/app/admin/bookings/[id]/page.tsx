@@ -256,9 +256,11 @@ export default function AdminBookingDetailPage() {
       if (res.ok) {
         setBooking(data.booking);
         alert("저장되었습니다");
+      } else {
+        alert(data.error || "저장 실패");
       }
     } catch {
-      alert("저장 실패");
+      alert("네트워크 오류");
     } finally {
       setSaving(false);
     }

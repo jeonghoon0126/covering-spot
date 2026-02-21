@@ -9,27 +9,22 @@ import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
+import { isBeforeDeadline } from "@/lib/booking-utils";
 import { track } from "@/lib/analytics";
 
 /** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
 function canEdit(b: Booking): boolean {
-  if (b.status !== "pending") return false;
-  const pickupDate = new Date(b.date + "T00:00:00+09:00");
-  const deadline = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
-  return new Date() < deadline;
+  return b.status === "pending" && isBeforeDeadline(b.date);
 }
 
 /** 일정 변경 가능 여부: quote_confirmed 상태 + 수거일 전날 22시 이전 */
 function canReschedule(b: Booking): boolean {
-  if (b.status !== "quote_confirmed") return false;
-  const pickupDate = new Date(b.date + "T00:00:00+09:00");
-  const deadline = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
-  return new Date() < deadline;
+  return b.status === "quote_confirmed" && isBeforeDeadline(b.date);
 }
 
-/** 취소 가능 여부: pending 또는 quote_confirmed */
+/** 취소 가능 여부: pending 또는 quote_confirmed + 수거일 전날 22시 이전 */
 function canCancel(b: Booking): boolean {
-  return b.status === "pending" || b.status === "quote_confirmed";
+  return (b.status === "pending" || b.status === "quote_confirmed") && isBeforeDeadline(b.date);
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -147,7 +142,8 @@ export default function BookingManagePage() {
           ),
         );
       } else {
-        alert("취소 실패");
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "취소 실패");
       }
     } catch {
       alert("네트워크 오류");

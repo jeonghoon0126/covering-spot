@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, updateBooking } from "@/lib/db";
+import { getBookingByIdAdmin, updateBooking } from "@/lib/db";
 import { validateToken, getAdminFromToken } from "@/app/api/admin/auth/route";
 import { supabase } from "@/lib/supabase";
 import { hasPermission } from "@/lib/admin-roles";
@@ -11,12 +11,6 @@ import {
 } from "@/lib/slack-notify";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
-
-// 관리자용 getBookingById (취소된 건 포함)
-async function getBookingByIdAdmin(id: string) {
-  const all = await getAllBookings();
-  return all.find((b) => b.id === id) || null;
-}
 
 export async function GET(
   req: NextRequest,
@@ -100,10 +94,12 @@ export async function PUT(
     if (body.items !== undefined) allowedUpdates.items = body.items;
     if (body.driverId !== undefined) allowedUpdates.driverId = body.driverId;
     if (body.driverName !== undefined) allowedUpdates.driverName = body.driverName;
+    if (body.confirmedDuration !== undefined) allowedUpdates.confirmedDuration = body.confirmedDuration;
+    if (body.completionPhotos !== undefined) allowedUpdates.completionPhotos = body.completionPhotos;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, items, driverId, driverName)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName)" },
         { status: 400 },
       );
     }
@@ -205,6 +201,8 @@ export async function PUT(
     if (body.finalPrice !== undefined) details.finalPrice = body.finalPrice;
     if (body.adminMemo !== undefined) details.adminMemo = body.adminMemo;
     if (body.confirmedTime !== undefined) details.confirmedTime = body.confirmedTime;
+    if (body.confirmedDuration !== undefined) details.confirmedDuration = body.confirmedDuration;
+    if (body.completionPhotos !== undefined) details.completionPhotoCount = (body.completionPhotos as string[]).length;
     if (body.items !== undefined) details.itemCount = body.items.length;
 
     Promise.resolve(

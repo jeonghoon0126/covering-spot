@@ -54,6 +54,8 @@ export const BookingUpdateSchema = z.object({
   expectedUpdatedAt: z.string().optional(),
   driverId: z.string().nullable().optional(),
   driverName: z.string().max(50).nullable().optional(),
+  confirmedDuration: z.number().int().min(0).max(600).nullable().optional(),
+  completionPhotos: z.array(z.string().url()).max(20).optional(),
   items: z
     .array(
       z.object({
