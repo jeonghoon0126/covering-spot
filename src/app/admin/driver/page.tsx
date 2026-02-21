@@ -176,7 +176,7 @@ export default function AdminDriverManagePage() {
         },
         body: JSON.stringify({
           name: newName.trim(),
-          phone: newPhone.trim() || undefined,
+          phone: newPhone.replace(/-/g, "").trim() || undefined,
           vehicleType: newVehicleType,
           vehicleCapacity: VEHICLE_CAPACITY[newVehicleType] || 4.8,
           licensePlate: newLicensePlate.trim() || undefined,
@@ -216,7 +216,7 @@ export default function AdminDriverManagePage() {
         body: JSON.stringify({
           id,
           name: editName.trim() || undefined,
-          phone: editPhone.trim() || undefined,
+          phone: editPhone.replace(/-/g, "").trim() || undefined,
           vehicleType: editVehicleType,
           vehicleCapacity: VEHICLE_CAPACITY[editVehicleType] || 4.8,
           licensePlate: editLicensePlate.trim() || undefined,
