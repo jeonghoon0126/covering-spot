@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useExperiment } from "@/contexts/ExperimentContext";
@@ -65,11 +65,24 @@ export default function AdminDashboardPage() {
 
   // 퀵 액션 로딩 상태
   const [quickLoading, setQuickLoading] = useState<string | null>(null);
+  // 퀵 액션 인라인 확인 대기 상태 (confirm() 대체)
+  const [confirmPending, setConfirmPending] = useState<{ bookingId: string; newStatus: string; label: string } | null>(null);
 
   // 벌크 선택
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkConfirmPending, setBulkConfirmPending] = useState(false);
+
+  // 토스트 메시지 (alert() 대체)
+  const [toast, setToast] = useState<{ msg: string; isError: boolean } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string, isError = false) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ msg, isError });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  }, []);
 
   useEffect(() => {
     const t = sessionStorage.getItem("admin_token");
@@ -139,9 +152,14 @@ export default function AdminDashboardPage() {
     return result;
   }, [bookings, activeTab, search, dateFrom, dateTo]);
 
-  async function handleQuickAction(booking: Booking, newStatus: string, label: string) {
-    if (!confirm(`"${booking.customerName}" 건을 "${label}"(으)로 변경할까요?`)) return;
+  function requestQuickAction(booking: Booking, newStatus: string, label: string) {
+    setConfirmPending({ bookingId: booking.id, newStatus, label });
+  }
 
+  async function executeQuickAction(booking: Booking) {
+    if (!confirmPending) return;
+    const { newStatus } = confirmPending;
+    setConfirmPending(null);
     setQuickLoading(booking.id);
     try {
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
@@ -156,10 +174,10 @@ export default function AdminDashboardPage() {
         fetchBookings();
       } else {
         const data = await res.json();
-        alert(data.error || "변경 실패");
+        showToast(data.error || "변경 실패", true);
       }
     } catch {
-      alert("네트워크 오류");
+      showToast("네트워크 오류", true);
     } finally {
       setQuickLoading(null);
     }
@@ -184,11 +202,9 @@ export default function AdminDashboardPage() {
   }
 
   // 벌크 상태 변경
-  async function handleBulkStatusChange() {
+  async function executeBulkStatusChange() {
     if (!bulkStatus || selectedBookings.size === 0) return;
-    const statusLabel = STATUS_LABELS[bulkStatus] || bulkStatus;
-    if (!confirm(`선택한 ${selectedBookings.size}건을 "${statusLabel}"(으)로 변경할까요?`)) return;
-
+    setBulkConfirmPending(false);
     setBulkLoading(true);
     let successCount = 0;
     let failCount = 0;
@@ -217,7 +233,7 @@ export default function AdminDashboardPage() {
     fetchBookings();
 
     if (failCount > 0) {
-      alert(`${successCount}건 성공, ${failCount}건 실패`);
+      showToast(`${successCount}건 성공, ${failCount}건 실패`, true);
     }
   }
 
@@ -534,18 +550,32 @@ export default function AdminDashboardPage() {
                   {/* 퀵 액션 바 */}
                   {quickAction && (
                     <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuickAction(b, quickAction.status, quickAction.label);
-                        }}
-                        disabled={isQuickLoading}
-                        className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${quickAction.color} ${
-                          isQuickLoading ? "opacity-50" : "hover:opacity-90"
-                        }`}
-                      >
-                        {isQuickLoading ? "..." : quickAction.label}
-                      </button>
+                      {confirmPending?.bookingId === b.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-text-sub">"{quickAction.label}" 변경할까요?</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); executeQuickAction(b); }}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary text-white"
+                          >확인</button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmPending(null); }}
+                            className="px-3 py-1.5 rounded-full text-xs text-text-sub border border-border-light"
+                          >취소</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            requestQuickAction(b, quickAction.status, quickAction.label);
+                          }}
+                          disabled={isQuickLoading}
+                          className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${quickAction.color} ${
+                            isQuickLoading ? "opacity-50" : "hover:opacity-90"
+                          }`}
+                        >
+                          {isQuickLoading ? "..." : quickAction.label}
+                        </button>
+                      )}
                     </div>
                   )}
                   {/* pending은 상세에서 견적 확정해야 하므로 안내 */}
@@ -573,35 +603,62 @@ export default function AdminDashboardPage() {
             <span className="text-sm font-medium shrink-0">
               {selectedBookings.size}건 선택
             </span>
-            <div className="flex items-center gap-2 flex-1 justify-end">
-              <select
-                value={bulkStatus}
-                onChange={(e) => setBulkStatus(e.target.value)}
-                className="px-3 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
-              >
-                <option value="">상태 선택</option>
-                {STATUS_TABS.filter((t) => t.key !== "all").map((t) => (
-                  <option key={t.key} value={t.key}>{t.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleBulkStatusChange}
-                disabled={!bulkStatus || bulkLoading}
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white disabled:opacity-40 transition-all duration-200 hover:bg-primary-dark"
-              >
-                {bulkLoading ? "변경중..." : "벌크 변경"}
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedBookings(new Set());
-                  setBulkStatus("");
-                }}
-                className="px-3 py-2 text-sm text-text-sub hover:text-text-primary transition-colors"
-              >
-                취소
-              </button>
-            </div>
+            {bulkConfirmPending ? (
+              <div className="flex items-center gap-2 flex-1 justify-end">
+                <span className="text-sm text-text-sub">
+                  {selectedBookings.size}건을 "{STATUS_LABELS[bulkStatus] || bulkStatus}"(으)로 변경할까요?
+                </span>
+                <button
+                  onClick={executeBulkStatusChange}
+                  className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-dark transition-all"
+                >확인</button>
+                <button
+                  onClick={() => setBulkConfirmPending(false)}
+                  className="px-3 py-2 text-sm text-text-sub hover:text-text-primary transition-colors"
+                >취소</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-1 justify-end">
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="px-3 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+                >
+                  <option value="">상태 선택</option>
+                  {STATUS_TABS.filter((t) => t.key !== "all").map((t) => (
+                    <option key={t.key} value={t.key}>{t.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => { if (bulkStatus && selectedBookings.size > 0) setBulkConfirmPending(true); }}
+                  disabled={!bulkStatus || bulkLoading}
+                  className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white disabled:opacity-40 transition-all duration-200 hover:bg-primary-dark"
+                >
+                  {bulkLoading ? "변경중..." : "벌크 변경"}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedBookings(new Set());
+                    setBulkStatus("");
+                  }}
+                  className="px-3 py-2 text-sm text-text-sub hover:text-text-primary transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* 토스트 메시지 */}
+      {toast && (
+        <div
+          className={`fixed bottom-20 right-4 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg transition-all duration-200 ${
+            toast.isError ? "bg-semantic-red text-white" : "bg-semantic-green text-white"
+          }`}
+        >
+          {toast.msg}
         </div>
       )}
     </div>

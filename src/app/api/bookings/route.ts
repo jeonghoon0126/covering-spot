@@ -118,28 +118,21 @@ export async function POST(req: NextRequest) {
       totalLoadingCube: Math.round(totalLoadingCube * 100) / 100,
     };
 
+    // Geocoding을 createBooking 전에 완료: 자동배차 시 lat/lng가 null이면 주문 제외되는 버그 방지
+    const coords = await geocodeAddress(validData.address).catch(() => null);
+    if (coords) {
+      booking.latitude = coords.lat;
+      booking.longitude = coords.lng;
+    }
+
     await createBooking(booking);
 
-    // Fire-and-forget: Geocoding + Slack 알림
-    (async () => {
-      try {
-        const [coords, threadTs] = await Promise.all([
-          geocodeAddress(validData.address),
-          sendBookingCreated(booking),
-        ]);
-        const updates: Partial<Booking> = {};
-        if (coords) {
-          updates.latitude = coords.lat;
-          updates.longitude = coords.lng;
-        }
-        if (threadTs) {
-          updates.slackThreadTs = threadTs;
-        }
-        if (Object.keys(updates).length > 0) {
-          await updateBooking(booking.id, updates);
-        }
-      } catch { /* fire-and-forget */ }
-    })();
+    // Slack 알림만 fire-and-forget (지연 무관)
+    sendBookingCreated(booking).then((threadTs) => {
+      if (threadTs) {
+        updateBooking(booking.id, { slackThreadTs: threadTs }).catch(() => {});
+      }
+    }).catch(() => {});
 
     // 예약 생성 시 bookingToken 반환 (고객이 조회/수정/삭제에 사용)
     const bookingToken = generateBookingToken(booking.phone);

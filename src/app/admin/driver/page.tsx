@@ -124,7 +124,7 @@ export default function AdminDriverPage() {
       result = result.filter((b) => b.status === activeTab);
     }
 
-    // confirmedTime 오름차순 정렬
+    // confirmedTime 오름차순 정렬 ("99:99" = 시간 미지정 항목을 맨 뒤로)
     return result.sort((a, b) => {
       const ta = a.confirmedTime || a.timeSlot || "99:99";
       const tb = b.confirmedTime || b.timeSlot || "99:99";

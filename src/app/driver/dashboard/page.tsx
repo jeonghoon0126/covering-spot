@@ -149,6 +149,7 @@ export default function DriverDashboard() {
       const ra = a.routeOrder ?? 9999;
       const rb = b.routeOrder ?? 9999;
       if (ra !== rb) return ra - rb;
+      // "99:99" = 시간 미지정 항목을 정렬 맨 뒤로 보내는 sentinel 값
       const ta = a.confirmedTime || a.timeSlot || "99:99";
       const tb = b.confirmedTime || b.timeSlot || "99:99";
       return ta.localeCompare(tb);
@@ -321,6 +322,7 @@ export default function DriverDashboard() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setShowDate("today")}
+            aria-pressed={showDate === "today"}
             className={`flex-1 py-3 rounded-md text-sm font-medium transition-all ${
               showDate === "today"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
@@ -331,6 +333,7 @@ export default function DriverDashboard() {
           </button>
           <button
             onClick={() => setShowDate("tomorrow")}
+            aria-pressed={showDate === "tomorrow"}
             className={`flex-1 py-3 rounded-md text-sm font-medium transition-all ${
               showDate === "tomorrow"
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"

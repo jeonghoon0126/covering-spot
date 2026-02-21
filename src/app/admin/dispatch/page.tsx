@@ -115,7 +115,8 @@ export default function AdminDispatchPage() {
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const abortRef = useRef<AbortController | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // filteredBookings 최신값 추적 (scrollToNextUnassigned stale closure 방어)
+  // filteredBookings 최신값 추적: scrollToNextUnassigned는 useCallback deps에 filteredBookings를
+  // 포함하지 않아 stale closure 발생 → ref로 항상 최신값 참조 (컴포넌트 본문에서 동기 업데이트)
   const filteredBookingsRef = useRef<Booking[]>([]);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);

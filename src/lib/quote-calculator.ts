@@ -2,8 +2,12 @@ import { SPOT_AREAS } from "@/data/spot-areas";
 import { LADDER_PRICES } from "@/data/spot-ladder";
 import type { QuoteInput, QuoteResult } from "@/types/booking";
 
-// 해체 작업이 필요할 수 있는 카테고리 (max 견적에 추가 20% 가산)
+// 해체 작업이 필요할 수 있는 카테고리 (max 견적에 추가 10% 가산)
 const DISASSEMBLY_CATEGORIES = ["장롱", "침대", "소파", "장식장", "거실장"];
+
+// 인력 인원수 결정 기준 (품목 합계 기준, 운영팀 협의 수치)
+const CREW_SIZE_2_THRESHOLD = 500_000;  // 50만원 이상 → 2인
+const CREW_SIZE_3_THRESHOLD = 1_000_000; // 100만원 이상 → 3인
 
 export function calculateQuote(input: QuoteInput): QuoteResult {
   // 1. 품목별 소계 계산
@@ -18,8 +22,8 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
 
   // 2. 인력 수 자동 계산
   let crewSize = 1;
-  if (itemsTotal >= 1000000) crewSize = 3;
-  else if (itemsTotal >= 500000) crewSize = 2;
+  if (itemsTotal >= CREW_SIZE_3_THRESHOLD) crewSize = 3;
+  else if (itemsTotal >= CREW_SIZE_2_THRESHOLD) crewSize = 2;
 
   // 3. 지역 단가로 인력비 계산
   const area = SPOT_AREAS.find((a) => a.name === input.area);

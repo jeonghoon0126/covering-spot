@@ -27,28 +27,26 @@ export async function verifyGoogleToken(
 
 /**
  * admin_users 테이블에서 이메일로 관리자 조회
- * 미등록 @covering.app 사용자는 자동 등록 (role: admin)
+ *
+ * ⚠️ 보안 정책: 자동 등록 금지
+ * 관리자 계정은 반드시 Supabase 대시보드에서 admin_users 테이블에 직접 삽입해야 합니다.
+ * - 퇴사자/임시직 등 @covering.app 메일 보유자의 무단 접근 방지
+ * - INSERT: INSERT INTO admin_users (email, name, role) VALUES ('email@covering.app', '이름', 'admin');
  */
 export async function getOrCreateAdmin(
   email: string,
-  name: string,
+  _name: string,
 ): Promise<{ id: string; email: string; name: string; role: string } | null> {
-  // 기존 관리자 조회
   const { data: existing } = await supabase
     .from("admin_users")
     .select("id, email, name, role")
     .eq("email", email)
     .single();
 
-  if (existing) return existing;
+  if (!existing) {
+    console.warn(`[google-auth] 미등록 계정 접근 시도: ${email}`);
+    return null;
+  }
 
-  // @covering.app 자동 등록
-  const { data: created, error } = await supabase
-    .from("admin_users")
-    .insert({ email, name, role: "admin" })
-    .select("id, email, name, role")
-    .single();
-
-  if (error || !created) return null;
-  return created;
+  return existing;
 }

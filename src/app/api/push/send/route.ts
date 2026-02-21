@@ -5,8 +5,9 @@ import { validateToken } from "@/app/api/admin/auth/route";
 export async function POST(req: NextRequest) {
   try {
     // admin 토큰 검증 (HMAC) 또는 내부 호출 (x-internal-token)
-    const internalToken = process.env.ADMIN_PASSWORD;
-    const isInternalCall = !!internalToken && req.headers.get("x-internal-token") === internalToken;
+    // ⚠️ ADMIN_PASSWORD 재사용 금지 — 별도 INTERNAL_PUSH_SECRET 환경변수 사용
+    const internalSecret = process.env.INTERNAL_PUSH_SECRET;
+    const isInternalCall = !!internalSecret && req.headers.get("x-internal-token") === internalSecret;
     if (!isInternalCall && !validateToken(req)) {
       return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }

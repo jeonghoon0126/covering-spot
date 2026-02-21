@@ -174,7 +174,7 @@ export async function PUT(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-internal-token": process.env.ADMIN_PASSWORD || "",
+            "x-internal-token": process.env.INTERNAL_PUSH_SECRET || "",
           },
           body: JSON.stringify({
             bookingId: id,

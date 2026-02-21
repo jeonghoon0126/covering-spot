@@ -118,9 +118,20 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    if (failed.length > 0 && succeeded.length === 0) {
+    if (failed.length > 0) {
+      // 데이터 정합성 유지: 부분 실패 시 성공한 건도 원상복구
+      if (succeeded.length > 0) {
+        await Promise.allSettled(
+          succeeded.map((id) =>
+            updateBooking(id, { driverId: null, driverName: null } as Partial<Booking>)
+          )
+        );
+      }
       return NextResponse.json(
-        { error: "모든 주문 업데이트 실패", failed },
+        {
+          error: `배차 처리 실패 (${failed.length}/${bookingIds.length}건). 다시 시도해 주세요.`,
+          failed,
+        },
         { status: 500 }
       );
     }
@@ -128,7 +139,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       updated: succeeded,
-      ...(failed.length > 0 ? { partialFailure: true, failed } : {}),
     });
   } catch (e) {
     console.error("[admin/dispatch/POST]", e);

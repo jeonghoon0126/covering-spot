@@ -3,17 +3,40 @@
 import Script from "next/script";
 import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 
+// Kakao Maps SDK 타입 정의 (공식 @types 패키지 없음 — 수동 선언)
+interface KakaoLatLng {}
+
+interface KakaoMapInstance {
+  panTo(position: KakaoLatLng): void;
+  getLevel(): number;
+  setCenter(position: KakaoLatLng): void;
+  setLevel(level: number): void;
+  setBounds(bounds: KakaoLatLngBounds): void;
+}
+
+interface KakaoLatLngBounds {
+  extend(position: KakaoLatLng): void;
+}
+
+interface KakaoCustomOverlay {
+  setMap(map: KakaoMapInstance | null): void;
+}
+
+interface KakaoPolyline {
+  setMap(map: KakaoMapInstance | null): void;
+}
+
 declare global {
   interface Window {
     kakao: {
       maps: {
         load: (callback: () => void) => void;
-        LatLng: new (lat: number, lng: number) => unknown;
-        Map: new (container: HTMLElement, options: unknown) => unknown;
-        LatLngBounds: new () => unknown;
-        CustomOverlay: new (options: unknown) => unknown;
-        Polyline: new (options: unknown) => unknown;
-        event: { addListener: (target: unknown, type: string, handler: () => void) => void };
+        LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        Map: new (container: HTMLElement, options: unknown) => KakaoMapInstance;
+        LatLngBounds: new () => KakaoLatLngBounds;
+        CustomOverlay: new (options: unknown) => KakaoCustomOverlay;
+        Polyline: new (options: unknown) => KakaoPolyline;
+        event: { addListener: (target: KakaoMapInstance, type: string, handler: () => void) => void };
       };
     };
   }
@@ -64,10 +87,10 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   ref,
 ) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<unknown>(null);
-  const overlaysRef = useRef<unknown[]>([]);
-  const unloadingOverlaysRef = useRef<unknown[]>([]);
-  const polylinesRef = useRef<unknown[]>([]);
+  const mapRef = useRef<KakaoMapInstance | null>(null);
+  const overlaysRef = useRef<KakaoCustomOverlay[]>([]);
+  const unloadingOverlaysRef = useRef<KakaoCustomOverlay[]>([]);
+  const polylinesRef = useRef<KakaoPolyline[]>([]);
   const dotElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const labelElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const selectedIdRef = useRef<string | null>(null);
@@ -81,7 +104,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       if (!mapRef.current || !window.kakao?.maps) return;
       try {
         const pos = new window.kakao.maps.LatLng(lat, lng);
-        (mapRef.current as any).panTo(pos);
+        mapRef.current.panTo(pos);
       } catch (e) {
         console.error("[KakaoMap] panTo 실패:", e);
       }
@@ -92,7 +115,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   const syncLabelVisibility = useCallback(() => {
     if (!mapRef.current) return;
     try {
-      const level = (mapRef.current as any).getLevel();
+      const level = mapRef.current.getLevel();
       const show = level <= 8;
       labelElsRef.current.forEach((el) => {
         el.style.display = show ? "block" : "none";
@@ -110,7 +133,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         level: 8,
       };
       mapRef.current = new kakao.maps.Map(mapContainerRef.current, options);
-      kakao.maps.event.addListener(mapRef.current as any, "zoom_changed", syncLabelVisibility);
+      kakao.maps.event.addListener(mapRef.current, "zoom_changed", syncLabelVisibility);
       setIsMapReady(true);
     } catch (e) {
       console.error("[KakaoMap] 초기화 실패:", e);
@@ -137,7 +160,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
     const { kakao } = window;
 
     // 기존 오버레이 제거
-    overlaysRef.current.forEach((overlay: any) => {
+    overlaysRef.current.forEach((overlay) => {
       try { overlay.setMap(null); } catch {}
     });
     overlaysRef.current = [];
@@ -148,7 +171,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
 
     const bounds = new kakao.maps.LatLngBounds();
     let currentLevel = 8;
-    try { currentLevel = (mapRef.current as any).getLevel(); } catch {}
+    try { currentLevel = mapRef.current.getLevel(); } catch {}
     const showLabels = currentLevel <= 8;
 
     markers.forEach((marker) => {
@@ -220,19 +243,19 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         yAnchor: 0.5,
       });
 
-      (overlay as any).setMap(mapRef.current);
+      overlay.setMap(mapRef.current);
       overlaysRef.current.push(overlay);
       dotElsRef.current.set(marker.id, dot);
-      (bounds as any).extend(position);
+      bounds.extend(position);
     });
 
     if (markers.length === 1) {
-      (mapRef.current as any).setCenter(
+      mapRef.current.setCenter(
         new kakao.maps.LatLng(markers[0].lat, markers[0].lng),
       );
-      (mapRef.current as any).setLevel(5);
+      mapRef.current.setLevel(5);
     } else {
-      (mapRef.current as any).setBounds(bounds);
+      mapRef.current.setBounds(bounds);
     }
 
     // 렌더 직후 현재 선택 상태 반영
@@ -248,7 +271,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
     if (!mapRef.current || !window.kakao?.maps) return;
     const { kakao } = window;
 
-    unloadingOverlaysRef.current.forEach((o: any) => {
+    unloadingOverlaysRef.current.forEach((o) => {
       try { o.setMap(null); } catch {}
     });
     unloadingOverlaysRef.current = [];
@@ -295,7 +318,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         xAnchor: 0.5,
         yAnchor: 0.5,
       });
-      (overlay as any).setMap(mapRef.current);
+      overlay.setMap(mapRef.current);
       unloadingOverlaysRef.current.push(overlay);
     });
   }, [unloadingMarkers]);
@@ -305,7 +328,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
     if (!mapRef.current || !window.kakao?.maps) return;
     const { kakao } = window;
 
-    polylinesRef.current.forEach((p: any) => {
+    polylinesRef.current.forEach((p) => {
       try { p.setMap(null); } catch {}
     });
     polylinesRef.current = [];
@@ -324,7 +347,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         strokeOpacity: 0.7,
         strokeStyle: "solid",
       });
-      (polyline as any).setMap(mapRef.current);
+      polyline.setMap(mapRef.current);
       polylinesRef.current.push(polyline);
     });
   }, [routeLines]);
@@ -362,11 +385,11 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
 
   useEffect(() => {
     return () => {
-      overlaysRef.current.forEach((o: any) => { try { o.setMap(null); } catch {} });
+      overlaysRef.current.forEach((o) => { try { o.setMap(null); } catch {} });
       overlaysRef.current = [];
-      unloadingOverlaysRef.current.forEach((o: any) => { try { o.setMap(null); } catch {} });
+      unloadingOverlaysRef.current.forEach((o) => { try { o.setMap(null); } catch {} });
       unloadingOverlaysRef.current = [];
-      polylinesRef.current.forEach((p: any) => { try { p.setMap(null); } catch {} });
+      polylinesRef.current.forEach((p) => { try { p.setMap(null); } catch {} });
       polylinesRef.current = [];
     };
   }, []);
