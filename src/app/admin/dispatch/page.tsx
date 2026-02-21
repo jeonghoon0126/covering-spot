@@ -318,7 +318,12 @@ export default function AdminDispatchPage() {
       const res = await fetch("/api/admin/dispatch-auto", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: autoResult.plan }),
+        body: JSON.stringify({
+          plan: autoResult.plan.map(({ driverId, bookings }) => ({
+            driverId,
+            bookings: bookings.map(({ id, routeOrder }) => ({ id, routeOrder })),
+          })),
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -785,7 +790,7 @@ export default function AdminDispatchPage() {
       <div className="sticky top-0 z-20 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[100rem] mx-auto px-4 py-3">
           {/* 1행: 제목(좌) + 날짜 선택(우) */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <button
                 onClick={() => router.push("/admin/calendar")}
@@ -799,22 +804,22 @@ export default function AdminDispatchPage() {
             </div>
 
             {/* 날짜 선택 */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => moveDate(-1)} className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => moveDate(-1)} aria-label="이전 날" className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-2 py-1.5 text-sm font-medium border border-border rounded-lg bg-bg"
+                className="px-2 py-1.5 text-sm font-medium border border-border rounded-lg bg-bg min-w-0 w-40 sm:w-auto"
               />
-              <button onClick={() => moveDate(1)} className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
+              <button onClick={() => moveDate(1)} aria-label="다음 날" className="p-1.5 rounded-md hover:bg-fill-tint text-text-sub">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
               <button
                 onClick={() => setSelectedDate(getToday())}
-                className="text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-primary-bg"
+                className="hidden sm:block text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-primary-bg"
               >
                 오늘
               </button>
@@ -822,8 +827,9 @@ export default function AdminDispatchPage() {
           </div>
 
           {/* 2행: 필터(좌) + 범례(우) */}
-          <div className="flex items-center justify-between gap-2 mt-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mt-2">
+            {/* 필터 — flex-1로 가용 공간 확보 */}
+            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
               <select
                 value={filterDriverId}
                 onChange={(e) => { setFilterDriverId(e.target.value); setCheckedIds(new Set()); }}
@@ -854,9 +860,9 @@ export default function AdminDispatchPage() {
               </select>
             </div>
 
-            {/* 범례 + 가이드 */}
-            <div className="flex items-center gap-2 text-xs shrink-0">
-              <div className="hidden sm:flex items-center gap-2.5 text-text-muted">
+            {/* 범례 + 가이드 — 데스크탑에서만 표시, overflow 방지 */}
+            <div className="hidden lg:flex items-center gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-2.5 text-text-muted">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: UNASSIGNED_COLOR }} />
                   미배차
@@ -871,7 +877,7 @@ export default function AdminDispatchPage() {
                   </span>
                 ))}
               </div>
-              <span className="hidden md:inline-block text-xs text-text-muted border-l border-border-light pl-2">
+              <span className="text-xs text-text-muted border-l border-border-light pl-2 whitespace-nowrap">
                 체크 선택 → 기사 지정 → 일괄 배차
               </span>
             </div>
