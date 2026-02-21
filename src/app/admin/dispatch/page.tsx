@@ -75,10 +75,15 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 const UNASSIGNED_COLOR = "#3B82F6";
-const DRIVER_COLORS = [
-  "#10B981", "#F97316", "#8B5CF6", "#EC4899", "#14B8A6",
-  "#EAB308", "#06B6D4", "#F43F5E", "#84CC16", "#A855F7",
-];
+
+/**
+ * 골든앵글(137.508°) 기반 HSL 색상 생성
+ * 기사 수에 관계없이 항상 최대 간격으로 구분되는 고유 색상 반환
+ */
+function getDriverColor(idx: number): string {
+  const hue = Math.round((idx * 137.508) % 360);
+  return `hsl(${hue}, 65%, 50%)`;
+}
 
 /* ── 유틸 ── */
 
@@ -160,6 +165,34 @@ export default function AdminDispatchPage() {
   const [mobileTab, setMobileTab] = useState<"map" | "list">("list");
   // 모바일 상세 바텀시트
   const [mobileDetail, setMobileDetail] = useState(false);
+  const mobileDialogRef = useRef<HTMLDivElement>(null);
+
+  // 포커스 트랩 — 바텀시트 열릴 때 포커스 가두기 (a11y)
+  useEffect(() => {
+    if (!mobileDetail) return;
+    const dialog = mobileDialogRef.current;
+    if (!dialog) return;
+
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable[0]?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileDetail]);
+
   // 기사 적재 현황 패널 (지도 우측 상단)
   const [driverPanelOpen, setDriverPanelOpen] = useState(true);
 
@@ -167,7 +200,7 @@ export default function AdminDispatchPage() {
   const driverColorMap = useMemo(() => {
     const map = new Map<string, string>();
     drivers.forEach((d, idx) => {
-      map.set(d.id, DRIVER_COLORS[idx % DRIVER_COLORS.length]);
+      map.set(d.id, getDriverColor(idx));
     });
     return map;
   }, [drivers]);
@@ -1294,10 +1327,12 @@ export default function AdminDispatchPage() {
           {/* ── 모바일 바텀시트 ── */}
           {mobileDetail && selectedBooking && (
             <div
+              ref={mobileDialogRef}
               className="lg:hidden fixed inset-0 z-30"
               role="dialog"
               aria-modal="true"
               aria-label="주문 상세"
+              tabIndex={-1}
               onKeyDown={(e) => { if (e.key === "Escape") setMobileDetail(false); }}
             >
               <div className="absolute inset-0 bg-black/30" onClick={() => setMobileDetail(false)} />
