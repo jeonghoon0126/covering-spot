@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = AutoDispatchSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "date 파라미터 필요 (YYYY-MM-DD)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "잘못된 요청", details: parsed.error.format() },
+        { status: 400 },
+      );
     }
 
     const { date, driverSlotFilters } = parsed.data;
@@ -115,13 +118,36 @@ export async function POST(req: NextRequest) {
       name: p.name,
     }));
 
+    // 단일 주문 적재량 > 기사 최대 용량 → 물리적 적재 불가 → unassigned 선분리
+    // (최대 용량 기준: 투입 기사 중 가장 큰 vehicleCapacity)
+    const maxVehicleCapacity =
+      dispatchDrivers.length > 0 ? Math.max(...dispatchDrivers.map((d) => d.vehicleCapacity)) : 0;
+    const oversizedBookings =
+      maxVehicleCapacity > 0
+        ? dispatchBookings.filter((b) => b.totalLoadingCube > maxVehicleCapacity)
+        : [];
+    const validBookings =
+      oversizedBookings.length > 0
+        ? dispatchBookings.filter((b) => b.totalLoadingCube <= maxVehicleCapacity)
+        : dispatchBookings;
+    if (oversizedBookings.length > 0) {
+      console.warn(
+        `[dispatch-auto] 적재 불가 주문 ${oversizedBookings.length}건 unassigned 처리 (최대용량=${maxVehicleCapacity}):`,
+        oversizedBookings.map((b) => `id=${b.id} load=${b.totalLoadingCube}`),
+      );
+    }
+    const oversizedUnassigned = oversizedBookings.map((b) => ({
+      id: b.id,
+      reason: `단일 주문 적재량(${b.totalLoadingCube}) > 최대 차량 용량(${maxVehicleCapacity})`,
+    }));
+
     // 자동배차 실행 (시간대 제약 있으면 그룹별 분리 실행)
     let result;
     const activeFilters = driverSlotFilters
       ? Object.fromEntries(Object.entries(driverSlotFilters).filter(([, slots]) => slots.length > 0))
       : {};
     if (Object.keys(activeFilters).length > 0) {
-      const groups = buildSlotGroups(dispatchBookings, dispatchDrivers, activeFilters);
+      const groups = buildSlotGroups(validBookings, dispatchDrivers, activeFilters);
       const groupResults = groups.map(({ bookings, drivers }) =>
         bookings.length > 0 && drivers.length > 0
           ? autoDispatch(bookings, drivers, dispatchUnloadingPoints)
@@ -132,12 +158,15 @@ export async function POST(req: NextRequest) {
         .filter(({ drivers }) => drivers.length === 0)
         .flatMap(({ bookings }) => bookings.map((b) => ({ id: b.id, reason: "배정 기사 없음" })));
       const merged = mergeDispatchResults(groupResults);
-      merged.unassigned.push(...emptyGroupBookings);
-      merged.stats.unassigned += emptyGroupBookings.length;
-      merged.stats.totalBookings += emptyGroupBookings.length;
+      merged.unassigned.push(...emptyGroupBookings, ...oversizedUnassigned);
+      merged.stats.unassigned += emptyGroupBookings.length + oversizedUnassigned.length;
+      merged.stats.totalBookings += emptyGroupBookings.length + oversizedUnassigned.length;
       result = merged;
     } else {
-      result = autoDispatch(dispatchBookings, dispatchDrivers, dispatchUnloadingPoints);
+      result = autoDispatch(validBookings, dispatchDrivers, dispatchUnloadingPoints);
+      result.unassigned.push(...oversizedUnassigned);
+      result.stats.unassigned += oversizedUnassigned.length;
+      result.stats.totalBookings += oversizedUnassigned.length;
     }
 
     // 기사별 ETA 병렬 계산 (실패해도 plan은 반환 — graceful degradation)
@@ -185,16 +214,26 @@ export async function POST(req: NextRequest) {
  * 기사별 시간대 제약에 따라 주문·기사를 그룹으로 분리
  * - 제약 있는 기사: 허용 슬롯의 주문만 받음
  * - 제약 없는 기사: 나머지 주문 전체 처리
+ *
+ * 주의: driverSlotFilters에 명시된 기사가 workDays 필터링으로 drivers 배열에서
+ * 이미 제거된 경우, 해당 기사의 슬롯은 slotToDrivers에 등록되지 않아 소속 주문이
+ * remaining(제약 없는 기사 그룹)으로 넘어간다. 이는 의도된 동작:
+ * 휴무 기사가 담당하던 슬롯 주문은 출근 기사에게 재배정.
  */
 function buildSlotGroups(
   bookings: DispatchBooking[],
   drivers: DispatchDriver[],
   driverSlotFilters: Record<string, string[]>,
 ): Array<{ bookings: DispatchBooking[]; drivers: DispatchDriver[] }> {
-  const restrictedIds = new Set(Object.keys(driverSlotFilters));
+  // drivers는 이미 workDays 필터링된 배열 — 휴무 기사 ID는 여기에 없음
+  const activeDriverIds = new Set(drivers.map((d) => d.id));
+  // driverSlotFilters 중 실제 근무 기사만 제약으로 취급
+  const restrictedIds = new Set(
+    Object.keys(driverSlotFilters).filter((id) => activeDriverIds.has(id)),
+  );
   const unrestrictedDrivers = drivers.filter((d) => !restrictedIds.has(d.id));
 
-  // 슬롯 → 허용된 (제약) 기사 목록
+  // 슬롯 → 허용된 (제약) 기사 목록 (근무 기사만)
   const slotToDrivers = new Map<string, DispatchDriver[]>();
   for (const driver of drivers) {
     if (!restrictedIds.has(driver.id)) continue;
@@ -267,7 +306,7 @@ const ApplySchema = z.object({
   plan: z.array(
     z.object({
       driverId: z.string().uuid(),
-      driverName: z.string().min(1).max(50),
+      // driverName은 클라이언트 입력 무시 → 서버에서 DB 조회 (변조 방지)
       bookings: z.array(
         z.object({
           id: z.string().regex(UUID_REGEX, "올바른 UUID 형식이 아닙니다"),
@@ -284,6 +323,7 @@ const ApplySchema = z.object({
  *
  * 보안:
  *  - UUID 형식 검증 (Zod) → injection 방어
+ *  - driverName 서버 조회 (클라이언트 입력 무시 → 변조 방지)
  *  - 취소/거부 상태 주문은 덮어쓰기 방지 (DB 레벨 status 체크)
  *  - 기사별 병렬 처리 → 성능 최적화
  */
@@ -300,27 +340,44 @@ export async function PUT(req: NextRequest) {
     }
 
     const { plan } = parsed.data;
+
+    // driverName 서버 조회 (비활성 기사 포함 — 배차 시점에 비활성화될 수 있음)
+    const allDrivers = await getDrivers(false);
+    const driverNameMap = new Map(allDrivers.map((d) => [d.id, d.name]));
+
+    // driverId 유효성 검증 (DB에 없는 기사 → 즉시 거부)
+    const unknownDriverIds = plan
+      .map((dp) => dp.driverId)
+      .filter((id) => !driverNameMap.has(id));
+    if (unknownDriverIds.length > 0) {
+      return NextResponse.json(
+        { error: "존재하지 않는 기사 ID가 포함되어 있습니다", unknownDriverIds },
+        { status: 400 },
+      );
+    }
+
     const succeeded: string[] = [];
     const failed: string[] = [];
 
     // 기사별 병렬 처리 (for...of 직렬 → Promise.allSettled 병렬)
     const driverResults = await Promise.allSettled(
-      plan.map((driverPlan) =>
-        Promise.allSettled(
+      plan.map((driverPlan) => {
+        const driverName = driverNameMap.get(driverPlan.driverId)!;
+        return Promise.allSettled(
           driverPlan.bookings.map((b) =>
             // 취소/거부 상태 주문은 supabase에서 .neq("status", "cancelled") 등으로 보호
             // updateBooking이 조건 불일치 시 null 반환 → failed 처리
             updateBooking(b.id, {
               driverId: driverPlan.driverId,
-              driverName: driverPlan.driverName,
+              driverName,
               routeOrder: b.routeOrder,
             } as Partial<Booking>),
           ),
-        ).then((results) => ({ driverPlan, results })),
-      ),
+        ).then((results) => ({ driverPlan, results }));
+      }),
     );
 
-    for (const driverResult of driverResults) {
+    for (const [planIdx, driverResult] of driverResults.entries()) {
       if (driverResult.status === "fulfilled") {
         const { driverPlan, results } = driverResult.value;
         results.forEach((result, idx) => {
@@ -332,11 +389,8 @@ export async function PUT(req: NextRequest) {
           }
         });
       } else {
-        // 기사 전체 실패
-        const planIdx = driverResults.indexOf(driverResult);
-        if (planIdx !== -1) {
-          plan[planIdx].bookings.forEach((b) => failed.push(b.id));
-        }
+        // 기사 전체 실패 — entries()로 인덱스 안전 취득
+        plan[planIdx].bookings.forEach((b) => failed.push(b.id));
       }
     }
 

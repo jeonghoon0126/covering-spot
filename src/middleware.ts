@@ -7,11 +7,17 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   "/api/bookings": { limit: 30, windowMs: 60_000 },
   "/api/push": { limit: 10, windowMs: 60_000 },
   "/api/leads": { limit: 20, windowMs: 60_000 },
+  "/api/slots": { limit: 30, windowMs: 60_000 },
+  "/api/quote": { limit: 20, windowMs: 60_000 },
   "/api/admin/auth": { limit: 5, windowMs: 60_000 },
   "/api/admin/bookings": { limit: 60, windowMs: 60_000 },
   "/api/admin/blocked-slots": { limit: 30, windowMs: 60_000 },
-  "/api/driver/auth": { limit: 5, windowMs: 60_000 },     // 전화번호 brute-force 방지
-  "/api/driver/bookings": { limit: 60, windowMs: 60_000 }, // 드라이버 예약 조회
+  "/api/admin/dispatch-auto": { limit: 10, windowMs: 60_000 }, // 자동배차: 무거운 연산
+  "/api/admin/dispatch": { limit: 60, windowMs: 60_000 },
+  "/api/admin/unloading-points": { limit: 30, windowMs: 60_000 },
+  "/api/admin/drivers": { limit: 30, windowMs: 60_000 },
+  "/api/driver/auth": { limit: 5, windowMs: 60_000 },          // 전화번호 brute-force 방지
+  "/api/driver/bookings": { limit: 60, windowMs: 60_000 },
 };
 
 function findRateLimit(pathname: string): { limit: number; windowMs: number } | null {
