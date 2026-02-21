@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
@@ -28,45 +28,6 @@ interface Driver {
   vehicleCapacity: number;
   licensePlate: string | null;
   workDays: string;
-}
-
-const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
-const VEHICLE_CAPACITY: Record<string, number> = {
-  "1톤": 4.8, "1.4톤": 6.5, "2.5톤": 10.5, "5톤": 20.0,
-};
-const ALL_WORK_DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
-
-/** 근무요일 토글 컴포넌트 */
-function WorkDayToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const selected = new Set(value ? value.split(",") : []);
-  function toggle(day: string) {
-    const next = new Set(selected);
-    if (next.has(day)) next.delete(day);
-    else next.add(day);
-    // 요일 순서 유지
-    onChange(ALL_WORK_DAYS.filter((d) => next.has(d)).join(","));
-  }
-  return (
-    <div className="flex gap-1">
-      {ALL_WORK_DAYS.map((day) => {
-        const active = selected.has(day);
-        return (
-          <button
-            key={day}
-            type="button"
-            onClick={() => toggle(day)}
-            className={`flex-1 h-8 text-xs font-semibold rounded-sm border transition-colors ${
-              active
-                ? "bg-primary text-white border-primary"
-                : "bg-bg-warm text-text-muted border-border-light"
-            } ${day === "토" || day === "일" ? (active ? "bg-primary/80" : "text-text-muted/60") : ""}`}
-          >
-            {day}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 /* ── 상수 ── */
@@ -161,36 +122,12 @@ export default function AdminCalendarPage() {
 
   // 슬롯 관리 상태
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [slotMgmtDate, setSlotMgmtDate] = useState(getToday());
   const [selectedDriverId, setSelectedDriverId] = useState<string>("all");
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotActionLoading, setSlotActionLoading] = useState<string | null>(null);
   const [slotBookings, setSlotBookings] = useState<Booking[]>([]);
-
-  // 기사 관리 상태
-  const [showDriverForm, setShowDriverForm] = useState(false);
-  const [newDriverName, setNewDriverName] = useState("");
-  const [newDriverPhone, setNewDriverPhone] = useState("");
-  const [newDriverVehicleType, setNewDriverVehicleType] = useState("1톤");
-  const [newDriverLicensePlate, setNewDriverLicensePlate] = useState("");
-  const [newDriverWorkDays, setNewDriverWorkDays] = useState("월,화,수,목,금,토");
-  const [driverSaving, setDriverSaving] = useState(false);
-  const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
-  const [editDriverName, setEditDriverName] = useState("");
-  const [editDriverPhone, setEditDriverPhone] = useState("");
-  const [editDriverVehicleType, setEditDriverVehicleType] = useState("1톤");
-  const [editDriverLicensePlate, setEditDriverLicensePlate] = useState("");
-  const [editDriverWorkDays, setEditDriverWorkDays] = useState("월,화,수,목,금,토");
-  // 기사 토스트 (alert 대체)
-  const [driverToast, setDriverToast] = useState<string | null>(null);
-  const driverToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function showDriverToast(msg: string) {
-    if (driverToastTimer.current) clearTimeout(driverToastTimer.current);
-    setDriverToast(msg);
-    driverToastTimer.current = setTimeout(() => setDriverToast(null), 3000);
-  }
 
   const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
@@ -283,7 +220,6 @@ export default function AdminCalendarPage() {
   const fetchDrivers = useCallback(async () => {
     if (!token) return;
     try {
-      // 활성 기사
       const res = await fetch("/api/admin/drivers", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -294,13 +230,6 @@ export default function AdminCalendarPage() {
       }
       const data = await res.json();
       setDrivers(data.drivers || []);
-
-      // 전체 기사 (비활성 포함)
-      const allRes = await fetch("/api/admin/drivers?active=false", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const allData = await allRes.json();
-      setAllDrivers(allData.drivers || []);
     } catch {
       // ignore
     }
@@ -409,100 +338,6 @@ export default function AdminCalendarPage() {
       alert("네트워크 오류");
     } finally {
       setSlotActionLoading(null);
-    }
-  }
-
-  /* ── 기사 관리 액션 ── */
-
-  async function handleCreateDriver() {
-    if (!newDriverName.trim()) return;
-    setDriverSaving(true);
-    try {
-      const res = await fetch("/api/admin/drivers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: newDriverName.trim(),
-          phone: newDriverPhone.trim() || undefined,
-          vehicleType: newDriverVehicleType,
-          vehicleCapacity: VEHICLE_CAPACITY[newDriverVehicleType] || 4.8,
-          licensePlate: newDriverLicensePlate.trim() || undefined,
-          workDays: newDriverWorkDays,
-        }),
-      });
-      if (res.ok) {
-        setNewDriverName("");
-        setNewDriverPhone("");
-        setNewDriverVehicleType("1톤");
-        setNewDriverLicensePlate("");
-        setNewDriverWorkDays("월,화,수,목,금,토");
-        setShowDriverForm(false);
-        fetchDrivers();
-      } else {
-        const data = await res.json();
-        showDriverToast(data.error || "추가 실패");
-      }
-    } catch {
-      showDriverToast("네트워크 오류");
-    } finally {
-      setDriverSaving(false);
-    }
-  }
-
-  async function handleUpdateDriver(id: string) {
-    setDriverSaving(true);
-    try {
-      const res = await fetch("/api/admin/drivers", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          id,
-          name: editDriverName.trim() || undefined,
-          phone: editDriverPhone.trim() || undefined,
-          vehicleType: editDriverVehicleType,
-          vehicleCapacity: VEHICLE_CAPACITY[editDriverVehicleType] || 4.8,
-          licensePlate: editDriverLicensePlate.trim() || undefined,
-          workDays: editDriverWorkDays,
-        }),
-      });
-      if (res.ok) {
-        setEditingDriverId(null);
-        fetchDrivers();
-      } else {
-        const data = await res.json();
-        showDriverToast(data.error || "수정 실패");
-      }
-    } catch {
-      showDriverToast("네트워크 오류");
-    } finally {
-      setDriverSaving(false);
-    }
-  }
-
-  async function handleToggleDriverActive(driver: Driver) {
-    try {
-      const res = await fetch("/api/admin/drivers", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ id: driver.id, active: !driver.active }),
-      });
-      if (res.ok) {
-        fetchDrivers();
-      } else {
-        const data = await res.json();
-        alert(data.error || "변경 실패");
-      }
-    } catch {
-      alert("네트워크 오류");
     }
   }
 
@@ -1054,229 +889,11 @@ export default function AdminCalendarPage() {
               </div>
             )}
 
-            {/* ── 기사 관리 섹션 ── */}
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-text-primary">기사 관리</h2>
-                <button
-                  onClick={() => {
-                    setShowDriverForm(!showDriverForm);
-                    setNewDriverName("");
-                    setNewDriverPhone("");
-                  }}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  {showDriverForm ? "취소" : "기사 추가"}
-                </button>
-              </div>
 
-              {/* 기사 추가 폼 */}
-              {showDriverForm && (
-                <div className="bg-bg rounded-lg border border-border-light p-4 mb-3 space-y-3">
-                  <div>
-                    <label className="block text-[11px] text-text-muted font-medium mb-1">이름 *</label>
-                    <input
-                      type="text"
-                      value={newDriverName}
-                      onChange={(e) => setNewDriverName(e.target.value)}
-                      placeholder="기사님 이름"
-                      className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-text-muted font-medium mb-1">연락처</label>
-                    <input
-                      type="tel"
-                      value={newDriverPhone}
-                      onChange={(e) => setNewDriverPhone(e.target.value)}
-                      placeholder="010-0000-0000"
-                      className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-text-muted font-medium mb-1">차량종류</label>
-                      <select
-                        value={newDriverVehicleType}
-                        onChange={(e) => setNewDriverVehicleType(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                      >
-                        {VEHICLE_TYPES.map((v) => (
-                          <option key={v} value={v}>{v} ({VEHICLE_CAPACITY[v]}m³)</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-text-muted font-medium mb-1">차량번호</label>
-                      <input
-                        type="text"
-                        value={newDriverLicensePlate}
-                        onChange={(e) => setNewDriverLicensePlate(e.target.value)}
-                        placeholder="서울12가3456"
-                        className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
-                    <WorkDayToggle value={newDriverWorkDays} onChange={setNewDriverWorkDays} />
-                  </div>
-                  <button
-                    onClick={handleCreateDriver}
-                    disabled={driverSaving || !newDriverName.trim()}
-                    className="w-full h-10 rounded-md bg-primary text-white text-sm font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-50"
-                  >
-                    {driverSaving ? "추가 중..." : "추가"}
-                  </button>
-                </div>
-              )}
-
-              {/* 기사 목록 */}
-              <div className="space-y-2">
-                {allDrivers.length === 0 && (
-                  <p className="text-center py-8 text-text-muted text-sm">
-                    등록된 기사가 없습니다
-                  </p>
-                )}
-                {allDrivers.map((driver) => {
-                  const isEditing = editingDriverId === driver.id;
-
-                  return (
-                    <div
-                      key={driver.id}
-                      className={`bg-bg rounded-md border p-3 transition-colors ${
-                        driver.active
-                          ? "border-border-light"
-                          : "border-border-light/50 opacity-60"
-                      }`}
-                    >
-                      {isEditing ? (
-                        /* 수정 모드 */
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            value={editDriverName}
-                            onChange={(e) => setEditDriverName(e.target.value)}
-                            placeholder="이름"
-                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                          />
-                          <input
-                            type="tel"
-                            value={editDriverPhone}
-                            onChange={(e) => setEditDriverPhone(e.target.value)}
-                            placeholder="연락처"
-                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <select
-                              value={editDriverVehicleType}
-                              onChange={(e) => setEditDriverVehicleType(e.target.value)}
-                              className="h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                            >
-                              {VEHICLE_TYPES.map((v) => (
-                                <option key={v} value={v}>{v}</option>
-                              ))}
-                            </select>
-                            <input
-                              type="text"
-                              value={editDriverLicensePlate}
-                              onChange={(e) => setEditDriverLicensePlate(e.target.value)}
-                              placeholder="차량번호"
-                              className="h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
-                            <WorkDayToggle value={editDriverWorkDays} onChange={setEditDriverWorkDays} />
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleUpdateDriver(driver.id)}
-                              disabled={driverSaving}
-                              className="flex-1 h-9 rounded-sm bg-primary text-white text-xs font-semibold active:scale-[0.98] transition-all disabled:opacity-50"
-                            >
-                              {driverSaving ? "..." : "저장"}
-                            </button>
-                            <button
-                              onClick={() => setEditingDriverId(null)}
-                              className="flex-1 h-9 rounded-sm bg-bg-warm text-text-sub text-xs font-medium border border-border-light active:scale-[0.98] transition-all"
-                            >
-                              취소
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* 보기 모드 */
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${
-                              driver.active ? "bg-semantic-green" : "bg-text-muted"
-                            }`} />
-                            <span className="text-sm font-medium text-text-primary truncate">
-                              {driver.name}
-                            </span>
-                            <span className="text-[11px] text-primary font-medium shrink-0">
-                              {driver.vehicleType || "1톤"}
-                            </span>
-                            {driver.licensePlate && (
-                              <span className="text-[11px] text-text-muted shrink-0">
-                                {driver.licensePlate}
-                              </span>
-                            )}
-                            {driver.workDays && driver.workDays !== "월,화,수,목,금,토" && (
-                              <span className="text-[10px] text-text-muted shrink-0">
-                                ({driver.workDays})
-                              </span>
-                            )}
-                            {!driver.active && (
-                              <span className="text-[10px] font-medium text-text-muted bg-fill-tint px-1.5 py-0.5 rounded shrink-0">
-                                비활성
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                            <button
-                              onClick={() => {
-                                setEditingDriverId(driver.id);
-                                setEditDriverName(driver.name);
-                                setEditDriverPhone(driver.phone || "");
-                                setEditDriverVehicleType(driver.vehicleType || "1톤");
-                                setEditDriverLicensePlate(driver.licensePlate || "");
-                                setEditDriverWorkDays(driver.workDays || "월,화,수,목,금,토");
-                              }}
-                              className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
-                            >
-                              수정
-                            </button>
-                            <button
-                              onClick={() => handleToggleDriverActive(driver)}
-                              className={`text-[11px] font-medium px-2 py-1.5 rounded-sm transition-colors ${
-                                driver.active
-                                  ? "text-semantic-red hover:bg-red-50"
-                                  : "text-semantic-green hover:bg-green-50"
-                              }`}
-                            >
-                              {driver.active ? "비활성화" : "활성화"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
       </div>
     </div>
-
-    {/* 기사 토스트 */}
-    {driverToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-text-primary text-bg text-sm font-medium px-4 py-2.5 rounded-full shadow-lg pointer-events-none">
-        {driverToast}
-      </div>
-    )}
     </>
   );
 }
