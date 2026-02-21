@@ -8,66 +8,64 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
 
 ### 최근 작업 (2026-02-21)
 
-**하차지 + 자동배차 + 동선 최적화 전체 구현 (c1a355c)**
+**보안 수정 + 드래그앤드롭 + Kakao Directions ETA**
 
-1. 하차지(UnloadingPoint) 관리
-   - Supabase `unloading_points` 테이블 생성
-   - CRUD API: GET/POST/PUT/DELETE `/api/admin/unloading-points`
-   - 주소 입력 → 자동 지오코딩 (카카오 API)
-   - 배차 페이지 내 하차지 관리 모달 (추가/삭제/활성 토글)
+수정/신규 파일:
+- `src/app/api/bookings/[id]/route.ts`
+  - GET: 토큰 없을 때 address, addressDetail, customerName 마스킹 추가 (OWASP A01 대응)
+  - PUT (reschedule): date 형식 검증 추가 (YYYY-MM-DD regex + timeSlot 길이 제한)
+- `src/app/api/admin/dispatch/route-order/route.ts` (신규)
+  - `PUT /api/admin/dispatch/route-order` — 경로 순서 일괄 업데이트
+  - Zod UUID 검증, max 50건 제한, Promise.allSettled 부분 실패 안전 처리
+- `src/app/admin/dispatch/page.tsx`
+  - `@dnd-kit/core + sortable` 드래그앤드롭 추가
+  - `AutoDispatchPreview`: 기사별 주문 순서 드래그 변경 → `handleAutoReorder` → `autoResult` 업데이트
+  - `SortableBookingRow`, `DragHandle` 서브컴포넌트 추가
+  - ETA 배지: `estimatedDuration`, `estimatedDistance` 표시 (Kakao API 실패 시 숨김)
+  - `formatDuration`, `formatDistance` import
+- `src/lib/kakao-directions.ts` (신규)
+  - `getRouteETA(points)` — Kakao Mobility 길찾기 API 래퍼 (5초 타임아웃, graceful null 반환)
+  - `formatDuration`, `formatDistance` 유틸
+- `src/app/api/admin/dispatch-auto/route.ts`
+  - POST: 좌표 없는 주문(lat/lng null) 자동 `unassigned` 분류 (0,0 좌표 오염 방지)
+  - POST: ETA 병렬 계산 후 `DriverPlan.estimatedDuration/estimatedDistance` 추가
+  - PUT: UUID 검증 강화, 기사별 병렬화 (for...of → Promise.allSettled 중첩), succeeded=0 시 500 반환
+- `src/lib/optimizer/types.ts`
+  - `DriverPlan`에 `estimatedDuration?`, `estimatedDistance?` 옵셔널 필드 추가
 
-2. CVRP 자동배차 엔진 (순수 TypeScript, `src/lib/optimizer/`)
-   - K-Means++ 지리적 클러스터링 (기사 수만큼 클러스터)
-   - Nearest Neighbor + 2-opt TSP 경로 최적화
-   - 하차지 자동 삽입 (누적 적재량 > 차량 용량 시)
-   - 기사-클러스터 매칭 (큰 용량 기사 → 큰 클러스터)
-
-3. 자동배차 API (`/api/admin/dispatch-auto`)
-   - POST: 미리보기 (plan 반환, 적용 안 함)
-   - PUT: 일괄 적용 (driverId + routeOrder 설정)
-
-4. 배차 페이지 UI
-   - "자동배차" 버튼 + "하차지 관리" 버튼
-   - 자동배차 미리보기 패널 (기사별 루트 + 하차지 삽입 + 미배차 경고)
-   - 레그별 적재량 바 (하차지 기준으로 레그 분할)
-   - KakaoMap: ◆ 하차지 다이아몬드 마커 + 기사 색상 경로 폴리라인
-
-5. 기타 개선
-   - 예약 확인 페이지(step 5) 가독성 개선 (섹션 구분, 품목 카드)
-   - 사다리차 필요여부 표시 추가
-   - 배차 카드 기사 이름: 기사 색상 칩으로 개선
-   - `bookings.route_order` 컬럼 추가
-
-**이전 작업**
-- 배차 페이지 크리티컬 버그 수정 + UX 개선 (e92da29, 55b1e84)
-- 배차 UI/UX 전면 개선 (44c1a4e): 좌우 분할, 기사별 색상, 일괄 배차
-
-**테스트 데이터**
-- 기사 3명: 유대현(1톤), 김민수(1.4톤), 박정호(2.5톤)
-- 더미 예약 20건: 2/20(12건) + 2/21(8건), 서울 전역, 좌표 포함
+**이전 작업 (배차/기사 UX 버그 수정 + 코드 품질)**
+- 배차 페이지: alert/confirm → toast + 인라인 확인 UI
+- 기사 대시보드: KST 버그, 낙관적 업데이트, pendingAction 인라인 확인
+- 하차지 + 자동배차 + CVRP 엔진 전체 구현
+- 기사 전용 뷰 (전화번호 로그인 → 당일 배차)
 
 ### 알려진 이슈
 - DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com 설정 필요
 - 코드 리뷰 Low (미수정):
   - 기사 11명 이상 시 색상 중복 (10색 팔레트)
   - 모바일 바텀시트 포커스 트랩 없음
-  - alert() 대신 토스트 사용 권장
+  - booking token 만료 없음 (고정 HMAC)
+  - `dispatch/route-order`: bookingId 소유권 확인 없음 (admin-only라 위험도 낮음)
+  - `dispatch-auto PUT`: driverName 클라이언트 입력 (driverId로 DB 조회 권장)
+  - ETA 계산에 하차지 미포함 (경유지 추가 가능하나 좌표 필요)
 - 누적 Medium (이전 Phase부터):
-  - GET /api/bookings/{id} 토큰 없이 address/customerName 노출
-  - Rate Limiting 전체 부재
+  - Rate Limiting 전체 부재 (driver 엔드포인트만 적용)
   - getAllBookings() 메모리 로드 (상태 카운트용)
+  - items.price 클라이언트 조작 가능 (서버 재계산 권장)
 
 ### 주요 파일 구조
 ```
-src/app/admin/dispatch/page.tsx    → 배차 관리 (자동배차 + 하차지 + 수동배차)
-src/components/admin/KakaoMap.tsx   → 카카오맵 (마커 + 하차지 + 폴리라인)
-src/lib/optimizer/                  → CVRP 엔진 (cluster, tsp, haversine, auto-dispatch)
-src/app/api/admin/dispatch-auto/   → 자동배차 API (미리보기 + 적용)
-src/app/api/admin/unloading-points/ → 하차지 CRUD API
-src/app/api/admin/dispatch/        → 수동 배차 API
-src/app/api/admin/drivers/         → 기사 API
-src/lib/db.ts                      → Supabase CRUD
-src/lib/geocode.ts                 → 카카오 지오코딩
+src/app/admin/dispatch/page.tsx       → 배차 관리 (자동배차 + 하차지 + 수동배차 + DnD)
+src/components/admin/KakaoMap.tsx     → 카카오맵 (마커 + 하차지 + 폴리라인)
+src/lib/optimizer/                    → CVRP 엔진 (cluster, tsp, haversine, auto-dispatch)
+src/lib/kakao-directions.ts           → Kakao Mobility 길찾기 API (ETA)
+src/app/api/admin/dispatch-auto/      → 자동배차 API (미리보기 + 적용)
+src/app/api/admin/dispatch/route-order/ → 경로 순서 업데이트 API
+src/app/api/admin/unloading-points/   → 하차지 CRUD API
+src/app/api/admin/dispatch/           → 수동 배차 API
+src/app/api/admin/drivers/            → 기사 API
+src/lib/db.ts                         → Supabase CRUD
+src/lib/geocode.ts                    → 카카오 지오코딩
 ```
 
 ### Supabase
@@ -81,7 +79,7 @@ src/lib/geocode.ts                 → 카카오 지오코딩
 
 ### TODO
 1. DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com
-2. Rate Limiting 적용 (최소 인증 엔드포인트)
-3. 기사 전용 뷰: 전화번호 로그인 → 당일 배차 주문만 표시
-4. 드래그앤드롭 경로 순서 변경
-5. 실시간 교통 정보 반영 (Kakao Directions API)
+2. ~~기사 전용 뷰~~ ✅ 완료
+3. ~~드래그앤드롭 경로 순서 변경~~ ✅ 완료
+4. ~~실시간 교통 정보 반영 (Kakao Directions API)~~ ✅ 완료 (ETA 표시)
+5. ~~GET /api/bookings/{id} address/customerName 노출 이슈~~ ✅ 완료 (마스킹 추가)

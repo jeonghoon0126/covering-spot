@@ -52,6 +52,10 @@ export interface DriverPlan {
   totalDistance: number; // km
   totalLoad: number; // m³
   legs: number;
+  /** 카카오 길찾기 API 예상 소요 시간 (초) — 미지원 시 undefined */
+  estimatedDuration?: number;
+  /** 카카오 길찾기 API 예상 거리 (미터) — 미지원 시 undefined */
+  estimatedDistance?: number;
 }
 
 /** 자동배차 전체 결과 */

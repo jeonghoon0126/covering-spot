@@ -50,8 +50,24 @@ export async function GET(
     const hasToken = validateBookingToken(_req, booking.phone);
     if (!hasToken) {
       const masked = { ...booking };
+      // 전화번호 마스킹: 010-1234-5678 → 010-****-5678
       if (masked.phone) {
         masked.phone = masked.phone.replace(/(\d{3})[-]?\d{4}[-]?(\d{4})/, "$1-****-$2");
+      }
+      // 이름 마스킹: "홍길동" → "홍*동", "홍길" → "홍*"
+      if (masked.customerName && masked.customerName.length >= 2) {
+        masked.customerName =
+          masked.customerName[0] +
+          "*".repeat(Math.max(1, masked.customerName.length - 2)) +
+          (masked.customerName.length >= 3 ? masked.customerName.slice(-1) : "");
+      }
+      // 주소 마스킹: 구 단위까지만 표시 ("서울특별시 강남구 ***")
+      if (masked.address) {
+        const parts = masked.address.split(" ");
+        masked.address = parts.slice(0, 2).join(" ") + (parts.length > 2 ? " ***" : "");
+      }
+      if (masked.addressDetail) {
+        masked.addressDetail = "***";
       }
       return NextResponse.json({ booking: masked });
     }
@@ -117,6 +133,13 @@ export async function PUT(
           { error: "변경할 날짜, 시간대 또는 확정 시간을 입력해주세요" },
           { status: 400 },
         );
+      }
+      // 입력값 형식 검증 (raw body이므로 명시적 타입 체크 필요)
+      if (date && (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
+        return NextResponse.json({ error: "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)" }, { status: 400 });
+      }
+      if (timeSlot && (typeof timeSlot !== "string" || timeSlot.length > 20)) {
+        return NextResponse.json({ error: "시간대 형식이 올바르지 않습니다" }, { status: 400 });
       }
       const rescheduleData: Record<string, string> = {};
       if (date) rescheduleData.date = date;
