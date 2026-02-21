@@ -834,6 +834,12 @@ export default function AdminDispatchPage() {
                 </svg>
               </button>
               <h1 className="text-lg font-bold truncate">배차 관리</h1>
+              <button
+                onClick={() => router.push("/admin/driver")}
+                className="text-xs font-medium text-text-sub hover:text-primary transition-colors shrink-0 hidden sm:block"
+              >
+                기사님 관리
+              </button>
             </div>
 
             {/* 날짜 선택 */}
