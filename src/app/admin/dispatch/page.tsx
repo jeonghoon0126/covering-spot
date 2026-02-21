@@ -21,6 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDuration, formatDistance } from "@/lib/kakao-directions";
+import DaumPostcodeEmbed from "react-daum-postcode";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import KakaoMap from "@/components/admin/KakaoMap";
 import type { KakaoMapHandle, MapMarker, UnloadingMarker, RouteLine } from "@/components/admin/KakaoMap";
@@ -136,6 +137,9 @@ export default function AdminDispatchPage() {
   const [autoMode, setAutoMode] = useState<"idle" | "loading" | "preview">("idle");
   const [autoResult, setAutoResult] = useState<AutoDispatchResult | null>(null);
   const [autoApplying, setAutoApplying] = useState(false);
+  // 자동배차 고급 설정 — 기사별 시간대 제약
+  const [showSlotConfig, setShowSlotConfig] = useState(false);
+  const [driverSlotFilters, setDriverSlotFilters] = useState<Record<string, string[]>>({});
 
   // 토스트 (alert 대체)
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "warning" } | null>(null);
@@ -251,6 +255,12 @@ export default function AdminDispatchPage() {
     fetchUnloadingPoints();
   }, [fetchUnloadingPoints]);
 
+  // 날짜 변경 시 자동배차 관련 상태 초기화 (이전 날짜 필터 오염 방지)
+  useEffect(() => {
+    setDriverSlotFilters({});
+    setShowSlotConfig(false);
+  }, [selectedDate]);
+
   // 자동배차 실행 (미리보기)
   const handleAutoDispatch = useCallback(async () => {
     if (!token || autoMode === "loading") return;
@@ -259,7 +269,10 @@ export default function AdminDispatchPage() {
       const res = await fetch("/api/admin/dispatch-auto", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ date: selectedDate }),
+        body: JSON.stringify({
+          date: selectedDate,
+          ...(Object.keys(driverSlotFilters).length > 0 ? { driverSlotFilters } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -279,7 +292,7 @@ export default function AdminDispatchPage() {
       showToast("네트워크 오류");
       setAutoMode("idle");
     }
-  }, [token, selectedDate, autoMode]);
+  }, [token, selectedDate, autoMode, driverSlotFilters]);
 
   // 자동배차 적용
   const handleAutoApply = useCallback(async () => {
@@ -340,6 +353,31 @@ export default function AdminDispatchPage() {
   const activeBookings = useMemo(() => {
     return bookings.filter((b) => b.status !== "cancelled" && b.status !== "rejected");
   }, [bookings]);
+
+  // 기사별 시간대 분포 (슬롯 칩 표시용)
+  const driverSlotBreakdown = useMemo(() => {
+    const map = new Map<string, Record<string, number>>();
+    for (const b of activeBookings) {
+      if (!b.driverId) continue;
+      if (!map.has(b.driverId)) map.set(b.driverId, {});
+      const slot = b.timeSlot || "기타";
+      const entry = map.get(b.driverId)!;
+      entry[slot] = (entry[slot] || 0) + 1;
+    }
+    return map;
+  }, [activeBookings]);
+
+  // 자동배차 고급 설정 — 기사별 시간대 토글
+  function toggleDriverSlot(driverId: string, slot: string) {
+    setDriverSlotFilters((prev) => {
+      const current = prev[driverId] ?? [...SLOT_ORDER];
+      const next = current.includes(slot)
+        ? current.filter((s) => s !== slot)
+        : [...current, slot];
+      // 전체 허용 = 필터 없음으로 정규화
+      return { ...prev, [driverId]: next.length === SLOT_ORDER.length ? [] : next };
+    });
+  }
 
   // 필터링된 예약
   const filteredBookings = useMemo(() => {
@@ -846,27 +884,70 @@ export default function AdminDispatchPage() {
                 </div>
                 {/* 자동배차 + 하차지 관리 버튼 */}
                 {autoMode === "idle" && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleAutoDispatch}
-                      disabled={unassignedCount === 0}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary-dark transition-colors"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 1.75V12.25M1.75 7H12.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                      자동배차
-                    </button>
-                    <button
-                      onClick={() => setShowUnloadingModal(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-text-sub hover:bg-fill-tint transition-colors"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 3.5V10.5M7 3.5L5.25 5.25M7 3.5L8.75 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <rect x="2.5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                      </svg>
-                      하차지 관리
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    {/* 기사별 시간대 제약 설정 패널 */}
+                    {showSlotConfig && drivers.length > 0 && (
+                      <div className="bg-bg-warm border border-border-light rounded-lg p-2.5 space-y-1.5">
+                        <span className="text-[10px] text-text-muted font-medium">기사별 허용 시간대 (비활성 = 해당 슬롯 배제)</span>
+                        {drivers.map((d) => {
+                          const allowed = driverSlotFilters[d.id] ?? [];
+                          return (
+                            <div key={d.id} className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium w-14 truncate flex-shrink-0">{d.name}</span>
+                              {SLOT_ORDER.map((slot) => {
+                                const active = allowed.length === 0 || allowed.includes(slot);
+                                return (
+                                  <button
+                                    key={slot}
+                                    onClick={() => toggleDriverSlot(d.id, slot)}
+                                    className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
+                                      active
+                                        ? "bg-primary text-white border-primary"
+                                        : "text-text-muted border-border bg-bg"
+                                    }`}
+                                  >
+                                    {SLOT_LABELS[slot]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAutoDispatch}
+                        disabled={unassignedCount === 0}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M7 1.75V12.25M1.75 7H12.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        자동배차
+                      </button>
+                      <button
+                        onClick={() => setShowSlotConfig((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
+                          showSlotConfig
+                            ? "border-primary text-primary bg-primary-bg"
+                            : "border-border text-text-muted hover:bg-fill-tint"
+                        }`}
+                        title="기사별 시간대 제약 설정"
+                      >
+                        ⚙
+                      </button>
+                      <button
+                        onClick={() => setShowUnloadingModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-text-sub hover:bg-fill-tint transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M7 3.5V10.5M7 3.5L5.25 5.25M7 3.5L8.75 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <rect x="2.5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                        </svg>
+                        하차지 관리
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1031,6 +1112,25 @@ export default function AdminDispatchPage() {
                                 </span>
                                 {isOver && <span className="text-semantic-red font-medium">초과</span>}
                               </div>
+                              {/* 시간대 분포 칩 */}
+                              {(() => {
+                                const breakdown = driverSlotBreakdown.get(stat.driverId);
+                                if (!breakdown || Object.keys(breakdown).length === 0) return null;
+                                return (
+                                  <div className="flex flex-wrap gap-0.5 mt-1">
+                                    {SLOT_ORDER.filter((s) => breakdown[s]).map((s) => (
+                                      <span key={s} className="text-[9px] px-1 py-0 rounded bg-fill-tint text-text-muted leading-4">
+                                        {SLOT_LABELS[s] || s} {breakdown[s]}
+                                      </span>
+                                    ))}
+                                    {breakdown["기타"] ? (
+                                      <span className="text-[9px] px-1 py-0 rounded bg-fill-tint text-text-muted leading-4">
+                                        기타 {breakdown["기타"]}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                );
+                              })()}
                             </button>
                           );
                         })}
@@ -1717,6 +1817,8 @@ function UnloadingModal({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   // 삭제 인라인 확인 (confirm() 대체)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // 주소 검색 팝업
+  const [showAddrSearch, setShowAddrSearch] = useState(false);
 
   async function handleCreate() {
     if (!newName.trim() || !newAddress.trim() || creating) return;
@@ -1873,14 +1975,43 @@ function UnloadingModal({
               placeholder="하차지 이름"
               className="w-24 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg"
             />
-            <input
-              type="text"
-              value={newAddress}
-              onChange={(e) => setNewAddress(e.target.value)}
-              placeholder="주소 (도로명)"
-              onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-              className="flex-1 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg"
-            />
+            <button
+              type="button"
+              onClick={() => setShowAddrSearch(true)}
+              className="flex-1 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg text-left truncate"
+            >
+              {newAddress || <span className="text-text-muted">주소 검색 (클릭)</span>}
+            </button>
+            {showAddrSearch && (
+              <div
+                className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center"
+                onClick={() => setShowAddrSearch(false)}
+              >
+                <div
+                  className="bg-bg rounded-xl overflow-hidden w-[360px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border-light">
+                    <span className="text-sm font-semibold">주소 검색</span>
+                    <button
+                      onClick={() => setShowAddrSearch(false)}
+                      className="p-1 text-text-muted hover:text-text-primary"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <DaumPostcodeEmbed
+                    onComplete={(data) => {
+                      setNewAddress(data.roadAddress || data.jibunAddress);
+                      setShowAddrSearch(false);
+                    }}
+                    style={{ height: 380 }}
+                  />
+                </div>
+              </div>
+            )}
             <button
               onClick={handleCreate}
               disabled={creating || !newName.trim() || !newAddress.trim()}

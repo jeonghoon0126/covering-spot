@@ -9,6 +9,8 @@ import type { Booking } from "@/types/booking";
 
 const AutoDispatchSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // 기사별 허용 시간대 제약 (빈 배열 = 제약 없음)
+  driverSlotFilters: z.record(z.string().uuid(), z.array(z.string())).optional(),
 });
 
 /**
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "date 파라미터 필요 (YYYY-MM-DD)" }, { status: 400 });
     }
 
-    const { date } = parsed.data;
+    const { date, driverSlotFilters } = parsed.data;
 
     // 병렬 조회
     const [allBookings, drivers, unloadingPoints] = await Promise.all([
@@ -101,8 +103,30 @@ export async function POST(req: NextRequest) {
       name: p.name,
     }));
 
-    // 자동배차 실행
-    const result = autoDispatch(dispatchBookings, dispatchDrivers, dispatchUnloadingPoints);
+    // 자동배차 실행 (시간대 제약 있으면 그룹별 분리 실행)
+    let result;
+    const activeFilters = driverSlotFilters
+      ? Object.fromEntries(Object.entries(driverSlotFilters).filter(([, slots]) => slots.length > 0))
+      : {};
+    if (Object.keys(activeFilters).length > 0) {
+      const groups = buildSlotGroups(dispatchBookings, dispatchDrivers, activeFilters);
+      const groupResults = groups.map(({ bookings, drivers }) =>
+        bookings.length > 0 && drivers.length > 0
+          ? autoDispatch(bookings, drivers, dispatchUnloadingPoints)
+          : null,
+      );
+      // 빈 그룹(기사 없음) → unassigned 처리
+      const emptyGroupBookings = groups
+        .filter(({ drivers }) => drivers.length === 0)
+        .flatMap(({ bookings }) => bookings.map((b) => ({ id: b.id, reason: "배정 기사 없음" })));
+      const merged = mergeDispatchResults(groupResults);
+      merged.unassigned.push(...emptyGroupBookings);
+      merged.stats.unassigned += emptyGroupBookings.length;
+      merged.stats.totalBookings += emptyGroupBookings.length;
+      result = merged;
+    } else {
+      result = autoDispatch(dispatchBookings, dispatchDrivers, dispatchUnloadingPoints);
+    }
 
     // 기사별 ETA 병렬 계산 (실패해도 plan은 반환 — graceful degradation)
     const coordMap = new Map<string, RoutePoint>(
@@ -141,6 +165,88 @@ export async function POST(req: NextRequest) {
     console.error("[dispatch-auto/POST]", e);
     return NextResponse.json({ error: "자동배차 실패" }, { status: 500 });
   }
+}
+
+/* ── 시간대 제약 헬퍼 ── */
+
+/**
+ * 기사별 시간대 제약에 따라 주문·기사를 그룹으로 분리
+ * - 제약 있는 기사: 허용 슬롯의 주문만 받음
+ * - 제약 없는 기사: 나머지 주문 전체 처리
+ */
+function buildSlotGroups(
+  bookings: DispatchBooking[],
+  drivers: DispatchDriver[],
+  driverSlotFilters: Record<string, string[]>,
+): Array<{ bookings: DispatchBooking[]; drivers: DispatchDriver[] }> {
+  const restrictedIds = new Set(Object.keys(driverSlotFilters));
+  const unrestrictedDrivers = drivers.filter((d) => !restrictedIds.has(d.id));
+
+  // 슬롯 → 허용된 (제약) 기사 목록
+  const slotToDrivers = new Map<string, DispatchDriver[]>();
+  for (const driver of drivers) {
+    if (!restrictedIds.has(driver.id)) continue;
+    for (const slot of driverSlotFilters[driver.id] ?? []) {
+      if (!slotToDrivers.has(slot)) slotToDrivers.set(slot, []);
+      slotToDrivers.get(slot)!.push(driver);
+    }
+  }
+
+  const groups: Array<{ bookings: DispatchBooking[]; drivers: DispatchDriver[] }> = [];
+  const claimedIds = new Set<string>();
+
+  for (const [slot, slotDrivers] of slotToDrivers.entries()) {
+    const slotBookings = bookings.filter((b) => (b.timeSlot || "기타") === slot);
+    if (slotBookings.length === 0) continue;
+    for (const b of slotBookings) claimedIds.add(b.id);
+    groups.push({ bookings: slotBookings, drivers: slotDrivers });
+  }
+
+  // 미분류 주문 → 제약 없는 기사에게
+  const remaining = bookings.filter((b) => !claimedIds.has(b.id));
+  if (remaining.length > 0) {
+    groups.push({ bookings: remaining, drivers: unrestrictedDrivers });
+  }
+
+  return groups;
+}
+
+import type { AutoDispatchResult } from "@/lib/optimizer/types";
+
+/**
+ * 여러 autoDispatch 결과를 하나로 병합
+ * 같은 기사가 여러 그룹에 나타나면 주문을 순서대로 합산
+ */
+function mergeDispatchResults(results: (AutoDispatchResult | null)[]): AutoDispatchResult {
+  const merged: AutoDispatchResult = {
+    plan: [],
+    unassigned: [],
+    stats: { totalBookings: 0, assigned: 0, unassigned: 0, totalDistance: 0 },
+  };
+
+  for (const result of results) {
+    if (!result) continue;
+    for (const dp of result.plan) {
+      const existing = merged.plan.find((p) => p.driverId === dp.driverId);
+      if (existing) {
+        const offset = existing.bookings.length;
+        existing.bookings.push(...dp.bookings.map((b, i) => ({ ...b, routeOrder: offset + i + 1 })));
+        existing.totalLoad += dp.totalLoad;
+        existing.totalDistance += dp.totalDistance;
+        existing.legs += dp.legs;
+        existing.unloadingStops.push(...dp.unloadingStops);
+      } else {
+        merged.plan.push({ ...dp });
+      }
+    }
+    merged.unassigned.push(...result.unassigned);
+    merged.stats.assigned += result.stats.assigned;
+    merged.stats.unassigned += result.stats.unassigned;
+    merged.stats.totalDistance += result.stats.totalDistance;
+  }
+
+  merged.stats.totalBookings = merged.stats.assigned + merged.stats.unassigned;
+  return merged;
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

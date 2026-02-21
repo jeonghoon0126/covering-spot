@@ -16,6 +16,14 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-semantic-green-tint text-semantic-green",
 };
 
+const SLOT_LABELS: Record<string, string> = {
+  "10:00": "10~12시",
+  "12:00": "12~14시",
+  "14:00": "14~16시",
+  "15:00": "15~17시",
+};
+const SLOT_ORDER = ["10:00", "12:00", "14:00", "15:00"];
+
 // 드라이버가 직접 변경 가능한 퀵 액션
 const QUICK_ACTIONS: Record<string, { status: string; label: string }> = {
   quote_confirmed: { status: "in_progress", label: "수거 시작" },
@@ -207,6 +215,24 @@ export default function DriverDashboard() {
     }
   }
 
+  // 시간대별 그룹핑 (routeOrder 정렬은 유지)
+  const groupedBySlot = useMemo(() => {
+    const groups = new Map<string, typeof filtered>();
+    for (const b of filtered) {
+      const slot = b.timeSlot || "시간 미정";
+      if (!groups.has(slot)) groups.set(slot, []);
+      groups.get(slot)!.push(b);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => {
+      const ia = SLOT_ORDER.indexOf(a);
+      const ib = SLOT_ORDER.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [filtered]);
+
   const pendingCount = statusCounts["quote_confirmed"] || 0;
   const inProgressCount = statusCounts["in_progress"] || 0;
 
@@ -362,8 +388,14 @@ export default function DriverDashboard() {
             {showDate === "today" ? "오늘" : "내일"} 배차된 수거가 없습니다
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map((b) => {
+          <div className="space-y-5">
+            {groupedBySlot.map(([slot, slotBookings]) => (
+              <div key={slot}>
+                <div className="text-xs font-semibold text-text-muted mb-2.5 px-1">
+                  {SLOT_LABELS[slot] || slot} · {slotBookings.length}건
+                </div>
+                <div className="space-y-3">
+                {slotBookings.map((b) => {
               const quickAction = QUICK_ACTIONS[b.status!];
               const isLoading = actionLoading === b.id;
               const time = b.confirmedTime || b.timeSlot;
@@ -544,7 +576,10 @@ export default function DriverDashboard() {
                   )}
                 </div>
               );
-            })}
+                })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
