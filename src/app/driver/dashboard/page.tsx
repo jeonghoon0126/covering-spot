@@ -52,16 +52,16 @@ function formatDateShort(dateStr: string): string {
 
 function openMap(address: string) {
   const encoded = encodeURIComponent(address);
-  const naverUrl = `nmap://search?query=${encoded}&appname=com.covering.spot`;
-  const kakaoFallback = `https://map.kakao.com/?q=${encoded}`;
+  const kakaoAppUrl = `kakaomap://search?q=${encoded}`;
+  const kakaoWebUrl = `https://map.kakao.com/?q=${encoded}`;
 
-  // 앱 전환 여부 감지: blur = 네이버 지도 앱으로 전환됨 → 타이머 취소
-  // blur 없이 1.5s 경과 = 앱 없음 → 카카오 맵 새 탭 (현재 대시보드 유지)
+  // 앱 전환 여부 감지: blur = 카카오맵 앱으로 전환됨 → 타이머 취소
+  // blur 없이 1.5s 경과 = 앱 없음 → 카카오맵 웹 새 탭 (현재 대시보드 유지)
   const timeout = setTimeout(() => {
-    window.open(kakaoFallback, "_blank", "noopener,noreferrer");
+    window.open(kakaoWebUrl, "_blank", "noopener,noreferrer");
   }, 1500);
 
-  window.location.href = naverUrl;
+  window.location.href = kakaoAppUrl;
   window.addEventListener("blur", () => clearTimeout(timeout), { once: true });
 }
 
