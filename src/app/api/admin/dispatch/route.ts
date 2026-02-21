@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getBookings, getDrivers, updateBooking } from "@/lib/db";
+import { getBookings, getDrivers, updateBooking, getBookingPhonesByIds } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
+import { sendStatusSms } from "@/lib/sms-notify";
 import type { Booking } from "@/types/booking";
 
 /**
@@ -152,6 +153,19 @@ export async function POST(req: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    // 고객 SMS 발송 (fire-and-forget: SMS 실패가 배차 실패를 유발하지 않음)
+    if (succeeded.length > 0) {
+      getBookingPhonesByIds(succeeded)
+        .then((phoneMap) => {
+          for (const [bookingId, phone] of phoneMap.entries()) {
+            if (phone) sendStatusSms(phone, "dispatched", bookingId).catch((err) => {
+              console.error("[SMS 발송 실패]", { bookingId, status: "dispatched", error: err?.message });
+            });
+          }
+        })
+        .catch(console.error);
     }
 
     return NextResponse.json({

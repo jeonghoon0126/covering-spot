@@ -6,7 +6,53 @@ GitHub: jeonghoon0126/covering-spot (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동 배포
 
-### 최근 작업 (2026-02-21)
+### 최근 작업 (2026-02-22) — 고객 SMS 알림
+
+**배차·수거 3개 트리거 고객 SMS 연결**
+
+수정 파일:
+- `src/lib/sms-notify.ts`: `dispatched` 템플릿 추가 ("기사가 배정되었어요!")
+- `src/lib/db.ts`: `getBookingPhonesByIds(ids)` — 배차 ID 목록으로 phone 일괄 조회
+- `src/app/api/driver/bookings/[id]/route.ts`: SELECT에 `phone` 추가, 상태 변경 성공 후 fire-and-forget SMS
+- `src/app/api/admin/dispatch/route.ts`: 수동배차 성공 후 고객 `dispatched` SMS
+- `src/app/api/admin/dispatch-auto/route.ts`: 자동배차 PUT 적용 후 고객 `dispatched` SMS
+
+트리거:
+1. 드라이버 수거 시작 (`in_progress`) → 고객 SMS
+2. 드라이버 수거 완료 (`completed`) → 고객 SMS
+3. 수동/자동 배차 확정 (`dispatched`) → 고객 SMS
+
+설계: SMS 실패가 배차 실패를 유발하지 않음 (fire-and-forget + 구조화된 에러 로그)
+
+### 최근 작업 (2026-02-21) — 세션 2
+
+**배차 GNB 반응형 + 하차지 버그 + 기사 workDays + 보안 수정**
+
+수정 파일:
+- `src/app/admin/dispatch/page.tsx`
+  - GNB Row2: 필터에 `flex-1 min-w-0` 추가, 범례 `hidden sm:flex` → `hidden lg:flex` (태블릿 오버플로우 제거)
+  - date input: `w-36 sm:w-auto` (모바일 고정폭)
+  - "오늘" 버튼: `hidden sm:block` (모바일 숨김)
+  - 날짜 이동 버튼에 `aria-label` 추가 (a11y)
+- `src/app/api/admin/unloading-points/route.ts`
+  - CreateSchema/UpdateSchema: `.trim()` 추가 (공백만 입력 방어)
+  - UpdateSchema: `.refine()` 추가 — 수정 필드 최소 1개 필수
+  - DELETE: 존재하지 않는 ID → 404 반환 (기존: 항상 200)
+- `src/lib/db.ts`
+  - `deleteUnloadingPoint`: `.delete().eq().select("id")` 패턴으로 변경 → 실제 삭제 여부 boolean 반환
+- `src/app/api/admin/dispatch-auto/route.ts`
+  - workDays 필터링: `KO_DAYS` + `dayOfWeek` 계산 → 해당 요일 미근무 기사 자동 제외
+- `src/lib/optimizer/tsp.ts`
+  - `insertUnloadingStops` 라스트픽업 과적재 버그 수정 (이전 세션)
+  - 단일 주문 > 차량 용량 시 `console.warn` 추가
+
+### 알려진 이슈 (2026-02-21 추가)
+- ~~**단일 주문 > 차량 용량**: 현재 경고 로그만 출력.~~ ✅ 수정 완료 — `dispatch-auto/route.ts`에서 `maxVehicleCapacity` 계산 후 초과 주문 선분리 → `unassigned`에 사유 포함
+- **driverSlotFilters + workDays 조합**: 제약 있는 기사가 workDays로 제외되면 해당 슬롯 주문이 제약 없는 기사에게 조용히 넘어감 (의도된 동작인지 확인 필요)
+- **dispatch-auto Zod 에러 메시지**: driverSlotFilters UUID 오류 시에도 "date 파라미터 필요" 출력 (오해 소지)
+- **모바일 date input w-36 (144px)**: Android Chrome 실기 확인 필요
+
+### 최근 작업 (2026-02-21) — 세션 1
 
 **보안 수정 + 드래그앤드롭 + Kakao Directions ETA**
 
@@ -83,3 +129,9 @@ src/lib/geocode.ts                    → 카카오 지오코딩
 3. ~~드래그앤드롭 경로 순서 변경~~ ✅ 완료
 4. ~~실시간 교통 정보 반영 (Kakao Directions API)~~ ✅ 완료 (ETA 표시)
 5. ~~GET /api/bookings/{id} address/customerName 노출 이슈~~ ✅ 완료 (마스킹 추가)
+6. ~~배차 GNB 반응형~~ ✅ 완료
+7. ~~하차지 등록 버그 (DELETE 404, PUT 빈 수정, trim 검증)~~ ✅ 완료
+8. ~~기사 workDays 자동배차 적용~~ ✅ 완료
+9. ~~단일 주문 > 차량 용량 → `unassigned` 처리~~ ✅ 완료
+10. Rate Limiting (driver 엔드포인트 외 전체 미적용)
+11. ~~배차·수거 고객 SMS (dispatched / in_progress / completed)~~ ✅ 완료

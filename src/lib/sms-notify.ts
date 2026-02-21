@@ -30,6 +30,8 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     "[커버링 방문수거] 정산 안내드려요." +
     (paymentUrl ? `\n\n아래 링크에서 결제를 진행해 주세요.\n결제 링크: ${paymentUrl}` : "") +
     "\n\n결제 완료 후 정산이 확정돼요.\n문의사항은 카카오톡 채널로 연락 주세요!",
+  dispatched: () =>
+    "[커버링 방문수거] 안녕하세요! 수거 담당 기사가 배정되었어요.\n\n수거 당일 기사 출발 시 다시 안내드릴게요. 감사합니다!",
   cancelled: () =>
     "[커버링 방문수거] 수거 신청이 취소되었어요.\n\n새로운 수거가 필요하시면 언제든 편하게 신청해 주세요!\n감사합니다.",
   rejected: () =>

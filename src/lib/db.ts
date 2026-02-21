@@ -319,6 +319,16 @@ export async function deleteBooking(id: string): Promise<boolean> {
   return result !== null;
 }
 
+export async function getBookingPhonesByIds(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id, phone")
+    .in("id", ids);
+  if (error) throw error;
+  return new Map((data || []).map((row) => [row.id as string, row.phone as string]));
+}
+
 /* ── Blocked Slots ── */
 
 function rowToBlockedSlot(row: Record<string, unknown>): BlockedSlot {
@@ -547,7 +557,11 @@ export async function updateUnloadingPoint(
 }
 
 export async function deleteUnloadingPoint(id: string): Promise<boolean> {
-  const { error } = await supabase.from("unloading_points").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("unloading_points")
+    .delete()
+    .eq("id", id)
+    .select("id"); // 실제 삭제된 행 반환 → 없는 ID는 빈 배열
   if (error) throw error;
-  return true;
+  return (data?.length ?? 0) > 0;
 }

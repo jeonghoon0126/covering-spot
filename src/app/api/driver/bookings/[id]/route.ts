@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateDriverToken } from "@/lib/driver-auth";
 import { supabase } from "@/lib/supabase";
+import { sendStatusSms } from "@/lib/sms-notify";
 
 // 드라이버가 직접 변경 가능한 상태 전환만 허용
 const ALLOWED_TRANSITIONS: Record<string, string> = {
@@ -39,10 +40,10 @@ export async function PUT(
     return NextResponse.json({ error: "변경 불가능한 상태입니다" }, { status: 403 });
   }
 
-  // 현재 예약 조회 (소유권 + 현재 상태 확인)
+  // 현재 예약 조회 (소유권 + 현재 상태 + 고객 전화번호 확인)
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, status, driver_id")
+    .select("id, status, driver_id, phone")
     .eq("id", id)
     .single();
 
@@ -85,6 +86,13 @@ export async function PUT(
     }
     console.error("[driver/bookings PUT]", updateError);
     return NextResponse.json({ error: "업데이트 실패" }, { status: 500 });
+  }
+
+  // 고객 SMS 발송 (fire-and-forget: SMS 실패가 응답을 막지 않음)
+  if (booking.phone) {
+    sendStatusSms(booking.phone, newStatus, id).catch((err) => {
+      console.error("[SMS 발송 실패]", { bookingId: id, status: newStatus, error: err?.message });
+    });
   }
 
   return NextResponse.json({ id: updated.id, status: updated.status });
