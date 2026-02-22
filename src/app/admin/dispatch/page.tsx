@@ -1017,7 +1017,18 @@ export default function AdminDispatchPage() {
                     {/* 기사별 시간대 제약 설정 패널 */}
                     {showSlotConfig && drivers.length > 0 && (
                       <div className="bg-bg-warm border border-border-light rounded-lg p-2.5 space-y-1.5">
-                        <span className="text-xs text-text-muted font-medium">기사별 허용 시간대 (비활성 = 해당 슬롯 배제)</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-text-muted font-medium">기사별 허용 시간대 (비활성 = 해당 슬롯 배제)</span>
+                          <button
+                            onClick={() => router.push("/admin/driver")}
+                            className="text-[11px] font-medium text-primary hover:underline shrink-0"
+                          >
+                            기사 관리에서 저장 →
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-text-muted/70">
+                          기사 프로필에 저장된 슬롯이 자동 적용됩니다. 아래 설정은 이번 배차에만 적용됩니다.
+                        </p>
                         {drivers.map((d) => {
                           const allowed = driverSlotFilters[d.id] ?? [];
                           return (
@@ -1062,14 +1073,14 @@ export default function AdminDispatchPage() {
                             ? "border-primary text-primary bg-primary-bg"
                             : "border-border text-text-muted hover:bg-fill-tint"
                         }`}
-                        title="기사별 시간대 제약 설정"
+                        title="기사별 시간대 제약 설정 (기사 프로필 우선)"
                       >
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                           <path d="M1.75 4.5h10.5M1.75 9.5h10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                           <circle cx="4.5" cy="4.5" r="1.75" fill="currentColor"/>
                           <circle cx="9.5" cy="9.5" r="1.75" fill="currentColor"/>
                         </svg>
-                        시간 제한
+                        슬롯 설정
                       </button>
                       <button
                         onClick={() => setShowUnloadingModal(true)}
@@ -1475,9 +1486,11 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
             <option value="">배차</option>
             {driverStats.map((stat) => {
               const remaining = stat.vehicleCapacity - stat.totalLoadingCube;
+              const bookingCube = booking.totalLoadingCube || 0;
+              const wouldExceed = stat.totalLoadingCube + bookingCube > stat.vehicleCapacity;
               return (
                 <option key={stat.driverId} value={stat.driverId}>
-                  {stat.driverName} ({remaining.toFixed(1)}m&sup3;)
+                  {wouldExceed ? "⚠ " : ""}{stat.driverName} ({remaining.toFixed(1)}m³)
                 </option>
               );
             })}

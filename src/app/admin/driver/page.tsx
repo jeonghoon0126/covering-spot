@@ -15,6 +15,7 @@ interface Driver {
   vehicleCapacity: number;
   licensePlate: string | null;
   workDays: string;
+  workSlots: string;
 }
 
 /* ── 상수 ── */
@@ -54,6 +55,99 @@ function WorkDayToggle({ value, onChange }: { value: string; onChange: (v: strin
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/* ── 가능 슬롯 토글 컴포넌트 ── */
+
+const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"] as const;
+const SLOT_LABELS: Record<string, string> = {
+  "10:00": "10~12시", "12:00": "12~14시",
+  "14:00": "14~16시", "16:00": "16~18시",
+};
+
+function WorkSlotToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  // 빈 문자열 = 모든 슬롯 가능 (ALL)
+  const selected = new Set(value ? value.split(",").map((s) => s.trim()).filter(Boolean) : []);
+  const isAll = selected.size === 0;
+
+  function toggle(slot: string) {
+    const next = new Set(selected);
+    if (next.has(slot)) {
+      next.delete(slot);
+    } else {
+      next.add(slot);
+    }
+    // 모두 선택되거나 모두 해제 → 빈 문자열(전체)로 정규화
+    if (next.size === 0 || next.size === SLOT_ORDER.length) {
+      onChange("");
+    } else {
+      onChange(SLOT_ORDER.filter((s) => next.has(s)).join(","));
+    }
+  }
+
+  function setAll() {
+    onChange("");
+  }
+
+  return (
+    <div className="flex gap-1">
+      <button
+        type="button"
+        onClick={setAll}
+        className={`px-2 h-8 text-xs font-semibold rounded-sm border transition-colors ${
+          isAll
+            ? "bg-primary text-white border-primary"
+            : "bg-bg-warm text-text-muted border-border-light"
+        }`}
+      >
+        전체
+      </button>
+      {SLOT_ORDER.map((slot) => {
+        const active = !isAll && selected.has(slot);
+        return (
+          <button
+            key={slot}
+            type="button"
+            onClick={() => toggle(slot)}
+            className={`flex-1 h-8 text-xs font-semibold rounded-sm border transition-colors ${
+              active
+                ? "bg-primary text-white border-primary"
+                : "bg-bg-warm text-text-muted border-border-light"
+            }`}
+          >
+            {SLOT_LABELS[slot]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── 가능 슬롯 읽기 전용 칩 ── */
+
+function WorkSlotChips({ value }: { value: string }) {
+  if (!value) {
+    return (
+      <div className="flex gap-1 mt-1">
+        <span className="text-[11px] px-2 py-0.5 rounded-sm border bg-primary/10 text-primary border-primary/30 font-medium">
+          전체 슬롯
+        </span>
+      </div>
+    );
+  }
+  const selected = new Set(value.split(",").map((s) => s.trim()).filter(Boolean));
+  return (
+    <div className="flex gap-1 mt-1">
+      {SLOT_ORDER.filter((s) => selected.has(s)).map((slot) => (
+        <span
+          key={slot}
+          className="text-[11px] px-2 py-0.5 rounded-sm border bg-primary/10 text-primary border-primary/30 font-medium"
+        >
+          {SLOT_LABELS[slot]}
+        </span>
+      ))}
     </div>
   );
 }
@@ -103,6 +197,7 @@ export default function AdminDriverManagePage() {
   const [newVehicleType, setNewVehicleType] = useState("1톤");
   const [newLicensePlate, setNewLicensePlate] = useState("");
   const [newWorkDays, setNewWorkDays] = useState("월,화,수,목,금,토");
+  const [newWorkSlots, setNewWorkSlots] = useState("");
 
   // 기사 수정 폼 상태
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -111,6 +206,7 @@ export default function AdminDriverManagePage() {
   const [editVehicleType, setEditVehicleType] = useState("1톤");
   const [editLicensePlate, setEditLicensePlate] = useState("");
   const [editWorkDays, setEditWorkDays] = useState("월,화,수,목,금,토");
+  const [editWorkSlots, setEditWorkSlots] = useState("");
 
   const [saving, setSaving] = useState(false);
 
@@ -181,6 +277,7 @@ export default function AdminDriverManagePage() {
           vehicleCapacity: VEHICLE_CAPACITY[newVehicleType] || 4.8,
           licensePlate: newLicensePlate.trim() || undefined,
           workDays: newWorkDays,
+          workSlots: newWorkSlots,
         }),
       });
       if (res.ok) {
@@ -189,6 +286,7 @@ export default function AdminDriverManagePage() {
         setNewVehicleType("1톤");
         setNewLicensePlate("");
         setNewWorkDays("월,화,수,목,금,토");
+        setNewWorkSlots("");
         setShowAddForm(false);
         fetchDrivers();
       } else {
@@ -221,6 +319,7 @@ export default function AdminDriverManagePage() {
           vehicleCapacity: VEHICLE_CAPACITY[editVehicleType] || 4.8,
           licensePlate: editLicensePlate.trim() || undefined,
           workDays: editWorkDays,
+          workSlots: editWorkSlots,
         }),
       });
       if (res.ok) {
@@ -388,6 +487,10 @@ export default function AdminDriverManagePage() {
                 <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
                 <WorkDayToggle value={newWorkDays} onChange={setNewWorkDays} />
               </div>
+              <div>
+                <label className="block text-[11px] text-text-muted font-medium mb-1">가능 슬롯 <span className="text-text-muted/60 font-normal">(전체 = 제한 없음)</span></label>
+                <WorkSlotToggle value={newWorkSlots} onChange={setNewWorkSlots} />
+              </div>
               <button
                 onClick={handleCreateDriver}
                 disabled={saving || !newName.trim()}
@@ -457,6 +560,10 @@ export default function AdminDriverManagePage() {
                           <label className="block text-[11px] text-text-muted font-medium mb-1">근무요일</label>
                           <WorkDayToggle value={editWorkDays} onChange={setEditWorkDays} />
                         </div>
+                        <div>
+                          <label className="block text-[11px] text-text-muted font-medium mb-1">가능 슬롯 <span className="text-text-muted/60 font-normal">(전체 = 제한 없음)</span></label>
+                          <WorkSlotToggle value={editWorkSlots} onChange={setEditWorkSlots} />
+                        </div>
                         <div className="flex gap-2 pt-1">
                           <button
                             onClick={() => handleUpdateDriver(driver.id)}
@@ -512,6 +619,7 @@ export default function AdminDriverManagePage() {
                                 setEditVehicleType(driver.vehicleType || "1톤");
                                 setEditLicensePlate(driver.licensePlate || "");
                                 setEditWorkDays(driver.workDays || "월,화,수,목,금,토");
+                                setEditWorkSlots(driver.workSlots || "");
                                 setShowAddForm(false);
                               }}
                               className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
@@ -532,6 +640,8 @@ export default function AdminDriverManagePage() {
                         </div>
                         {/* 근무요일 칩 */}
                         <WorkDayChips value={driver.workDays || ""} />
+                        {/* 가능 슬롯 칩 */}
+                        <WorkSlotChips value={driver.workSlots || ""} />
                       </div>
                     )}
                   </div>

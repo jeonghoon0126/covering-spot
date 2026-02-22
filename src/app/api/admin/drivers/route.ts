@@ -40,6 +40,13 @@ function validateWorkDays(val: string): boolean {
   return val.split(",").every((d) => VALID_WORK_DAYS.includes(d.trim()));
 }
 
+const VALID_WORK_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
+
+function validateWorkSlots(val: string): boolean {
+  if (!val) return true; // 빈 문자열 = 모든 슬롯 허용
+  return val.split(",").every((s) => VALID_WORK_SLOTS.includes(s.trim()));
+}
+
 const createDriverSchema = z.object({
   name: z.string().min(1, "name 필드가 필요합니다").max(50),
   phone: z.string().regex(phoneRegex, "올바른 전화번호 형식이 아닙니다").optional(),
@@ -47,6 +54,7 @@ const createDriverSchema = z.object({
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
+  workSlots: z.string().optional().default("").refine((v) => !v || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 10:00,12:00)" }),
 });
 
 export async function POST(req: NextRequest) {
@@ -71,8 +79,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, vehicleType, vehicleCapacity, licensePlate, workDays } = parsed.data;
-    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate, workDays);
+    const { name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots } = parsed.data;
+    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots);
     return NextResponse.json({ driver }, { status: 201 });
   } catch (e) {
     console.error("[admin/drivers/POST]", e);
@@ -92,6 +100,7 @@ const updateDriverSchema = z.object({
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
+  workSlots: z.string().optional().refine((v) => v === undefined || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 10:00,12:00)" }),
 });
 
 export async function PUT(req: NextRequest) {
@@ -116,7 +125,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate, workDays } = parsed.data;
+    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots } = parsed.data;
 
     const updates: {
       name?: string;
@@ -126,6 +135,7 @@ export async function PUT(req: NextRequest) {
       vehicleCapacity?: number;
       licensePlate?: string;
       workDays?: string;
+      workSlots?: string;
     } = {};
     if (name !== undefined) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
@@ -134,6 +144,7 @@ export async function PUT(req: NextRequest) {
     if (vehicleCapacity !== undefined) updates.vehicleCapacity = vehicleCapacity;
     if (licensePlate !== undefined) updates.licensePlate = licensePlate;
     if (workDays !== undefined) updates.workDays = workDays;
+    if (workSlots !== undefined) updates.workSlots = workSlots;
 
     const driver = await updateDriver(id, updates);
     if (!driver) {

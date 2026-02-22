@@ -22,6 +22,7 @@ export interface Driver {
   vehicleCapacity: number;   // 적재 용량 (m³)
   licensePlate: string | null; // 차량번호
   workDays: string;          // 근무요일 (예: '월,화,수,목,금,토') — 기본값: 월~토
+  workSlots: string;         // 가능 슬롯 (예: "10:00,12:00") — 빈 문자열 = 모든 슬롯
 }
 
 /* ── camelCase ↔ snake_case 매핑 ── */
@@ -438,6 +439,7 @@ function rowToDriver(row: Record<string, unknown>): Driver {
     vehicleCapacity: (row.vehicle_capacity as number) || 4.8,
     licensePlate: (row.license_plate as string) || null,
     workDays: (row.work_days as string) || "월,화,수,목,금,토",
+    workSlots: (row.work_slots as string) || "",
   };
 }
 
@@ -461,6 +463,7 @@ export async function createDriver(
   vehicleCapacity?: number,
   licensePlate?: string,
   workDays?: string,
+  workSlots?: string,
 ): Promise<Driver> {
   const { data, error } = await supabase
     .from("drivers")
@@ -471,6 +474,7 @@ export async function createDriver(
       vehicle_capacity: vehicleCapacity ?? 4.8,
       license_plate: licensePlate || null,
       work_days: workDays || "월,화,수,목,금,토",
+      work_slots: workSlots || "",
     })
     .select()
     .single();
@@ -481,7 +485,7 @@ export async function createDriver(
 
 export async function updateDriver(
   id: string,
-  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string; workDays?: string },
+  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string; workDays?: string; workSlots?: string },
 ): Promise<Driver | null> {
   const row: Record<string, unknown> = {};
   if (updates.name !== undefined) row.name = updates.name;
@@ -491,6 +495,7 @@ export async function updateDriver(
   if (updates.vehicleCapacity !== undefined) row.vehicle_capacity = updates.vehicleCapacity;
   if (updates.licensePlate !== undefined) row.license_plate = updates.licensePlate;
   if (updates.workDays !== undefined) row.work_days = updates.workDays;
+  if (updates.workSlots !== undefined) row.work_slots = updates.workSlots;
 
   const { data, error } = await supabase
     .from("drivers")

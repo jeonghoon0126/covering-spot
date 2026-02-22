@@ -141,11 +141,24 @@ export async function POST(req: NextRequest) {
       reason: `단일 주문 적재량(${b.totalLoadingCube}) > 최대 차량 용량(${maxVehicleCapacity})`,
     }));
 
+    // 기사 프로필의 workSlots → driverSlotFilters로 변환 (자동 적용)
+    const profileSlotFilters: Record<string, string[]> = {};
+    drivers.forEach((d) => {
+      if (d.workSlots) {
+        const slots = d.workSlots.split(",").map((s) => s.trim()).filter(Boolean);
+        if (slots.length > 0) profileSlotFilters[d.id] = slots;
+      }
+    });
+    // 요청 body의 driverSlotFilters가 있으면 override (없으면 프로필 값 사용)
+    const effectiveSlotFilters = Object.keys(driverSlotFilters ?? {}).length > 0
+      ? driverSlotFilters!
+      : profileSlotFilters;
+
     // 자동배차 실행 (시간대 제약 있으면 그룹별 분리 실행)
     let result;
-    const activeFilters = driverSlotFilters
-      ? Object.fromEntries(Object.entries(driverSlotFilters).filter(([, slots]) => slots.length > 0))
-      : {};
+    const activeFilters = Object.fromEntries(
+      Object.entries(effectiveSlotFilters).filter(([, slots]) => slots.length > 0)
+    );
     if (Object.keys(activeFilters).length > 0) {
       const groups = buildSlotGroups(validBookings, dispatchDrivers, activeFilters);
       const groupResults = groups.map(({ bookings, drivers }) =>
@@ -174,11 +187,26 @@ export async function POST(req: NextRequest) {
       dispatchBookings.map((b) => [b.id, { x: b.lng, y: b.lat }]),
     );
 
+    // 하차지 좌표 맵 구성 (ETA waypoint 삽입용)
+    const unloadingCoordMap = new Map<string, RoutePoint>(
+      unloadingPoints.map((p) => [p.id, { x: p.longitude, y: p.latitude }]),
+    );
+
     const etaResults = await Promise.allSettled(
       result.plan.map((dp) => {
-        const points = dp.bookings
-          .map((b) => coordMap.get(b.id))
-          .filter((p): p is RoutePoint => p !== undefined);
+        // routeOrder 기준 정렬 후 하차지 waypoint 삽입
+        const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
+        const points: RoutePoint[] = [];
+        sorted.forEach((b) => {
+          const coord = coordMap.get(b.id);
+          if (coord) points.push(coord);
+          // 이 수거지 이후 하차지 경유가 있으면 좌표 삽입
+          const stop = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
+          if (stop) {
+            const uc = unloadingCoordMap.get(stop.pointId);
+            if (uc) points.push(uc);
+          }
+        });
         return points.length >= 2 ? getRouteETA(points) : Promise.resolve(null);
       }),
     );
