@@ -6,7 +6,7 @@ import { sendStatusSms } from "@/lib/sms-notify";
 import { autoDispatch } from "@/lib/optimizer/auto-dispatch";
 import { insertUnloadingStops } from "@/lib/optimizer/tsp";
 import { getRouteETA, type RoutePoint } from "@/lib/kakao-directions";
-import type { DispatchBooking, DispatchDriver, DispatchUnloadingPoint } from "@/lib/optimizer/types";
+import type { DispatchBooking, DispatchDriver, DispatchUnloadingPoint, RouteSegment } from "@/lib/optimizer/types";
 import type { Booking } from "@/types/booking";
 
 // 슬롯 우선순위 (오전→오후→저녁 순서로 routeOrder 배정)
@@ -220,6 +220,19 @@ export async function POST(req: NextRequest) {
       }),
     );
 
+    // 시각 계산용: booking id → timeSlot 맵 (unassignedBookings는 Booking 타입으로 timeSlot 포함)
+    const bookingTimeSlotMap = new Map<string, string>(
+      unassignedBookings.map((b) => [b.id, b.confirmedTime || b.timeSlot || "10:00"]),
+    );
+
+    /** 초(midnight 기준) → "HH:MM" 문자열 변환 */
+    function secsToHHMM(secs: number): string {
+      const normalized = ((secs % 86400) + 86400) % 86400; // 음수 방지
+      const h = Math.floor(normalized / 3600);
+      const m = Math.floor((normalized % 3600) / 60);
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    }
+
     const planWithETA = result.plan.map((dp, idx) => {
       const etaRes = etaResults[idx];
       const eta = etaRes.status === "fulfilled" ? etaRes.value : null;
@@ -230,7 +243,68 @@ export async function POST(req: NextRequest) {
         0,
       );
       const totalDuration = eta.duration + totalServiceSecs;
-      return { ...dp, estimatedDuration: totalDuration, estimatedDistance: eta.distance };
+
+      // ── 구간별(leg별) 출발/도착 시각 계산 ──
+      // Kakao sections[i] = points[i] → points[i+1] 이동 구간 (points 순서와 동일)
+      const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
+
+      // 경로에 포함된 포인트 순서 재구성 (ETA 호출과 동일한 순서)
+      const pointTypes: Array<
+        | { type: "booking"; id: string }
+        | { type: "unloading"; id: string }
+      > = [];
+      sorted.forEach((b) => {
+        if (coordMap.has(b.id)) {
+          pointTypes.push({ type: "booking", id: b.id });
+        }
+        const stop = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
+        if (stop && unloadingCoordMap.has(stop.pointId)) {
+          pointTypes.push({ type: "unloading", id: stop.pointId });
+        }
+      });
+
+      // 시작 시각: 첫 번째 수거지 도착 시각 = booking의 timeSlot (또는 confirmedTime)
+      const firstBookingId = sorted[0]?.id;
+      const startTimeStr = (firstBookingId ? bookingTimeSlotMap.get(firstBookingId) : null) || "10:00";
+      const [sh, sm] = startTimeStr.split(":").map(Number);
+      let currentSecs = (isNaN(sh) ? 10 : sh) * 3600 + (isNaN(sm) ? 0 : sm) * 60;
+
+      const sections = eta.sections;
+      const segments: RouteSegment[] = [];
+
+      // sections[i] = pointTypes[i] → pointTypes[i+1]
+      for (let i = 0; i < pointTypes.length - 1; i++) {
+        const fromPt = pointTypes[i];
+        const toPt = pointTypes[i + 1];
+        const section = sections[i];
+        if (!section) break; // Kakao sections가 point 수보다 적은 경우 안전 종료
+
+        // 출발지가 수거지인 경우 서비스 시간 경과 후 출발
+        if (fromPt.type === "booking") {
+          const bk = sorted.find((b) => b.id === fromPt.id);
+          const svcSecs = bk
+            ? BASE_SERVICE_SECS + Math.round(bk.loadCube * CUBE_SECS_PER_M3)
+            : BASE_SERVICE_SECS;
+          currentSecs += svcSecs;
+        }
+        // 하차지는 즉시 출발 (현재 모델에서 하차 작업 시간 미계상)
+
+        const departureSecs = currentSecs;
+        currentSecs += section.duration;
+        const arrivalSecs = currentSecs;
+
+        segments.push({
+          fromBookingId: fromPt.type === "booking" ? fromPt.id : undefined,
+          fromUnloadingId: fromPt.type === "unloading" ? fromPt.id : undefined,
+          travelSecs: section.duration,
+          distanceMeters: section.distance,
+          departureTime: secsToHHMM(departureSecs),
+          arrivalTime: secsToHHMM(arrivalSecs),
+          isUnloadingLeg: toPt.type === "unloading",
+        });
+      }
+
+      return { ...dp, estimatedDuration: totalDuration, estimatedDistance: eta.distance, segments };
     });
 
     // 좌표 없는 주문을 unassigned에 합산

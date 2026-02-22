@@ -24,11 +24,21 @@ export interface RoutePoint {
   name?: string;
 }
 
+/** Kakao API가 반환하는 구간(leg)별 소요시간/거리 */
+export interface RouteSection {
+  /** 구간 소요 시간 (초) */
+  duration: number;
+  /** 구간 거리 (미터) */
+  distance: number;
+}
+
 export interface RouteETA {
   /** 예상 소요 시간 (초) */
   duration: number;
   /** 총 거리 (미터) */
   distance: number;
+  /** 구간별(leg별) 소요시간/거리 — sections[i] = points[i] → points[i+1] */
+  sections: RouteSection[];
 }
 
 /**
@@ -108,9 +118,25 @@ export async function getRouteETA(points: RoutePoint[]): Promise<RouteETA | null
       return null;
     }
 
+    // 구간별(leg별) 소요시간/거리 추출
+    // waypoints API: sections[] = 각 leg의 summary
+    // 단순 2점 API: sections 없을 수 있으므로 전체를 1구간으로 fallback
+    const rawSections = data?.routes?.[0]?.sections;
+    let sections: RouteSection[];
+    if (Array.isArray(rawSections) && rawSections.length > 0) {
+      sections = rawSections.map((s: { summary?: { duration?: number; distance?: number } }) => ({
+        duration: typeof s?.summary?.duration === "number" ? s.summary.duration : 0,
+        distance: typeof s?.summary?.distance === "number" ? s.summary.distance : 0,
+      }));
+    } else {
+      // 2점 직접 경로이거나 sections 미지원 시 전체를 단일 구간으로
+      sections = [{ duration: summary.duration, distance: summary.distance }];
+    }
+
     return {
       duration: summary.duration, // 초
       distance: summary.distance, // 미터
+      sections,
     };
   } catch (e) {
     if ((e as Error).name !== "AbortError") {

@@ -41,6 +41,29 @@ export interface UnloadingStop {
   pointName: string;
 }
 
+/**
+ * 자동배차 경로의 구간별 이동 정보
+ * segments[i] = pointTypes[i] → pointTypes[i+1] 이동 구간
+ * - fromBookingId: 수거지에서 출발할 때 해당 bookingId
+ * - fromUnloadingId: 하차지에서 출발할 때 해당 unloadingPointId
+ */
+export interface RouteSegment {
+  /** 출발지가 수거지인 경우 해당 bookingId */
+  fromBookingId?: string;
+  /** 출발지가 하차지인 경우 해당 unloadingPointId */
+  fromUnloadingId?: string;
+  /** 이동 소요 시간 (초) — Kakao 실측값 */
+  travelSecs: number;
+  /** 이동 거리 (미터) — Kakao 실측값 */
+  distanceMeters: number;
+  /** 출발 시각 "HH:MM" (수거지의 경우 서비스 시간 완료 후) */
+  departureTime: string;
+  /** 도착 시각 "HH:MM" */
+  arrivalTime: string;
+  /** 목적지가 하차지인 구간 여부 */
+  isUnloadingLeg: boolean;
+}
+
 /** 기사별 자동배차 결과 */
 export interface DriverPlan {
   driverId: string;
@@ -56,6 +79,8 @@ export interface DriverPlan {
   estimatedDuration?: number;
   /** 카카오 길찾기 API 예상 거리 (미터) — 미지원 시 undefined */
   estimatedDistance?: number;
+  /** 구간별 이동 정보 (Kakao 실측) — 미지원 시 undefined */
+  segments?: RouteSegment[];
 }
 
 /** 자동배차 전체 결과 */

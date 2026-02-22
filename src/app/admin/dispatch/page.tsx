@@ -2250,6 +2250,12 @@ function AutoDispatchPreview({
                         ? unloadingPoints.find((p) => p.id === stopAfterThis.pointId)
                         : null;
 
+                      // Kakao 실측 구간 데이터 (있을 경우 haversine 대체)
+                      const segFromThis = dp.segments?.find((s) => s.fromBookingId === b.id);
+                      const segFromUnloading = stopAfterThis
+                        ? dp.segments?.find((s) => s.fromUnloadingId === stopAfterThis.pointId)
+                        : undefined;
+
                       const elements: React.ReactNode[] = [
                         <SortableBookingRow key={b.id} booking={b} color={color} />,
                       ];
@@ -2268,8 +2274,18 @@ function AutoDispatchPreview({
 
                       // 하차지 경유
                       if (stopAfterThis) {
-                        // 현재 수거지 → 하차지 이동시간
-                        if (fullBooking?.latitude && fullBooking?.longitude && unloadingUp) {
+                        // 현재 수거지 → 하차지 이동 (Kakao 실측 우선, fallback 하버사인)
+                        if (segFromThis?.isUnloadingLeg) {
+                          elements.push(
+                            <div key={`t-unload-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                              <div className="flex-1 border-t border-gray-200" />
+                              <span className="text-[10px] text-primary-dark whitespace-nowrap px-1">
+                                {segFromThis.departureTime} → {segFromThis.arrivalTime} · {Math.round(segFromThis.travelSecs / 60)}분 · {(segFromThis.distanceMeters / 1000).toFixed(1)}km
+                              </span>
+                              <div className="flex-1 border-t border-gray-200" />
+                            </div>,
+                          );
+                        } else if (fullBooking?.latitude && fullBooking?.longitude && unloadingUp) {
                           const tMins = calcTravelMins(
                             fullBooking.latitude, fullBooking.longitude,
                             unloadingUp.latitude, unloadingUp.longitude,
@@ -2292,15 +2308,20 @@ function AutoDispatchPreview({
                             <div className="flex-1 border-t border-dashed border-purple-300" />
                           </div>,
                         );
-                      }
-
-                      // 다음 수거지까지 이동시간
-                      if (nextFullBooking?.latitude && nextFullBooking?.longitude) {
-                        const fromLat = unloadingUp ? unloadingUp.latitude : fullBooking?.latitude;
-                        const fromLng = unloadingUp ? unloadingUp.longitude : fullBooking?.longitude;
-                        if (fromLat && fromLng) {
-                          const tMins = calcTravelMins(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!);
-                          const km = (haversine(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!) * ROUTE_ROAD_FACTOR).toFixed(1);
+                        // 하차지 → 다음 수거지 이동 (Kakao 실측 우선, fallback 하버사인)
+                        if (segFromUnloading && !segFromUnloading.isUnloadingLeg) {
+                          elements.push(
+                            <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                              <div className="flex-1 border-t border-gray-200" />
+                              <span className="text-[10px] text-primary-dark whitespace-nowrap px-1">
+                                {segFromUnloading.departureTime} → {segFromUnloading.arrivalTime} · {Math.round(segFromUnloading.travelSecs / 60)}분 · {(segFromUnloading.distanceMeters / 1000).toFixed(1)}km
+                              </span>
+                              <div className="flex-1 border-t border-gray-200" />
+                            </div>,
+                          );
+                        } else if (nextFullBooking?.latitude && nextFullBooking?.longitude && unloadingUp) {
+                          const tMins = calcTravelMins(unloadingUp.latitude, unloadingUp.longitude, nextFullBooking.latitude!, nextFullBooking.longitude!);
+                          const km = (haversine(unloadingUp.latitude, unloadingUp.longitude, nextFullBooking.latitude!, nextFullBooking.longitude!) * ROUTE_ROAD_FACTOR).toFixed(1);
                           elements.push(
                             <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-2">
                               <div className="flex-1 border-t border-gray-200" />
@@ -2308,6 +2329,33 @@ function AutoDispatchPreview({
                               <div className="flex-1 border-t border-gray-200" />
                             </div>,
                           );
+                        }
+                      } else if (nextFullBooking) {
+                        // 하차지 없이 다음 수거지로 직접 이동 (Kakao 실측 우선, fallback 하버사인)
+                        if (segFromThis && !segFromThis.isUnloadingLeg) {
+                          elements.push(
+                            <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                              <div className="flex-1 border-t border-gray-200" />
+                              <span className="text-[10px] text-primary-dark whitespace-nowrap px-1">
+                                {segFromThis.departureTime} → {segFromThis.arrivalTime} · {Math.round(segFromThis.travelSecs / 60)}분 · {(segFromThis.distanceMeters / 1000).toFixed(1)}km
+                              </span>
+                              <div className="flex-1 border-t border-gray-200" />
+                            </div>,
+                          );
+                        } else if (nextFullBooking.latitude && nextFullBooking.longitude) {
+                          const fromLat = fullBooking?.latitude;
+                          const fromLng = fullBooking?.longitude;
+                          if (fromLat && fromLng) {
+                            const tMins = calcTravelMins(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!);
+                            const km = (haversine(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!) * ROUTE_ROAD_FACTOR).toFixed(1);
+                            elements.push(
+                              <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                                <div className="flex-1 border-t border-gray-200" />
+                                <span className="text-[10px] text-text-muted whitespace-nowrap px-1">↓ 이동 약 {tMins}분 · {km}km</span>
+                                <div className="flex-1 border-t border-gray-200" />
+                              </div>,
+                            );
+                          }
                         }
                       }
 

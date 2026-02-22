@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [total, setTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("quote_confirmed");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState("");

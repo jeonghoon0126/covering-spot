@@ -6,6 +6,30 @@ GitHub: jeonghoon0126/covering-spot (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동 배포
 
+### 최근 작업 (2026-02-22) — 세션 5 (구간별 ETA + 대시보드 정렬/탭 수정)
+
+**수정 파일 (6개)**
+- `src/lib/kakao-directions.ts`
+  - `RouteSection` 타입 추가 (구간별 duration/distance)
+  - `RouteETA`에 `sections: RouteSection[]` 추가 — Kakao API의 구간별 leg 데이터
+  - `getRouteETA` 반환값에 sections 포함 (waypoints API: 각 leg, 2점 API: 전체 1구간 fallback)
+- `src/lib/optimizer/types.ts`
+  - `RouteSegment` 타입 추가 (fromBookingId, fromUnloadingId, travelSecs, distanceMeters, departureTime, arrivalTime, isUnloadingLeg)
+  - `DriverPlan`에 `segments?: RouteSegment[]` 옵셔널 추가
+- `src/app/api/admin/dispatch-auto/route.ts`
+  - `planWithETA`에서 구간별 출발/도착 시각 계산 추가
+  - 시작 시각 = 첫 수거지의 confirmedTime ?? timeSlot ?? "10:00"
+  - 수거 서비스 시간(BASE_SERVICE_SECS + loadCube * CUBE_SECS_PER_M3) 반영 후 출발
+  - Kakao sections[i] = points[i]→points[i+1] 매핑으로 정확한 구간 분리
+- `src/app/admin/dispatch/page.tsx`
+  - AutoDispatchPreview: Kakao 실측 데이터 우선 표시, fallback 하버사인
+  - 구간 표시: "HH:MM → HH:MM · X분 · X.Xkm" (text-primary-dark, 실측)
+  - 하버사인 fallback: "↓ 이동 약 X분 · Y.Ykm" (text-text-muted, 추정)
+- `src/lib/db.ts`
+  - `getBookingsPaginated`: 정렬 `created_at DESC` → `date ASC, created_at DESC` (수거 예정일 오름차순)
+- `src/app/admin/dashboard/page.tsx`
+  - 기본 activeTab: `"all"` → `"quote_confirmed"` (실무에서 견적확정 탭이 주요 작업 대상)
+
 ### 최근 작업 (2026-02-22) — 세션 4 (슬롯 관리 이전 + 캘린더 KST 버그)
 
 **수정 파일 (2개)**
@@ -16,11 +40,6 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
   - 슬롯 차단 관리 섹션 신규 추가 (기사 목록 하단)
   - 날짜 네비게이션, 기사 선택, 시간대별 예약 현황 + 차단/해제 기능
   - toastTimer unmount cleanup 추가 (메모리 누수 방지)
-
-**대시보드 상태 탭 버그 분석**
-- 코드 로직 정상: `activeTab === "all"` 시 status 필터 미적용, `getBookingsPaginated` 무필터 전체 조회
-- 원인: 데이터 분포 문제 — `created_at` DESC 기준 최근 50건이 모두 `quote_confirmed` 상태 (배차 전 대기 중)
-- 코드 버그 없음, 실제 데이터를 Supabase에서 확인하여 다른 상태 탭이 비어있는지 검증 권장
 
 ### 최근 작업 (2026-02-22) — 세션 3 (종합 버그 리뷰 + 입력 검증 강화)
 
@@ -126,7 +145,7 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
   - booking token 만료 없음 (고정 HMAC)
   - `dispatch/route-order`: bookingId 소유권 확인 없음 (admin-only라 위험도 낮음)
   - `dispatch-auto PUT`: driverName 클라이언트 입력 (driverId로 DB 조회 권장)
-  - ETA 계산에 하차지 미포함 (경유지 추가 가능하나 좌표 필요)
+  - ~~ETA 계산에 하차지 미포함~~ ✅ 수정됨 (하차지 waypoint 포함 + 구간별 시각 표시)
 - 누적 Medium (이전 Phase부터):
   - Rate Limiting 전체 부재 (driver 엔드포인트만 적용)
   - getAllBookings() 메모리 로드 (상태 카운트용)

@@ -351,6 +351,7 @@ export async function getBookingsPaginated(params: {
   }
 
   query = query
+    .order("date", { ascending: true })
     .order("created_at", { ascending: false })
     .range((page - 1) * limit, page * limit - 1);
 
