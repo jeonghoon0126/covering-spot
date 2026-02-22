@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
+
+const PAGE_SIZE = 50;
 
 const STATUS_TABS = [
   { key: "all", label: "전체" },
@@ -53,19 +55,21 @@ export default function AdminDashboardPage() {
   const { experimentName, variant } = useExperiment();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [total, setTotal] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState("");
 
   // 검색 + 필터
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   // 퀵 액션 로딩 상태
   const [quickLoading, setQuickLoading] = useState<string | null>(null);
-  // 퀵 액션 인라인 확인 대기 상태 (confirm() 대체)
   const [confirmPending, setConfirmPending] = useState<{ bookingId: string; newStatus: string; label: string } | null>(null);
 
   // 벌크 선택
@@ -74,7 +78,7 @@ export default function AdminDashboardPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkConfirmPending, setBulkConfirmPending] = useState(false);
 
-  // 토스트 메시지 (alert() 대체)
+  // 토스트 메시지
   const [toast, setToast] = useState<{ msg: string; isError: boolean } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -93,11 +97,28 @@ export default function AdminDashboardPage() {
     setToken(t);
   }, [router]);
 
+  // 검색어 디바운스 (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // 검색어 바뀌면 첫 페이지로
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchBookings = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/bookings?limit=1000", {
+      const params = new URLSearchParams();
+      if (activeTab !== "all") params.set("status", activeTab);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+      params.set("page", String(currentPage));
+      params.set("limit", String(PAGE_SIZE));
+
+      const res = await fetch(`/api/admin/bookings?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
@@ -108,49 +129,31 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       setBookings(data.bookings || []);
       setCounts(data.counts || {});
+      setTotal(data.total || 0);
     } catch {
       // 에러 무시
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, activeTab, currentPage, debouncedSearch, dateFrom, dateTo, router]);
 
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // 클라이언트 사이드 필터링
-  const filtered = useMemo(() => {
-    let result = bookings;
+  // 탭 변경 → 첫 페이지로 + 선택 초기화
+  function handleTabChange(tabKey: string) {
+    setActiveTab(tabKey);
+    setCurrentPage(1);
+    setSelectedBookings(new Set());
+  }
 
-    // 상태 탭 필터
-    if (activeTab !== "all") {
-      result = result.filter((b) => b.status === activeTab);
-    }
-
-    // 검색 (주문번호, 이름, 전화번호, 주소)
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(
-        (b) =>
-          b.id.toLowerCase().includes(q) ||
-          b.customerName.toLowerCase().includes(q) ||
-          b.phone.replace(/-/g, "").includes(q.replace(/-/g, "")) ||
-          b.address.toLowerCase().includes(q) ||
-          (b.addressDetail && b.addressDetail.toLowerCase().includes(q)),
-      );
-    }
-
-    // 기간 필터 (수거일 기준)
-    if (dateFrom) {
-      result = result.filter((b) => b.date >= dateFrom);
-    }
-    if (dateTo) {
-      result = result.filter((b) => b.date <= dateTo);
-    }
-
-    return result;
-  }, [bookings, activeTab, search, dateFrom, dateTo]);
+  // 날짜 필터 변경 → 첫 페이지로
+  function handleDateChange(field: "from" | "to", val: string) {
+    if (field === "from") setDateFrom(val);
+    else setDateTo(val);
+    setCurrentPage(1);
+  }
 
   function requestQuickAction(booking: Booking, newStatus: string, label: string) {
     setConfirmPending({ bookingId: booking.id, newStatus, label });
@@ -183,7 +186,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // 벌크 체크박스 토글
   function toggleBooking(id: string) {
     setSelectedBookings((prev) => {
       const next = new Set(prev);
@@ -194,14 +196,13 @@ export default function AdminDashboardPage() {
   }
 
   function toggleAll() {
-    if (selectedBookings.size === filtered.length) {
+    if (selectedBookings.size === bookings.length && bookings.length > 0) {
       setSelectedBookings(new Set());
     } else {
-      setSelectedBookings(new Set(filtered.map((b) => b.id)));
+      setSelectedBookings(new Set(bookings.map((b) => b.id)));
     }
   }
 
-  // 벌크 상태 변경
   async function executeBulkStatusChange() {
     if (!bulkStatus || selectedBookings.size === 0) return;
     setBulkConfirmPending(false);
@@ -237,38 +238,58 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // CSV 내보내기
-  function exportCSV() {
-    const headers = ["날짜", "시간", "고객명", "전화번호", "지역", "주소", "인원", "사다리", "사다리금액", "품목수", "예상금액", "확정금액", "기사", "상태"];
-    const rows = filtered.map((b) => [
-      b.date,
-      b.confirmedTime || b.timeSlot,
-      b.customerName,
-      b.phone,
-      b.area,
-      `${b.address} ${b.addressDetail || ""}`.trim(),
-      String(b.crewSize),
-      b.needLadder ? "필요" : "",
-      b.needLadder && b.ladderPrice ? String(b.ladderPrice) : "",
-      String(b.items.length),
-      b.estimateMin && b.estimateMax ? `${b.estimateMin}~${b.estimateMax}` : String(b.totalPrice),
-      b.finalPrice != null ? String(b.finalPrice) : "",
-      b.driverName || "",
-      STATUS_LABELS[b.status] || b.status,
-    ]);
+  // CSV 내보내기: 현재 필터 조건으로 최대 1000건 서버에서 가져와 내보냄
+  async function exportCSV() {
+    try {
+      const params = new URLSearchParams();
+      if (activeTab !== "all") params.set("status", activeTab);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+      params.set("limit", "1000");
 
-    const BOM = "\uFEFF";
-    const csv = BOM + [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `커버링스팟_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const res = await fetch(`/api/admin/bookings?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const rows: Booking[] = data.bookings || [];
+
+      const headers = ["날짜", "시간", "고객명", "전화번호", "지역", "주소", "인원", "사다리", "사다리금액", "품목수", "예상금액", "확정금액", "기사", "상태"];
+      const csvRows = rows.map((b) => [
+        b.date,
+        b.confirmedTime || b.timeSlot,
+        b.customerName,
+        b.phone,
+        b.area,
+        `${b.address} ${b.addressDetail || ""}`.trim(),
+        String(b.crewSize),
+        b.needLadder ? "필요" : "",
+        b.needLadder && b.ladderPrice ? String(b.ladderPrice) : "",
+        String(b.items.length),
+        b.estimateMin && b.estimateMax ? `${b.estimateMin}~${b.estimateMax}` : String(b.totalPrice),
+        b.finalPrice != null ? String(b.finalPrice) : "",
+        b.driverName || "",
+        STATUS_LABELS[b.status] || b.status,
+      ]);
+
+      const BOM = "\uFEFF";
+      const csv = BOM + [headers, ...csvRows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `커버링스팟_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast("내보내기 실패", true);
+    }
   }
 
   const totalCount = Object.values(counts).reduce((s, n) => s + n, 0);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // 현재 탭의 총 건수
+  const currentTabTotal = activeTab === "all" ? totalCount : (counts[activeTab] || 0);
 
   return (
     <div className="min-h-screen bg-bg-warm">
@@ -400,19 +421,19 @@ export default function AdminDashboardPage() {
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                onChange={(e) => handleDateChange("from", e.target.value)}
                 className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               <span className="text-text-muted text-xs">~</span>
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                onChange={(e) => handleDateChange("to", e.target.value)}
                 className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
               />
               {(dateFrom || dateTo) && (
                 <button
-                  onClick={() => { setDateFrom(""); setDateTo(""); }}
+                  onClick={() => { setDateFrom(""); setDateTo(""); setCurrentPage(1); }}
                   className="shrink-0 text-xs text-semantic-red"
                 >
                   초기화
@@ -425,13 +446,12 @@ export default function AdminDashboardPage() {
         {/* 상태 탭 */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4">
           {STATUS_TABS.map((tab) => {
-            const count =
-              tab.key === "all" ? totalCount : counts[tab.key] || 0;
+            const count = tab.key === "all" ? totalCount : counts[tab.key] || 0;
             const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => handleTabChange(tab.key)}
                 className={`shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
@@ -447,24 +467,26 @@ export default function AdminDashboardPage() {
           })}
         </div>
 
-        {/* 결과 수 */}
-        {(search || dateFrom || dateTo) && !loading && (
+        {/* 결과 카운트 */}
+        {!loading && (
           <p className="text-xs text-text-muted mb-3">
-            검색 결과 {filtered.length}건
+            {currentTabTotal > 0
+              ? `${((currentPage - 1) * PAGE_SIZE) + 1}–${Math.min(currentPage * PAGE_SIZE, currentTabTotal)}건 / 총 ${currentTabTotal}건`
+              : "0건"}
           </p>
         )}
 
         {/* 전체 선택 */}
-        {!loading && filtered.length > 0 && (
+        {!loading && bookings.length > 0 && (
           <div className="flex items-center gap-2 mb-3">
             <input
               type="checkbox"
-              checked={selectedBookings.size === filtered.length && filtered.length > 0}
+              checked={selectedBookings.size === bookings.length && bookings.length > 0}
               onChange={toggleAll}
               className="w-4 h-4 rounded-[3px] border-border accent-primary cursor-pointer"
             />
             <span className="text-xs text-text-sub">
-              전체 선택 {selectedBookings.size > 0 && `(${selectedBookings.size}건)`}
+              이 페이지 전체 선택 {selectedBookings.size > 0 && `(${selectedBookings.size}건)`}
             </span>
           </div>
         )}
@@ -474,15 +496,15 @@ export default function AdminDashboardPage() {
           <div className="text-center py-12">
             <LoadingSpinner size="lg" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : bookings.length === 0 ? (
           <div className="text-center py-12 text-text-muted text-sm">
-            {search || dateFrom || dateTo
+            {debouncedSearch || dateFrom || dateTo
               ? "검색 결과가 없습니다"
               : "해당 상태의 신청이 없습니다"}
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((b) => {
+            {bookings.map((b) => {
               const quickAction = QUICK_ACTIONS[b.status];
               const isQuickLoading = quickLoading === b.id;
 
@@ -504,52 +526,52 @@ export default function AdminDashboardPage() {
                         className="w-4 h-4 rounded border-border accent-primary shrink-0"
                       />
                     </div>
-                  <button
-                    onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                    className="flex-1 p-4 max-sm:p-3.5 text-left"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}
-                        >
-                          {STATUS_LABELS[b.status] || b.status}
-                        </span>
-                        <span className="text-xs text-text-muted font-mono">
-                          #{b.id.slice(0, 8)}
+                    <button
+                      onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                      className="flex-1 p-4 max-sm:p-3.5 text-left"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[b.status] || STATUS_COLORS.pending}`}
+                          >
+                            {STATUS_LABELS[b.status] || b.status}
+                          </span>
+                          <span className="text-xs text-text-muted font-mono">
+                            #{b.id.slice(0, 8)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-text-muted shrink-0 ml-2">
+                          {new Date(b.createdAt).toLocaleDateString("ko-KR")}
                         </span>
                       </div>
-                      <span className="text-xs text-text-muted shrink-0 ml-2">
-                        {new Date(b.createdAt).toLocaleDateString("ko-KR")}
-                      </span>
-                    </div>
 
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">
-                          {b.customerName} <span className="text-text-muted max-sm:hidden">|</span> <span className="max-sm:hidden">{b.phone}</span>
-                        </p>
-                        <p className="text-xs text-text-sub mt-0.5 truncate">
-                          {b.date} {b.timeSlot} · {b.area} · {b.items.length}종
-                        </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {b.customerName} <span className="text-text-muted max-sm:hidden">|</span> <span className="max-sm:hidden">{b.phone}</span>
+                          </p>
+                          <p className="text-xs text-text-sub mt-0.5 truncate">
+                            {b.date} {b.timeSlot} · {b.area} · {b.items.length}종
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {b.finalPrice != null ? (
+                            <p className="text-sm font-bold text-primary">
+                              {formatPrice(b.finalPrice)}원
+                            </p>
+                          ) : b.estimateMin && b.estimateMax ? (
+                            <p className="text-sm font-medium text-text-neutral">
+                              {formatManWon(b.estimateMin)}~{formatManWon(b.estimateMax)}원
+                            </p>
+                          ) : (
+                            <p className="text-sm font-medium text-text-neutral">
+                              {formatPrice(b.totalPrice)}원
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        {b.finalPrice != null ? (
-                          <p className="text-sm font-bold text-primary">
-                            {formatPrice(b.finalPrice)}원
-                          </p>
-                        ) : b.estimateMin && b.estimateMax ? (
-                          <p className="text-sm font-medium text-text-neutral">
-                            {formatManWon(b.estimateMin)}~{formatManWon(b.estimateMax)}원
-                          </p>
-                        ) : (
-                          <p className="text-sm font-medium text-text-neutral">
-                            {formatPrice(b.totalPrice)}원
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </button>
+                    </button>
                   </div>
 
                   {/* 퀵 액션 바 */}
@@ -557,7 +579,7 @@ export default function AdminDashboardPage() {
                     <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5">
                       {confirmPending?.bookingId === b.id ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-text-sub">"{quickAction.label}" 변경할까요?</span>
+                          <span className="text-xs text-text-sub">&quot;{quickAction.label}&quot; 변경할까요?</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); executeQuickAction(b); }}
                             className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary text-white"
@@ -599,6 +621,53 @@ export default function AdminDashboardPage() {
             })}
           </div>
         )}
+
+        {/* 페이지네이션 */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6 mb-4">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm rounded-md border border-border-light bg-bg text-text-sub hover:border-primary/40 hover:text-primary transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ← 이전
+            </button>
+
+            {/* 페이지 번호 버튼: 현재 페이지 중심 최대 5개 */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+              .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "..." ? (
+                  <span key={`ellipsis-${idx}`} className="px-1 text-text-muted text-sm">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`w-9 h-9 text-sm rounded-md transition-all duration-200 ${
+                      currentPage === item
+                        ? "bg-primary text-white font-medium shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                        : "border border-border-light bg-bg text-text-sub hover:border-primary/40 hover:text-primary"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-sm rounded-md border border-border-light bg-bg text-text-sub hover:border-primary/40 hover:text-primary transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              다음 →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 벌크 상태 변경 바 */}
@@ -611,7 +680,7 @@ export default function AdminDashboardPage() {
             {bulkConfirmPending ? (
               <div className="flex items-center gap-2 flex-1 justify-end">
                 <span className="text-sm text-text-sub">
-                  {selectedBookings.size}건을 "{STATUS_LABELS[bulkStatus] || bulkStatus}"(으)로 변경할까요?
+                  {selectedBookings.size}건을 &quot;{STATUS_LABELS[bulkStatus] || bulkStatus}&quot;(으)로 변경할까요?
                 </span>
                 <button
                   onClick={executeBulkStatusChange}
