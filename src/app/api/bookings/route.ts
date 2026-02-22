@@ -47,6 +47,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
+
+    // 전화번호별 rate limit: 5회/5분 (전화번호 열거 공격 방어 — 동일 번호로 반복 시도 제한)
+    const phoneRl = rateLimit(`phone:${digits}:/api/bookings/GET`, 5, 300_000);
+    if (!phoneRl.allowed) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해주세요", retryAfter: phoneRl.retryAfter },
+        { status: 429, headers: { "Retry-After": String(phoneRl.retryAfter) } },
+      );
+    }
+
     // 토큰 검증: phone 기반 토큰이 일치해야 조회 가능
     if (!validateBookingToken(req, phone)) {
       return NextResponse.json(

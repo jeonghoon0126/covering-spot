@@ -56,21 +56,20 @@ export async function POST(req: NextRequest) {
       return d.workDays.split(",").map((s) => s.trim()).includes(dayOfWeek);
     });
 
-    // 미배차 + 활성 주문만 (취소/거부 제외)
+    // quote_confirmed 상태만 배차 가능 (pending=견적전, in_progress=수거중 등 제외)
     // 좌표 없는 주문(lat=0 또는 lng=0)은 별도 unassigned 처리 (0,0 = 아프리카 근해)
+    const dispatchableStatuses = ["quote_confirmed"];
     const unassignedBookings = allBookings.filter(
       (b) =>
         !b.driverId &&
-        b.status !== "cancelled" &&
-        b.status !== "rejected" &&
+        dispatchableStatuses.includes(b.status) &&
         b.latitude &&
         b.longitude,
     );
     const noCoordBookings = allBookings.filter(
       (b) =>
         !b.driverId &&
-        b.status !== "cancelled" &&
-        b.status !== "rejected" &&
+        dispatchableStatuses.includes(b.status) &&
         (!b.latitude || !b.longitude),
     );
 

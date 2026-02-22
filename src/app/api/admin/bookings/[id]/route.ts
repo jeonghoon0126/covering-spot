@@ -135,6 +135,9 @@ export async function PUT(
 
     // expectedUpdatedAt가 있으면 optimistic locking 적용
     const expectedUpdatedAt: string | undefined = body.expectedUpdatedAt;
+    if (!expectedUpdatedAt) {
+      console.warn("[admin/bookings] expectedUpdatedAt 미제공 — 동시 수정 충돌 감지 비활성화", { bookingId: id, adminId });
+    }
     const updated = await updateBooking(id, allowedUpdates, expectedUpdatedAt);
 
     if (!updated) {
@@ -167,13 +170,13 @@ export async function PUT(
         if (newStatus === "payment_requested") {
           createPaymentLink(id, updated.finalPrice ?? 0, updated.customerName ?? "")
             .then((paymentUrl) => {
-              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice, paymentUrl).catch(() => {});
+              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice, paymentUrl).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
             })
             .catch(() => {
-              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+              sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
             });
         } else {
-          sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch(() => {});
+          sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
         }
       }
       // 푸시 알림 (fire-and-forget)
@@ -223,17 +226,17 @@ export async function PUT(
     if (body.completionPhotos !== undefined) details.completionPhotoCount = (body.completionPhotos as string[]).length;
     if (body.items !== undefined) details.itemCount = body.items.length;
 
-    Promise.resolve(
-      supabase
-        .from("admin_audit_log")
-        .insert({
-          admin_id: adminId,
-          admin_email: adminEmail,
-          booking_id: id,
-          action,
-          details,
-        }),
-    ).catch(() => {});
+    // Audit log with retry (최대 3회 재시도 — 감사 기록 손실 방지)
+    (async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase
+          .from("admin_audit_log")
+          .insert({ admin_id: adminId, admin_email: adminEmail, booking_id: id, action, details });
+        if (!error) return;
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+        else console.error("[audit_log] 저장 실패 (3회 시도)", { bookingId: id, action, error: error.message });
+      }
+    })();
 
     return NextResponse.json({ booking: updated });
   } catch (e) {
