@@ -6,6 +6,39 @@ GitHub: jeonghoon0126/covering-spot (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동 배포
 
+### 최근 작업 (2026-02-22) — 세션 4 (슬롯 관리 이전 + 캘린더 KST 버그)
+
+**수정 파일 (2개)**
+- `src/app/admin/calendar/page.tsx`
+  - `addDays`/`getWeekStart`: `toISOString()` UTC → 로컬 날짜 포맷으로 수정 (< 버튼 2일 이동, > 무반응, 오늘 오인식 버그 수정)
+  - 슬롯 관리 기능 전체 제거 (viewMode "daily"|"weekly"로 단순화, 약 200줄 제거)
+- `src/app/admin/driver/page.tsx`
+  - 슬롯 차단 관리 섹션 신규 추가 (기사 목록 하단)
+  - 날짜 네비게이션, 기사 선택, 시간대별 예약 현황 + 차단/해제 기능
+  - toastTimer unmount cleanup 추가 (메모리 누수 방지)
+
+**대시보드 상태 탭 버그 분석**
+- 코드 로직 정상: `activeTab === "all"` 시 status 필터 미적용, `getBookingsPaginated` 무필터 전체 조회
+- 원인: 데이터 분포 문제 — `created_at` DESC 기준 최근 50건이 모두 `quote_confirmed` 상태 (배차 전 대기 중)
+- 코드 버그 없음, 실제 데이터를 Supabase에서 확인하여 다른 상태 탭이 비어있는지 검증 권장
+
+### 최근 작업 (2026-02-22) — 세션 3 (종합 버그 리뷰 + 입력 검증 강화)
+
+**수정 파일 (2개)**
+- `src/app/api/bookings/[id]/route.ts`
+  - reschedule timeSlot: `length > 20` → `["10:00","12:00","14:00","16:00"]` enum 검증
+  - reschedule confirmedTime: 고객 직접 변경 불가 (admin 전용 필드로 제한)
+  - 날짜/시간 변경 시 confirmedTime null 초기화 (관리자 재확인 유도)
+- `src/app/api/admin/bookings/[id]/route.ts`
+  - Zod 검증 후 `body.*` 대신 `parsed.data.*` 사용 전체 통일
+  - status check, allowedUpdates, audit log 모두 parsed.data 기준으로 변경
+
+**종합 버그 리뷰 결과 (에이전트 2개 병렬 실행)**
+- ETA 하차지 경유: 이미 수정됨 (dispatch-auto에서 unloadingCoordMap 삽입 정상)
+- items 가격 조작: BookingCreateSchema에 min(0) 검증 있음 (false alarm)
+- dispatch rollback 미검증: 에러 발생 시 로그 부재이나 기능 영향 없음 (수정 보류)
+- geocoding 실패 시 주문 생성: 의도된 동작 (comment로 명시됨)
+
 ### 최근 작업 (2026-02-22) — 고객 SMS 알림
 
 **배차·수거 3개 트리거 고객 SMS 연결**

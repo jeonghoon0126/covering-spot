@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 /* ── 타입 ── */
+
+interface BlockedSlot {
+  id: string;
+  date: string;
+  timeStart: string;
+  timeEnd: string;
+  reason?: string;
+  driverId?: string | null;
+}
 
 interface Driver {
   id: string;
@@ -19,6 +29,36 @@ interface Driver {
 }
 
 /* ── 상수 ── */
+
+// 슬롯 차단 관리: 시간대 (10:00 ~ 17:00, 1시간 단위)
+const SLOT_MGMT_HOURS = Array.from({ length: 8 }, (_, i) => {
+  const hour = i + 10;
+  return `${String(hour).padStart(2, "0")}:00`;
+});
+
+function getToday(): string {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. (${weekdays[d.getDay()]})`;
+}
+
+function nextHour(time: string): string {
+  const hour = parseInt(time.split(":")[0], 10) + 1;
+  return `${String(hour).padStart(2, "0")}:00`;
+}
 
 const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
 const VEHICLE_CAPACITY: Record<string, number> = {
@@ -211,6 +251,14 @@ export default function AdminDriverManagePage() {
 
   const [saving, setSaving] = useState(false);
 
+  // 슬롯 차단 관리 상태
+  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
+  const [slotMgmtDate, setSlotMgmtDate] = useState(getToday());
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("all");
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotActionLoading, setSlotActionLoading] = useState<string | null>(null);
+  const [slotBookings, setSlotBookings] = useState<{ id: string; confirmedTime: string | null; timeSlot: string }[]>([]);
+
   // 토스트
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,6 +267,13 @@ export default function AdminDriverManagePage() {
     setToast(msg);
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }
+
+  /* ── toast timer cleanup ── */
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   /* ── 인증 ── */
 
@@ -336,6 +391,124 @@ export default function AdminDriverManagePage() {
       setSaving(false);
     }
   }
+
+  /* ── 슬롯 차단 관리 ── */
+
+  const fetchBlockedSlots = useCallback(async () => {
+    if (!token) return;
+    setSlotsLoading(true);
+    try {
+      const driverParam = selectedDriverId !== "all" ? `&driverId=${selectedDriverId}` : "";
+      const res = await fetch(`/api/admin/blocked-slots?date=${slotMgmtDate}${driverParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem("admin_token");
+        router.push("/admin");
+        return;
+      }
+      const data = await res.json();
+      setBlockedSlots(data.slots || []);
+    } catch {
+      // ignore
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, [token, slotMgmtDate, selectedDriverId, router]);
+
+  const fetchSlotBookings = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/admin/bookings?dateFrom=${slotMgmtDate}&dateTo=${slotMgmtDate}&limit=200`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSlotBookings(
+          (data.bookings || []).filter(
+            (b: { date: string; status: string }) =>
+              b.date === slotMgmtDate &&
+              b.status !== "cancelled" &&
+              b.status !== "rejected",
+          ),
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, [token, slotMgmtDate]);
+
+  useEffect(() => {
+    fetchBlockedSlots();
+    fetchSlotBookings();
+  }, [fetchBlockedSlots, fetchSlotBookings]);
+
+  async function handleBlockSlot(timeStart: string) {
+    const timeEnd = nextHour(timeStart);
+    const driverId = selectedDriverId !== "all" ? selectedDriverId : undefined;
+    setSlotActionLoading(timeStart);
+    try {
+      const res = await fetch("/api/admin/blocked-slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ date: slotMgmtDate, timeStart, timeEnd, reason: "관리자 수동 차단", driverId: driverId || null }),
+      });
+      if (res.ok) {
+        fetchBlockedSlots();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "차단 실패");
+      }
+    } catch {
+      showToast("네트워크 오류");
+    } finally {
+      setSlotActionLoading(null);
+    }
+  }
+
+  async function handleUnblockSlot(slotId: string, timeStart: string) {
+    setSlotActionLoading(timeStart);
+    try {
+      const res = await fetch(`/api/admin/blocked-slots?id=${slotId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        fetchBlockedSlots();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "해제 실패");
+      }
+    } catch {
+      showToast("네트워크 오류");
+    } finally {
+      setSlotActionLoading(null);
+    }
+  }
+
+  /* ── 슬롯 계산 ── */
+
+  const slotBookingCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const b of slotBookings) {
+      const time = b.confirmedTime || b.timeSlot;
+      if (!time) continue;
+      const hour = time.split(":")[0];
+      const key = `${hour}:00`;
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    return counts;
+  }, [slotBookings]);
+
+  const blockedSlotMap = useMemo(() => {
+    const map: Record<string, BlockedSlot> = {};
+    for (const slot of blockedSlots) {
+      map[slot.timeStart] = slot;
+    }
+    return map;
+  }, [blockedSlots]);
+
+  const isSlotMgmtToday = slotMgmtDate === getToday();
 
   /* ── 활성화 토글 ── */
 
@@ -660,6 +833,140 @@ export default function AdminDriverManagePage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── 슬롯 차단 관리 ── */}
+      <div className="max-w-[42rem] mx-auto px-4 pb-8">
+        <div className="mt-8 mb-4 border-t border-border-light pt-6">
+          <h2 className="text-sm font-bold text-text-primary mb-1">슬롯 차단 관리</h2>
+          <p className="text-[11px] text-text-muted">특정 날짜/시간에 신규 예약을 차단합니다</p>
+        </div>
+
+        {/* 날짜 + 기사 선택 */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4 mb-4">
+          <div className="flex-1">
+            <label className="block text-[11px] text-text-muted font-medium mb-1">날짜</label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, -1))}
+                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <input
+                type="date"
+                value={slotMgmtDate}
+                onChange={(e) => setSlotMgmtDate(e.target.value)}
+                className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+              />
+              <button
+                onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, 1))}
+                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            {!isSlotMgmtToday && (
+              <button
+                onClick={() => setSlotMgmtDate(getToday())}
+                className="text-[11px] text-primary font-medium mt-1 hover:underline"
+              >
+                오늘로 이동
+              </button>
+            )}
+          </div>
+          <div className="flex-1">
+            <label className="block text-[11px] text-text-muted font-medium mb-1">기사 선택</label>
+            <select
+              value={selectedDriverId}
+              onChange={(e) => setSelectedDriverId(e.target.value)}
+              className="w-full h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+            >
+              <option value="all">전체</option>
+              {allDrivers.filter((d) => d.active).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}{d.phone ? ` (${d.phone})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <p className="text-xs text-text-muted text-center mb-3">
+          {formatDate(slotMgmtDate)} ·{" "}
+          {blockedSlots.length > 0 ? `차단 ${blockedSlots.length}개` : "차단 없음"} ·{" "}
+          예약 {slotBookings.length}건
+        </p>
+
+        {/* 시간대 그리드 */}
+        {slotsLoading ? (
+          <div className="text-center py-8">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+          <div className="bg-bg rounded-lg border border-border-light overflow-hidden">
+            {SLOT_MGMT_HOURS.map((time) => {
+              const blocked = blockedSlotMap[time];
+              const bookingCount = slotBookingCounts[time] || 0;
+              const isActionLoading = slotActionLoading === time;
+              return (
+                <div
+                  key={time}
+                  className={`flex items-stretch border-b border-border-light/50 last:border-0 transition-colors ${blocked ? "bg-red-50" : ""}`}
+                >
+                  <div className="w-16 shrink-0 py-3 pr-2 text-right flex flex-col justify-center">
+                    <span className={`text-xs font-medium ${blocked ? "text-semantic-red" : bookingCount > 0 ? "text-text-primary" : "text-text-muted"}`}>
+                      {time}
+                    </span>
+                  </div>
+                  <div className="flex-1 border-l border-border-light min-h-[3rem] flex items-center px-3 gap-3">
+                    {bookingCount > 0 && (
+                      <span className="text-[11px] font-medium text-text-sub bg-bg-warm px-2 py-1 rounded-sm">
+                        예약 {bookingCount}건
+                      </span>
+                    )}
+                    {blocked ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-semantic-red shrink-0" />
+                          <span className="text-xs font-medium text-semantic-red">차단됨</span>
+                        </span>
+                        {blocked.reason && (
+                          <span className="text-[11px] text-text-muted truncate">{blocked.reason}</span>
+                        )}
+                        <button
+                          onClick={() => handleUnblockSlot(blocked.id!, time)}
+                          disabled={isActionLoading}
+                          className="ml-auto shrink-0 text-[11px] font-medium text-semantic-red bg-white border border-red-200 rounded-sm px-3 py-1.5 hover:bg-red-50 active:scale-[0.97] transition-all disabled:opacity-50"
+                        >
+                          {isActionLoading ? "..." : "해제"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-semantic-green shrink-0" />
+                          <span className="text-xs text-text-muted">가능</span>
+                        </span>
+                        <button
+                          onClick={() => handleBlockSlot(time)}
+                          disabled={isActionLoading}
+                          className="ml-auto shrink-0 text-[11px] font-medium text-text-sub bg-bg border border-border-light rounded-sm px-3 py-1.5 hover:bg-bg-warm active:scale-[0.97] transition-all disabled:opacity-50"
+                        >
+                          {isActionLoading ? "..." : "차단"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 에러 토스트 */}
