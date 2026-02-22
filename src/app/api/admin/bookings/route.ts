@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { getAllBookings, getBookingsPaginated, createBooking, updateBooking } from "@/lib/db";
+import { getBookingStatusCounts, getBookingsPaginated, createBooking, updateBooking } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendBookingCreated } from "@/lib/slack-notify";
 import type { Booking } from "@/types/booking";
@@ -38,12 +38,8 @@ export async function GET(req: NextRequest) {
       limit,
     });
 
-    // 상태별 카운트 (전체 기준)
-    const allBookings = await getAllBookings();
-    const counts: Record<string, number> = {};
-    for (const b of allBookings) {
-      counts[b.status] = (counts[b.status] || 0) + 1;
-    }
+    // 상태별 카운트 (전체 기준, status 컬럼만 조회)
+    const counts = await getBookingStatusCounts();
 
     return NextResponse.json({
       bookings,

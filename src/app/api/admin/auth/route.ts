@@ -56,7 +56,7 @@ export function validateToken(req: NextRequest): boolean {
   const sig = raw.slice(idx + 1);
   const exp = Number(payload.split(":")[0]);
 
-  if (!exp || exp < Date.now()) return false;
+  if (!Number.isFinite(exp) || exp < Date.now()) return false;
 
   const expected = crypto
     .createHmac("sha256", getSecret())

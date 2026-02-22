@@ -241,6 +241,25 @@ export async function getAllBookings(): Promise<Booking[]> {
   return (data || []).map(rowToBooking);
 }
 
+/**
+ * 상태별 주문 카운트 (대시보드 탭 배지용)
+ * getAllBookings() 대비 전체 행 로드 없이 집계만 수행
+ */
+export async function getBookingStatusCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("status");
+
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data || []) {
+    const s = row.status as string;
+    counts[s] = (counts[s] || 0) + 1;
+  }
+  return counts;
+}
+
 export async function getBookingsByStatus(
   status: string,
 ): Promise<Booking[]> {
@@ -312,13 +331,18 @@ export async function getBookingsPaginated(params: {
   if (dateFrom) query = query.gte("date", dateFrom);
   if (dateTo) query = query.lte("date", dateTo);
   if (search) {
-    // PostgREST 필터 injection 방지: 특수문자 제거
-    const sanitized = search.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s\-]/g, "");
+    // 검색어 최대 100자 제한 + 특수문자 제거 (PostgREST injection 방지)
+    const sanitized = search.slice(0, 100).replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s\-]/g, "").trim();
     if (sanitized) {
-      // UUID-like pattern: search by ID prefix too (admin views first 8-12 chars of UUID)
       const isIdLike = /^[0-9a-f-]{4,}$/i.test(sanitized);
-      const baseFilter = `customer_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%,address.ilike.%${sanitized}%`;
-      query = query.or(isIdLike ? `${baseFilter},id::text.ilike.${sanitized}%` : baseFilter);
+      // Supabase .or() 필터: 각 컬럼을 별도 ilike 조건으로 구성
+      const orParts = [
+        `customer_name.ilike.%${sanitized}%`,
+        `phone.ilike.%${sanitized}%`,
+        `address.ilike.%${sanitized}%`,
+      ];
+      if (isIdLike) orParts.push(`id.ilike.${sanitized}%`);
+      query = query.or(orParts.join(","));
     }
   }
 
