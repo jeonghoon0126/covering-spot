@@ -6,15 +6,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_EyB9AZd0p5WrrY8og8951AY1
+      VERCEL_PROJECT_ID: prj_KCWVWdYmkH7gMyee4CkoD3RMhGJa
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
       - run: npm install -g vercel
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Link project
+        run: |
+          mkdir -p .vercel
+          echo '{"projectId":"'"$VERCEL_PROJECT_ID"'","orgId":"'"$VERCEL_ORG_ID"'"}' > .vercel/project.json
       - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-    env:
-      VERCEL_ORG_ID: team_EyB9AZd0p5WrrY8og8951AY1
-      VERCEL_PROJECT_ID: prj_KCWVWdYmkH7gMyee4CkoD3RMhGJa
