@@ -23,7 +23,7 @@ export async function subscribeToPush(bookingId: string): Promise<boolean> {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
     });
 
-    await fetch("/api/push/subscribe", {
+    const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -32,7 +32,7 @@ export async function subscribeToPush(bookingId: string): Promise<boolean> {
       }),
     });
 
-    return true;
+    return res.ok;
   } catch {
     return false;
   }

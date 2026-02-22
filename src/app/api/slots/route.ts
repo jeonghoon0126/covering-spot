@@ -31,8 +31,6 @@ function mapTo2HourSlot(time: string): string {
   if (totalMinutes >= 14 * 60 && totalMinutes < 16 * 60) return "14:00";
   // 16:00~18:00 -> "16:00"
   if (totalMinutes >= 16 * 60 && totalMinutes < 18 * 60) return "16:00";
-  // 구 슬롯(15:00) 호환: 16:00 슬롯으로 매핑
-  if (totalMinutes >= 15 * 60 && totalMinutes < 16 * 60) return "16:00";
   // 구 슬롯(18:00~19:00) 호환: 가장 가까운 16:00 슬롯으로 매핑
   if (totalMinutes >= 18 * 60 && totalMinutes < 19 * 60) return "16:00";
 
@@ -136,7 +134,7 @@ export async function GET(req: NextRequest) {
     const slots = DEFAULT_SLOTS.map((time) => {
       const [h, m] = time.split(":").map(Number);
       const slotMinutes = h * 60 + m;
-      const isPast = isToday && slotMinutes <= kstMinutes;
+      const isPast = isToday && slotMinutes < kstMinutes;
       const count = confirmedCounts[time] || 0;
       const isBlocked = blockedTimes.has(time);
       return {

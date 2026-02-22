@@ -251,8 +251,9 @@ export default function BookingManagePage() {
     }
   }
 
-  // 오늘 날짜 (date input min 값용)
-  const today = new Date().toISOString().split("T")[0];
+  // 오늘 날짜 (KST 기준, date input min 값용)
+  const todayKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const today = `${todayKST.getFullYear()}-${String(todayKST.getMonth() + 1).padStart(2, "0")}-${String(todayKST.getDate()).padStart(2, "0")}`;
 
   return (
     <div className="space-y-6">

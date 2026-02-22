@@ -104,6 +104,7 @@ function BookingPageContent() {
 
   // Step 5: 견적
   const [quote, setQuote] = useState<QuoteResult | null>(null);
+  const [quoteError, setQuoteError] = useState(false);
   const [leadSaved, setLeadSaved] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
 
@@ -296,6 +297,7 @@ function BookingPageContent() {
   // 견적 계산
   const calcQuote = useCallback(async () => {
     if (!selectedArea || selectedItems.length === 0) return;
+    setQuoteError(false);
     try {
       const res = await fetch("/api/quote", {
         method: "POST",
@@ -308,10 +310,11 @@ function BookingPageContent() {
           ladderHours: needLadder ? ladderHours : undefined,
         }),
       });
+      if (!res.ok) { setQuoteError(true); return; }
       const data = await res.json();
       setQuote(data);
     } catch {
-      /* 에러 무시 */
+      setQuoteError(true);
     }
   }, [selectedArea, selectedItems, needLadder, ladderType, ladderHours]);
 
@@ -400,10 +403,13 @@ function BookingPageContent() {
           method: "POST",
           body: formData,
         });
-        const uploadData = await uploadRes.json();
-        if (uploadRes.ok) {
-          photoUrls = uploadData.urls || [];
+        if (!uploadRes.ok) {
+          alert("사진 업로드에 실패했습니다. 다시 시도해주세요.");
+          setLoading(false);
+          return;
         }
+        const uploadData = await uploadRes.json();
+        photoUrls = uploadData.urls || [];
       }
 
       const bookingData = {
@@ -1340,6 +1346,17 @@ function BookingPageContent() {
                   </p>
                 </div>
               </div>
+            </div>
+          ) : quoteError ? (
+            <div className="bg-bg rounded-lg shadow-sm border border-border-light p-8 flex flex-col items-center gap-3">
+              <p className="text-semantic-red text-sm font-medium">견적 계산에 실패했습니다</p>
+              <button
+                type="button"
+                onClick={() => calcQuote()}
+                className="text-primary text-sm font-medium hover:underline"
+              >
+                다시 시도하기
+              </button>
             </div>
           ) : (
             <div className="bg-bg rounded-lg shadow-sm border border-border-light p-8 flex flex-col items-center">

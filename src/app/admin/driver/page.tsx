@@ -427,6 +427,15 @@ export default function AdminDriverManagePage() {
             </div>
             <button
               onClick={() => {
+                if (!showAddForm) {
+                  // 폼을 열 때 이전 입력값 초기화
+                  setNewName("");
+                  setNewPhone("");
+                  setNewVehicleType("1톤");
+                  setNewLicensePlate("");
+                  setNewWorkDays("월,화,수,목,금,토");
+                  setNewWorkSlots("");
+                }
                 setShowAddForm(!showAddForm);
                 setEditingId(null);
               }}

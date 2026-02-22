@@ -217,6 +217,9 @@ export default function AdminBookingDetailPage() {
       if (res.ok) {
         setBooking(data.booking);
         alert("상태가 변경되었습니다");
+      } else if (res.status === 409) {
+        alert("다른 탭에서 이미 수정되었습니다. 최신 데이터를 불러옵니다.");
+        await refetchBooking();
       } else {
         alert(data.error || "변경 실패");
       }
@@ -227,23 +230,33 @@ export default function AdminBookingDetailPage() {
     }
   }
 
+  async function refetchBooking() {
+    if (!token || !id) return;
+    try {
+      const r = await fetch(`/api/admin/bookings/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      if (data?.booking) {
+        setBooking(data.booking);
+        if (data.booking.finalPrice != null) setFinalPriceInput(String(data.booking.finalPrice));
+        setAdminMemoInput(data.booking.adminMemo || "");
+        if (data.booking.confirmedTime) setConfirmedTimeInput(data.booking.confirmedTime);
+        if (data.booking.confirmedDuration != null) setConfirmedDurationInput(data.booking.confirmedDuration);
+        if (data.booking.completionPhotos?.length) setCompletionPhotos(data.booking.completionPhotos);
+      }
+    } catch { /* ignore */ }
+  }
+
   async function handleSaveMemo() {
     if (!booking || !token) return;
     setSaving(true);
     try {
+      // adminMemo만 저장 — finalPrice/confirmedTime은 견적 확정 플로우에서만 변경
       const body: Record<string, unknown> = {
         adminMemo: adminMemoInput,
+        expectedUpdatedAt: booking.updatedAt,
       };
-      if (finalPriceInput.trim()) {
-        body.finalPrice = Number(finalPriceInput.replace(/[^0-9]/g, ""));
-      }
-      if (confirmedTimeInput) {
-        body.confirmedTime = confirmedTimeInput;
-      }
-      if (confirmedDurationInput != null) {
-        body.confirmedDuration = confirmedDurationInput;
-      }
-      body.expectedUpdatedAt = booking.updatedAt;
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
         headers: {
@@ -256,6 +269,9 @@ export default function AdminBookingDetailPage() {
       if (res.ok) {
         setBooking(data.booking);
         alert("저장되었습니다");
+      } else if (res.status === 409) {
+        alert("다른 탭에서 이미 수정되었습니다. 최신 데이터를 불러옵니다.");
+        await refetchBooking();
       } else {
         alert(data.error || "저장 실패");
       }
@@ -521,6 +537,7 @@ export default function AdminBookingDetailPage() {
                     if (res.ok) {
                       setBooking(data.booking);
                       setEditingItems(false);
+                      setItemEdits([]);
                     }
                   } catch {
                     alert("저장 실패");
@@ -534,7 +551,7 @@ export default function AdminBookingDetailPage() {
               <Button
                 variant="tertiary"
                 size="sm"
-                onClick={() => setEditingItems(false)}
+                onClick={() => { setEditingItems(false); setItemEdits([]); }}
               >
                 취소
               </Button>
