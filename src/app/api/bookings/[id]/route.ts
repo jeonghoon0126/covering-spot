@@ -11,6 +11,7 @@ import {
 } from "@/lib/slack-notify";
 import { validateBookingToken } from "@/lib/booking-token";
 import { getCustomerDeadline } from "@/lib/booking-utils";
+import type { Booking } from "@/types/booking";
 
 /** 고객이 수정 가능한 필드만 허용 (admin 전용 필드 차단) */
 const CustomerUpdateSchema = z.object({
@@ -124,12 +125,12 @@ export async function PUT(
 
     const body = await req.json();
 
-    // quote_confirmed 상태에서는 date, timeSlot, confirmedTime만 변경 가능
+    // quote_confirmed 상태에서는 date, timeSlot만 변경 가능 (confirmedTime은 admin 전용)
     if (isReschedule) {
-      const { date, timeSlot, confirmedTime } = body;
-      if (!date && !timeSlot && !confirmedTime) {
+      const { date, timeSlot } = body;
+      if (!date && !timeSlot) {
         return NextResponse.json(
-          { error: "변경할 날짜, 시간대 또는 확정 시간을 입력해주세요" },
+          { error: "변경할 날짜 또는 시간대를 입력해주세요" },
           { status: 400 },
         );
       }
@@ -137,13 +138,16 @@ export async function PUT(
       if (date && (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
         return NextResponse.json({ error: "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)" }, { status: 400 });
       }
-      if (timeSlot && (typeof timeSlot !== "string" || timeSlot.length > 20)) {
+      // 고객 예약 시간대는 4개 슬롯만 허용
+      const VALID_CUSTOMER_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
+      if (timeSlot && (typeof timeSlot !== "string" || !VALID_CUSTOMER_SLOTS.includes(timeSlot))) {
         return NextResponse.json({ error: "시간대 형식이 올바르지 않습니다" }, { status: 400 });
       }
-      const rescheduleData: Record<string, string> = {};
+      const rescheduleData: Partial<Booking> = {};
       if (date) rescheduleData.date = date;
       if (timeSlot) rescheduleData.timeSlot = timeSlot;
-      if (confirmedTime) rescheduleData.confirmedTime = confirmedTime;
+      // 날짜/시간 변경 시 admin이 확정한 시간 초기화 (관리자가 다시 확인해야 함)
+      if (date || timeSlot) rescheduleData.confirmedTime = null;
       const updated = await updateBooking(id, rescheduleData);
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });

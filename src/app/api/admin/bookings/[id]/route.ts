@@ -77,8 +77,11 @@ export async function PUT(
     // 역할 기반 권한 검사
     const { adminId, adminEmail, role } = getAdminFromToken(req);
 
+    // Zod 파싱 완료 후 parsed.data 사용 (raw body 대신 검증/변환된 값 사용)
+    const data = parsed.data;
+
     // payment_completed 상태 변경은 admin만 가능
-    if (body.status === "payment_completed" && !hasPermission(role, "payment_confirm")) {
+    if (data.status === "payment_completed" && !hasPermission(role, "payment_confirm")) {
       return NextResponse.json(
         { error: "정산 완료 권한이 없습니다" },
         { status: 403 },
@@ -86,24 +89,24 @@ export async function PUT(
     }
 
     // 가격 변경은 admin만 가능
-    if (body.finalPrice !== undefined && !hasPermission(role, "price_change")) {
+    if (data.finalPrice !== undefined && !hasPermission(role, "price_change")) {
       return NextResponse.json(
         { error: "가격 변경 권한이 없습니다" },
         { status: 403 },
       );
     }
 
-    // 허용되는 업데이트 필드만 추출
+    // 허용되는 업데이트 필드만 추출 (Zod 변환 완료된 parsed.data 사용)
     const allowedUpdates: Record<string, unknown> = {};
-    if (body.status !== undefined) allowedUpdates.status = body.status;
-    if (body.finalPrice !== undefined) allowedUpdates.finalPrice = body.finalPrice;
-    if (body.adminMemo !== undefined) allowedUpdates.adminMemo = body.adminMemo;
-    if (body.confirmedTime !== undefined) allowedUpdates.confirmedTime = body.confirmedTime;
-    if (body.items !== undefined) allowedUpdates.items = body.items;
-    if (body.driverId !== undefined) allowedUpdates.driverId = body.driverId;
-    if (body.driverName !== undefined) allowedUpdates.driverName = body.driverName;
-    if (body.confirmedDuration !== undefined) allowedUpdates.confirmedDuration = body.confirmedDuration;
-    if (body.completionPhotos !== undefined) allowedUpdates.completionPhotos = body.completionPhotos;
+    if (data.status !== undefined) allowedUpdates.status = data.status;
+    if (data.finalPrice !== undefined) allowedUpdates.finalPrice = data.finalPrice;
+    if (data.adminMemo !== undefined) allowedUpdates.adminMemo = data.adminMemo;
+    if (data.confirmedTime !== undefined) allowedUpdates.confirmedTime = data.confirmedTime;
+    if (data.items !== undefined) allowedUpdates.items = data.items;
+    if (data.driverId !== undefined) allowedUpdates.driverId = data.driverId;
+    if (data.driverName !== undefined) allowedUpdates.driverName = data.driverName;
+    if (data.confirmedDuration !== undefined) allowedUpdates.confirmedDuration = data.confirmedDuration;
+    if (data.completionPhotos !== undefined) allowedUpdates.completionPhotos = data.completionPhotos;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
@@ -120,11 +123,11 @@ export async function PUT(
       );
     }
 
-    if (body.status && body.status !== existing.status) {
+    if (data.status && data.status !== existing.status) {
       const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
-      if (!allowed.includes(body.status)) {
+      if (!allowed.includes(data.status)) {
         return NextResponse.json(
-          { error: `'${existing.status}' 상태에서 '${body.status}'(으)로 변경할 수 없습니다.` },
+          { error: `'${existing.status}' 상태에서 '${data.status}'(으)로 변경할 수 없습니다.` },
           { status: 422 },
         );
       }
@@ -134,7 +137,7 @@ export async function PUT(
     const previousMemo = existing.adminMemo;
 
     // expectedUpdatedAt가 있으면 optimistic locking 적용
-    const expectedUpdatedAt: string | undefined = body.expectedUpdatedAt;
+    const expectedUpdatedAt: string | undefined = data.expectedUpdatedAt;
     if (!expectedUpdatedAt) {
       console.warn("[admin/bookings] expectedUpdatedAt 미제공 — 동시 수정 충돌 감지 비활성화", { bookingId: id, adminId });
     }
@@ -158,7 +161,7 @@ export async function PUT(
     }
 
     // Slack 알림 발송 (상태가 변경된 경우에만)
-    const newStatus = body.status;
+    const newStatus = data.status;
     if (newStatus && newStatus !== previousStatus) {
       if (newStatus === "quote_confirmed") {
         sendQuoteConfirmed(updated).catch(() => {});
@@ -204,14 +207,14 @@ export async function PUT(
     }
 
     // 관리자 메모 변경 시 스레드 답글
-    if (body.adminMemo !== undefined && body.adminMemo !== previousMemo && body.adminMemo) {
-      sendAdminMemoUpdated(updated, body.adminMemo).catch(() => {});
+    if (data.adminMemo !== undefined && data.adminMemo !== previousMemo && data.adminMemo) {
+      sendAdminMemoUpdated(updated, data.adminMemo).catch(() => {});
     }
 
     // Audit log (fire-and-forget)
     const action = newStatus && newStatus !== previousStatus
       ? "status_change"
-      : body.items !== undefined
+      : data.items !== undefined
         ? "items_update"
         : "info_update";
     const details: Record<string, unknown> = {};
@@ -219,12 +222,12 @@ export async function PUT(
       details.previousStatus = previousStatus;
       details.newStatus = newStatus;
     }
-    if (body.finalPrice !== undefined) details.finalPrice = body.finalPrice;
-    if (body.adminMemo !== undefined) details.adminMemo = body.adminMemo;
-    if (body.confirmedTime !== undefined) details.confirmedTime = body.confirmedTime;
-    if (body.confirmedDuration !== undefined) details.confirmedDuration = body.confirmedDuration;
-    if (body.completionPhotos !== undefined) details.completionPhotoCount = (body.completionPhotos as string[]).length;
-    if (body.items !== undefined) details.itemCount = body.items.length;
+    if (data.finalPrice !== undefined) details.finalPrice = data.finalPrice;
+    if (data.adminMemo !== undefined) details.adminMemo = data.adminMemo;
+    if (data.confirmedTime !== undefined) details.confirmedTime = data.confirmedTime;
+    if (data.confirmedDuration !== undefined) details.confirmedDuration = data.confirmedDuration;
+    if (data.completionPhotos !== undefined) details.completionPhotoCount = data.completionPhotos.length;
+    if (data.items !== undefined) details.itemCount = data.items.length;
 
     // Audit log with retry (최대 3회 재시도 — 감사 기록 손실 방지)
     (async () => {
