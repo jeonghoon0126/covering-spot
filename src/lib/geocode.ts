@@ -29,35 +29,59 @@ export async function geocodeAddress(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const url = new URL('https://dapi.kakao.com/v2/local/search/address.json');
-    url.searchParams.set('query', address.trim());
+    const headers = { Authorization: `KakaoAK ${apiKey}` };
+    const query = address.trim();
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `KakaoAK ${apiKey}`,
-      },
+    // 1차: 주소 검색 (도로명/지번 정확 매칭)
+    const addressUrl = new URL('https://dapi.kakao.com/v2/local/search/address.json');
+    addressUrl.searchParams.set('query', query);
+
+    const addressRes = await fetch(addressUrl.toString(), {
+      headers,
+      signal: controller.signal,
+    });
+
+    if (addressRes.ok) {
+      const addressData = await addressRes.json();
+      if (addressData.documents && addressData.documents.length > 0) {
+        const doc = addressData.documents[0];
+        const lat = parseFloat(doc.y);
+        const lng = parseFloat(doc.x);
+        clearTimeout(timeoutId);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          const result = { lat, lng };
+          geocodeCache.set(cacheKey, result);
+          return result;
+        }
+      }
+    }
+
+    // 2차 폴백: 키워드 검색 (구·동 단위 약식 주소도 인식)
+    const keywordUrl = new URL('https://dapi.kakao.com/v2/local/search/keyword.json');
+    keywordUrl.searchParams.set('query', query);
+    keywordUrl.searchParams.set('size', '1');
+
+    const keywordRes = await fetch(keywordUrl.toString(), {
+      headers,
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      console.error(
-        `[geocode] Kakao API error: ${response.status} ${response.statusText}`
-      );
+    if (!keywordRes.ok) {
+      console.error(`[geocode] Kakao API error: ${keywordRes.status} ${keywordRes.statusText}`);
       return null;
     }
 
-    const data = await response.json();
-
-    if (!data.documents || data.documents.length === 0) {
+    const keywordData = await keywordRes.json();
+    if (!keywordData.documents || keywordData.documents.length === 0) {
       console.error('[geocode] No results found for address:', address);
       return null;
     }
 
-    const doc = data.documents[0];
+    const doc = keywordData.documents[0];
     const lat = parseFloat(doc.y);
     const lng = parseFloat(doc.x);
 
@@ -72,7 +96,7 @@ export async function geocodeAddress(
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.error('[geocode] Request timeout after 3 seconds');
+        console.error('[geocode] Request timeout after 5 seconds');
       } else {
         console.error('[geocode] Error:', error.message);
       }
