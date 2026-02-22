@@ -65,13 +65,12 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "수거불가",
 };
 
-const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"];
+const SLOT_ORDER = ["오전 (9시~12시)", "오후 (13시~17시)", "저녁 (18시~20시)"];
 
 const SLOT_LABELS: Record<string, string> = {
-  "10:00": "10~12시",
-  "12:00": "12~14시",
-  "14:00": "14~16시",
-  "16:00": "16~18시",
+  "오전 (9시~12시)": "오전",
+  "오후 (13시~17시)": "오후",
+  "저녁 (18시~20시)": "저녁",
 };
 
 const UNASSIGNED_COLOR = "#3B82F6";
@@ -443,9 +442,9 @@ export default function AdminDispatchPage() {
     });
   }
 
-  // 필터링된 예약
+  // 필터링된 예약 (특정 기사 선택 시 routeOrder 기준 정렬)
   const filteredBookings = useMemo(() => {
-    return activeBookings.filter((b) => {
+    const filtered = activeBookings.filter((b) => {
       const driverMatch =
         filterDriverId === "unassigned" ? !b.driverId :
         filterDriverId !== "all" ? b.driverId === filterDriverId :
@@ -453,6 +452,10 @@ export default function AdminDispatchPage() {
       const slotMatch = filterSlot === "all" || b.timeSlot === filterSlot;
       return driverMatch && slotMatch;
     });
+    if (filterDriverId !== "all" && filterDriverId !== "unassigned") {
+      return [...filtered].sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
+    }
+    return filtered;
   }, [activeBookings, filterDriverId, filterSlot]);
   // 최신값 ref 동기화 (scrollToNextUnassigned stale closure 방어)
   filteredBookingsRef.current = filteredBookings;
@@ -479,19 +482,20 @@ export default function AdminDispatchPage() {
     return driverColorMap.get(booking.driverId) || "#10B981";
   }, [driverColorMap]);
 
-  // 좌표 있는 예약만 마커로 (subtitle에 고객명 표시)
+  // 좌표 있는 예약만 마커로 (특정 기사 선택 시 routeOrder로 번호 표시)
   const mapMarkers: MapMarker[] = useMemo(() => {
+    const specificDriver = filterDriverId !== "all" && filterDriverId !== "unassigned";
     return filteredBookings
       .filter((b) => b.latitude != null && b.longitude != null)
       .map((b, idx) => ({
         id: b.id,
         lat: b.latitude!,
         lng: b.longitude!,
-        label: String(idx + 1),
+        label: specificDriver && b.routeOrder != null ? String(b.routeOrder) : String(idx + 1),
         subtitle: b.customerName || "",
         color: getMarkerColor(b),
       }));
-  }, [filteredBookings, getMarkerColor]);
+  }, [filteredBookings, getMarkerColor, filterDriverId]);
 
   // 미배차 수
   const unassignedCount = useMemo(() => {
@@ -540,28 +544,44 @@ export default function AdminDispatchPage() {
     }));
   }, [autoMode, autoResult, unloadingPoints]);
 
-  // 경로 폴리라인 (자동배차 미리보기 시) — 하차지 경유 좌표 포함
+  // 경로 폴리라인 — preview 모드는 하차지 경유 포함, 일반 모드는 routeOrder 기반
   const mapRouteLines: RouteLine[] = useMemo(() => {
-    if (autoMode !== "preview" || !autoResult) return [];
-    return autoResult.plan.map((dp) => {
-      const color = driverColorMap.get(dp.driverId) || "#10B981";
-      const points: { lat: number; lng: number }[] = [];
-      const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
-      sorted.forEach((b) => {
-        const booking = bookings.find((bk) => bk.id === b.id);
-        if (booking?.latitude && booking?.longitude) {
-          points.push({ lat: booking.latitude, lng: booking.longitude });
-        }
-        // 이 수거지 다음에 하차지 경유가 있으면 좌표 삽입
-        const stop = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
-        if (stop) {
-          const up = unloadingPoints.find((p) => p.id === stop.pointId);
-          if (up) points.push({ lat: up.latitude, lng: up.longitude });
-        }
+    if (autoMode === "preview" && autoResult) {
+      return autoResult.plan.map((dp) => {
+        const color = driverColorMap.get(dp.driverId) || "#10B981";
+        const points: { lat: number; lng: number }[] = [];
+        const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
+        sorted.forEach((b) => {
+          const booking = bookings.find((bk) => bk.id === b.id);
+          if (booking?.latitude && booking?.longitude) {
+            points.push({ lat: booking.latitude, lng: booking.longitude });
+          }
+          const stop = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
+          if (stop) {
+            const up = unloadingPoints.find((p) => p.id === stop.pointId);
+            if (up) points.push({ lat: up.latitude, lng: up.longitude });
+          }
+        });
+        return { driverId: dp.driverId, color, points };
       });
-      return { driverId: dp.driverId, color, points };
+    }
+    // 일반 모드: 배차된 예약의 routeOrder 기반 폴리라인
+    const lines: RouteLine[] = [];
+    driverStats.forEach((stat) => {
+      const color = driverColorMap.get(stat.driverId) || "#10B981";
+      const driverBookings = activeBookings
+        .filter((b) => b.driverId === stat.driverId && b.routeOrder != null && b.latitude != null && b.longitude != null)
+        .sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
+      if (driverBookings.length >= 2) {
+        lines.push({
+          driverId: stat.driverId,
+          color,
+          points: driverBookings.map((b) => ({ lat: b.latitude!, lng: b.longitude! })),
+        });
+      }
     });
-  }, [autoMode, autoResult, bookings, driverColorMap, unloadingPoints]);
+    return lines;
+  }, [autoMode, autoResult, bookings, driverColorMap, unloadingPoints, activeBookings, driverStats]);
 
   // 선택된 예약
   const selectedBooking = useMemo(() => {
@@ -1151,6 +1171,27 @@ export default function AdminDispatchPage() {
                   <div className="p-8 text-center text-sm text-text-muted">
                     해당 날짜에 주문이 없습니다
                   </div>
+                ) : filterDriverId !== "all" && filterDriverId !== "unassigned" ? (
+                  // 특정 기사 선택: routeOrder 순서의 flat list
+                  filteredBookings.map((b) => (
+                    <BookingCard
+                      key={b.id}
+                      booking={b}
+                      isSelected={selectedBookingId === b.id}
+                      isChecked={checkedIds.has(b.id)}
+                      driverColor={b.driverId ? (driverColorMap.get(b.driverId) || "#10B981") : undefined}
+                      driverStats={driverStats}
+                      dispatching={dispatching}
+                      onCheck={() => toggleCheck(b.id)}
+                      onClick={() => handleCardClick(b)}
+                      onDispatch={(dId) => handleDispatch(b.id, dId)}
+                      onUnassign={() => handleUnassign(b.id)}
+                      ref={(el) => {
+                        if (el) cardRefs.current.set(b.id, el);
+                        else cardRefs.current.delete(b.id);
+                      }}
+                    />
+                  ))
                 ) : (
                   groupedBySlot.map(([slot, slotBookings]) => (
                     <div key={slot}>

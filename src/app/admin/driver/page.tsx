@@ -61,10 +61,11 @@ function WorkDayToggle({ value, onChange }: { value: string; onChange: (v: strin
 
 /* ── 가능 슬롯 토글 컴포넌트 ── */
 
-const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"] as const;
+const SLOT_ORDER = ["오전 (9시~12시)", "오후 (13시~17시)", "저녁 (18시~20시)"] as const;
 const SLOT_LABELS: Record<string, string> = {
-  "10:00": "10~12시", "12:00": "12~14시",
-  "14:00": "14~16시", "16:00": "16~18시",
+  "오전 (9시~12시)": "오전",
+  "오후 (13시~17시)": "오후",
+  "저녁 (18시~20시)": "저녁",
 };
 
 function WorkSlotToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {

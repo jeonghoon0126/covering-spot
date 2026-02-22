@@ -40,7 +40,7 @@ function validateWorkDays(val: string): boolean {
   return val.split(",").every((d) => VALID_WORK_DAYS.includes(d.trim()));
 }
 
-const VALID_WORK_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
+const VALID_WORK_SLOTS = ["오전 (9시~12시)", "오후 (13시~17시)", "저녁 (18시~20시)"];
 
 function validateWorkSlots(val: string): boolean {
   if (!val) return true; // 빈 문자열 = 모든 슬롯 허용
