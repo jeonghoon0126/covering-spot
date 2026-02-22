@@ -67,6 +67,7 @@ export interface RouteLine {
 
 export interface KakaoMapHandle {
   panTo: (lat: number, lng: number) => void;
+  fitToPositions: (positions: { lat: number; lng: number }[]) => void;
 }
 
 interface KakaoMapProps {
@@ -76,6 +77,7 @@ interface KakaoMapProps {
   selectedMarkerId?: string | null;
   onMarkerClick?: (id: string) => void;
   className?: string;
+  disableAutoFit?: boolean; // true면 markers 변경 시 자동 setBounds 스킵
 }
 
 // HEX 색상만 허용 (CSS injection 방어)
@@ -84,7 +86,7 @@ function sanitizeColor(c: string): string {
 }
 
 const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
-  { markers, unloadingMarkers, routeLines, selectedMarkerId, onMarkerClick, className = "" },
+  { markers, unloadingMarkers, routeLines, selectedMarkerId, onMarkerClick, className = "", disableAutoFit = false },
   ref,
 ) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
   const [isMapReady, setIsMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // panTo
+  // panTo / fitToPositions
   useImperativeHandle(ref, () => ({
     panTo: (lat: number, lng: number) => {
       if (!mapRef.current || !window.kakao?.maps) return;
@@ -108,6 +110,22 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
         mapRef.current.panTo(pos);
       } catch (e) {
         console.error("[KakaoMap] panTo 실패:", e);
+      }
+    },
+    fitToPositions: (positions: { lat: number; lng: number }[]) => {
+      if (!mapRef.current || !window.kakao?.maps || positions.length === 0) return;
+      try {
+        const { kakao } = window;
+        if (positions.length === 1) {
+          mapRef.current.setCenter(new kakao.maps.LatLng(positions[0].lat, positions[0].lng));
+          mapRef.current.setLevel(5);
+        } else {
+          const bounds = new kakao.maps.LatLngBounds();
+          positions.forEach((p) => bounds.extend(new kakao.maps.LatLng(p.lat, p.lng)));
+          mapRef.current.setBounds(bounds);
+        }
+      } catch (e) {
+        console.error("[KakaoMap] fitToPositions 실패:", e);
       }
     },
   }), []);
@@ -250,13 +268,15 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       bounds.extend(position);
     });
 
-    if (markers.length === 1) {
-      mapRef.current.setCenter(
-        new kakao.maps.LatLng(markers[0].lat, markers[0].lng),
-      );
-      mapRef.current.setLevel(5);
-    } else {
-      mapRef.current.setBounds(bounds);
+    if (!disableAutoFit) {
+      if (markers.length === 1) {
+        mapRef.current.setCenter(
+          new kakao.maps.LatLng(markers[0].lat, markers[0].lng),
+        );
+        mapRef.current.setLevel(5);
+      } else {
+        mapRef.current.setBounds(bounds);
+      }
     }
 
     // 렌더 직후 현재 선택 상태 반영
@@ -265,7 +285,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       const m = markers.find((mk) => mk.id === curSelected);
       if (m) updateDotStyle(curSelected, true, m.color);
     }
-  }, [markers, onMarkerClick, updateDotStyle]); // selectedMarkerId 제거!
+  }, [markers, onMarkerClick, updateDotStyle, disableAutoFit]); // selectedMarkerId 제거!
 
   // 하차지 마커 렌더
   const renderUnloadingMarkers = useCallback(() => {

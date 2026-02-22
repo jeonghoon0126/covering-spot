@@ -54,7 +54,7 @@ const createDriverSchema = z.object({
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
-  workSlots: z.string().optional().default("").refine((v) => !v || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 10:00,12:00)" }),
+  workSlots: z.string().optional().default("").refine((v) => !v || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 오전 (9시~12시),오후 (13시~17시))" }),
 });
 
 export async function POST(req: NextRequest) {
@@ -100,7 +100,7 @@ const updateDriverSchema = z.object({
   vehicleCapacity: z.number().min(0).max(50).optional(),
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
-  workSlots: z.string().optional().refine((v) => v === undefined || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 10:00,12:00)" }),
+  workSlots: z.string().optional().refine((v) => v === undefined || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 오전 (9시~12시),오후 (13시~17시))" }),
 });
 
 export async function PUT(req: NextRequest) {

@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDuration, formatDistance } from "@/lib/kakao-directions";
+import { haversine } from "@/lib/optimizer/haversine";
 import DaumPostcodeEmbed from "react-daum-postcode";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import KakaoMap from "@/components/admin/KakaoMap";
@@ -68,12 +69,36 @@ const STATUS_LABELS: Record<string, string> = {
 const SLOT_ORDER = ["오전 (9시~12시)", "오후 (13시~17시)", "저녁 (18시~20시)"];
 
 const SLOT_LABELS: Record<string, string> = {
-  "오전 (9시~12시)": "오전",
-  "오후 (13시~17시)": "오후",
-  "저녁 (18시~20시)": "저녁",
+  "오전 (9시~12시)": "09:00~12:00",
+  "오후 (13시~17시)": "13:00~17:00",
+  "저녁 (18시~20시)": "18:00~20:00",
+};
+
+// 슬롯별 기사 1인당 최대 배차 기준 (슬롯 시간 ÷ 20분/건 기준)
+const SLOT_MAX_PER_DRIVER: Record<string, number> = {
+  "오전 (9시~12시)": 9,
+  "오후 (13시~17시)": 12,
+  "저녁 (18시~20시)": 6,
 };
 
 const UNASSIGNED_COLOR = "#3B82F6";
+
+// 동선 시간 계산 상수 (서울 시내 기준)
+const ROUTE_ROAD_FACTOR = 1.4;   // 직선거리 → 도로거리 보정계수
+const ROUTE_AVG_SPEED_KMH = 20;  // 서울 시내 평균 이동속도 (km/h)
+const BASE_SERVICE_MINS = 5;     // 수거지당 기본 수거 시간 (분)
+const CUBE_MINS_PER_M3 = 7;      // 적재량 1m³당 추가 수거 시간 (분)
+
+/** 수거지 서비스 시간 (분) = 기본 5분 + 적재량별 추가 */
+function calcServiceMins(totalLoadingCube: number | undefined): number {
+  return Math.max(1, BASE_SERVICE_MINS + Math.round((totalLoadingCube || 0) * CUBE_MINS_PER_M3));
+}
+
+/** 두 좌표 간 예상 이동시간 (분) — 직선거리 × 도로보정 / 평균속도 */
+function calcTravelMins(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const km = haversine(lat1, lng1, lat2, lng2) * ROUTE_ROAD_FACTOR;
+  return Math.max(1, Math.round(km / ROUTE_AVG_SPEED_KMH * 60));
+}
 
 /**
  * 골든앵글(137.508°) 기반 HSL 색상 생성
@@ -137,6 +162,8 @@ export default function AdminDispatchPage() {
   const [batchDriverId, setBatchDriverId] = useState("");
   const [dispatching, setDispatching] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [optimizingRoute, setOptimizingRoute] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   // 하차지
   const [unloadingPoints, setUnloadingPoints] = useState<UnloadingPoint[]>([]);
@@ -165,6 +192,12 @@ export default function AdminDispatchPage() {
   // 모바일 상세 바텀시트
   const [mobileDetail, setMobileDetail] = useState(false);
   const mobileDialogRef = useRef<HTMLDivElement>(null);
+
+  // flat list DnD 센서 (포인터 + 터치)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   // 포커스 트랩 — 바텀시트 열릴 때 포커스 가두기 (a11y)
   useEffect(() => {
@@ -297,6 +330,9 @@ export default function AdminDispatchPage() {
     fetchUnloadingPoints();
   }, [fetchUnloadingPoints]);
 
+  // recalcDoneRef: 날짜별 하차지 소급 계산 여부 추적 (useEffect 아래 activeBookings 의존)
+  const recalcDoneRef = useRef<string | null>(null);
+
   // 날짜 변경 시 자동배차 관련 상태 초기화 (이전 날짜 필터 오염 방지)
   useEffect(() => {
     setDriverSlotFilters({});
@@ -351,9 +387,10 @@ export default function AdminDispatchPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          plan: autoResult.plan.map(({ driverId, bookings }) => ({
+          plan: autoResult.plan.map(({ driverId, bookings, unloadingStops }) => ({
             driverId,
             bookings: bookings.map(({ id, routeOrder }) => ({ id, routeOrder })),
+            unloadingStops: (unloadingStops || []).map(({ afterRouteOrder, pointId }) => ({ afterRouteOrder, pointId })),
           })),
         }),
       });
@@ -417,6 +454,29 @@ export default function AdminDispatchPage() {
     return bookings.filter((b) => b.status !== "cancelled" && b.status !== "rejected");
   }, [bookings]);
 
+  // 적재 초과 기사가 있는데 unloadingStopAfter가 없으면 소급 재계산 (날짜별 1회)
+  // 코드 배포 전 배차된 데이터 자동 보정
+  useEffect(() => {
+    if (!token || loading || recalcDoneRef.current === selectedDate) return;
+    const hasOverflowWithoutStops = driverStats.some((stat) => {
+      if (stat.totalLoadingCube <= stat.vehicleCapacity) return false;
+      return !activeBookings.some(
+        (b) => b.driverId === stat.driverId && b.unloadingStopAfter != null,
+      );
+    });
+    if (!hasOverflowWithoutStops) return;
+    recalcDoneRef.current = selectedDate;
+    fetch(`/api/admin/dispatch-auto?date=${selectedDate}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.updated > 0) fetchData({ silent: true });
+      })
+      .catch(console.error);
+  }, [token, loading, selectedDate, driverStats, activeBookings, fetchData]);
+
   // 기사별 시간대 분포 (슬롯 칩 표시용)
   const driverSlotBreakdown = useMemo(() => {
     const map = new Map<string, Record<string, number>>();
@@ -475,6 +535,19 @@ export default function AdminDispatchPage() {
 
     return Object.entries(groups).filter(([, bs]) => bs.length > 0);
   }, [filteredBookings]);
+
+  // 슬롯별 과부하 감지 (기사 1명당 기준: 오전 9건, 오후 12건, 저녁 6건)
+  const slotOverload = useMemo(() => {
+    const result: Record<string, { total: number; driverCount: number; max: number; over: boolean }> = {};
+    for (const slot of SLOT_ORDER) {
+      const slotBookings = activeBookings.filter((b) => b.timeSlot === slot && b.driverId);
+      const driverCount = new Set(slotBookings.map((b) => b.driverId!)).size;
+      const total = slotBookings.length;
+      const max = (SLOT_MAX_PER_DRIVER[slot] ?? 9) * Math.max(driverCount, 1);
+      result[slot] = { total, driverCount, max, over: driverCount > 0 && total > max };
+    }
+    return result;
+  }, [activeBookings]);
 
   // 마커 색상 결정
   const getMarkerColor = useCallback((booking: Booking): string => {
@@ -547,7 +620,11 @@ export default function AdminDispatchPage() {
   // 경로 폴리라인 — preview 모드는 하차지 경유 포함, 일반 모드는 routeOrder 기반
   const mapRouteLines: RouteLine[] = useMemo(() => {
     if (autoMode === "preview" && autoResult) {
-      return autoResult.plan.map((dp) => {
+      // preview 모드에서도 특정 기사 선택 시 해당 기사 선만 표시
+      const planToShow = filterDriverId === "all" || filterDriverId === "unassigned"
+        ? autoResult.plan
+        : autoResult.plan.filter((dp) => dp.driverId === filterDriverId);
+      return planToShow.map((dp) => {
         const color = driverColorMap.get(dp.driverId) || "#10B981";
         const points: { lat: number; lng: number }[] = [];
         const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
@@ -565,23 +642,28 @@ export default function AdminDispatchPage() {
         return { driverId: dp.driverId, color, points };
       });
     }
-    // 일반 모드: 배차된 예약의 routeOrder 기반 폴리라인
+    // 일반 모드: 특정 기사 선택 시에만 해당 기사 동선 표시 (다른 기사 선 숨김)
+    if (filterDriverId === "all" || filterDriverId === "unassigned") return [];
     const lines: RouteLine[] = [];
-    driverStats.forEach((stat) => {
-      const color = driverColorMap.get(stat.driverId) || "#10B981";
-      const driverBookings = activeBookings
-        .filter((b) => b.driverId === stat.driverId && b.routeOrder != null && b.latitude != null && b.longitude != null)
-        .sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
-      if (driverBookings.length >= 2) {
-        lines.push({
-          driverId: stat.driverId,
-          color,
-          points: driverBookings.map((b) => ({ lat: b.latitude!, lng: b.longitude! })),
-        });
-      }
-    });
+    const stat = driverStats.find((s) => s.driverId === filterDriverId);
+    if (!stat) return lines;
+    const color = driverColorMap.get(stat.driverId) || "#10B981";
+    const driverBookings = activeBookings
+      .filter((b) => b.driverId === stat.driverId && b.routeOrder != null && b.latitude != null && b.longitude != null)
+      .sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
+    if (driverBookings.length >= 2) {
+      const points: { lat: number; lng: number }[] = [];
+      driverBookings.forEach((b) => {
+        points.push({ lat: b.latitude!, lng: b.longitude! });
+        if (b.unloadingStopAfter) {
+          const up = unloadingPoints.find((p) => p.id === b.unloadingStopAfter);
+          if (up) points.push({ lat: up.latitude, lng: up.longitude });
+        }
+      });
+      lines.push({ driverId: stat.driverId, color, points });
+    }
     return lines;
-  }, [autoMode, autoResult, bookings, driverColorMap, unloadingPoints, activeBookings, driverStats]);
+  }, [autoMode, autoResult, filterDriverId, bookings, driverColorMap, unloadingPoints, activeBookings, driverStats]);
 
   // 선택된 예약
   const selectedBooking = useMemo(() => {
@@ -828,6 +910,69 @@ export default function AdminDispatchPage() {
     }
   }
 
+  // 동선 최적화 (TSP) — 특정 기사의 배차된 주문 순서 자동 계산
+  const handleOptimizeRoute = useCallback(async () => {
+    if (!token || !filterDriverId || filterDriverId === "all" || filterDriverId === "unassigned" || optimizingRoute) return;
+    setOptimizingRoute(true);
+    try {
+      const res = await fetch("/api/admin/dispatch-auto/optimize-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ date: selectedDate, driverId: filterDriverId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`동선 최적화 완료 (${data.updated}건)`, "success");
+        fetchData({ silent: true });
+      } else {
+        showToast("동선 최적화 실패");
+      }
+    } catch {
+      showToast("네트워크 오류");
+    } finally {
+      setOptimizingRoute(false);
+    }
+  }, [token, filterDriverId, optimizingRoute, selectedDate, fetchData]);
+
+  // flat list DnD 순서 변경 후 저장
+  const handleFlatListReorder = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = filteredBookings.findIndex((b) => b.id === active.id);
+    const newIdx = filteredBookings.findIndex((b) => b.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+
+    const reordered = arrayMove(filteredBookings, oldIdx, newIdx);
+    const updates = reordered.map((b, idx) => ({ id: b.id, routeOrder: idx + 1 }));
+
+    // 옵티미스틱 업데이트
+    setBookings((prev) =>
+      prev.map((b) => {
+        const upd = updates.find((u) => u.id === b.id);
+        return upd ? { ...b, routeOrder: upd.routeOrder } : b;
+      }),
+    );
+
+    setReordering(true);
+    try {
+      const res = await fetch("/api/admin/bookings/route-order", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || (data.failed && data.failed > 0)) {
+        showToast(`순서 저장 실패${data.failed ? ` (${data.failed}건)` : ""}`);
+        fetchData({ silent: true }); // 롤백
+      }
+    } catch {
+      showToast("네트워크 오류");
+      fetchData({ silent: true });
+    } finally {
+      setReordering(false);
+    }
+  }, [token, filteredBookings, fetchData]);
+
   // 날짜 이동 (시간대 무관 순수 날짜 산술)
   function moveDate(delta: number) {
     const [y, m, d] = selectedDate.split("-").map(Number);
@@ -841,7 +986,7 @@ export default function AdminDispatchPage() {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-bg-warm flex flex-col">
+    <div className="h-screen bg-bg-warm flex flex-col overflow-hidden">
       {/* 토스트 */}
       {toast && (
         <div
@@ -1172,34 +1317,144 @@ export default function AdminDispatchPage() {
                     해당 날짜에 주문이 없습니다
                   </div>
                 ) : filterDriverId !== "all" && filterDriverId !== "unassigned" ? (
-                  // 특정 기사 선택: routeOrder 순서의 flat list
-                  filteredBookings.map((b) => (
-                    <BookingCard
-                      key={b.id}
-                      booking={b}
-                      isSelected={selectedBookingId === b.id}
-                      isChecked={checkedIds.has(b.id)}
-                      driverColor={b.driverId ? (driverColorMap.get(b.driverId) || "#10B981") : undefined}
-                      driverStats={driverStats}
-                      dispatching={dispatching}
-                      onCheck={() => toggleCheck(b.id)}
-                      onClick={() => handleCardClick(b)}
-                      onDispatch={(dId) => handleDispatch(b.id, dId)}
-                      onUnassign={() => handleUnassign(b.id)}
-                      ref={(el) => {
-                        if (el) cardRefs.current.set(b.id, el);
-                        else cardRefs.current.delete(b.id);
-                      }}
-                    />
-                  ))
+                  // 특정 기사 선택: routeOrder 순서의 flat list (DnD + 동선 최적화)
+                  <>
+                    {/* 동선 최적화 버튼 */}
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-border-light bg-bg-warm">
+                      <span className="text-xs text-text-muted">
+                        {filteredBookings.filter((b) => b.routeOrder != null).length > 0
+                          ? "드래그로 순서 변경"
+                          : "동선 미설정 — 최적화 필요"}
+                      </span>
+                      <button
+                        onClick={handleOptimizeRoute}
+                        disabled={optimizingRoute || reordering}
+                        className="flex items-center gap-1 text-xs font-medium text-primary border border-primary/30 rounded-md px-2.5 py-1 hover:bg-primary-bg transition-colors disabled:opacity-40"
+                      >
+                        {optimizingRoute ? (
+                          <LoadingSpinner size="sm" />
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M6 1L8 4H4L6 1Z" fill="currentColor"/>
+                            <path d="M6 11L4 8H8L6 11Z" fill="currentColor"/>
+                            <path d="M1 6L4 4V8L1 6Z" fill="currentColor"/>
+                            <path d="M11 6L8 8V4L11 6Z" fill="currentColor"/>
+                          </svg>
+                        )}
+                        동선 최적화
+                      </button>
+                    </div>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleFlatListReorder}
+                    >
+                      <SortableContext
+                        items={filteredBookings.map((b) => b.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {filteredBookings.flatMap((b, idx) => {
+                            const elements: React.ReactNode[] = [
+                              <SortableFlatBookingCard
+                                key={b.id}
+                                booking={b}
+                                isSelected={selectedBookingId === b.id}
+                                isChecked={checkedIds.has(b.id)}
+                                driverColor={b.driverId ? (driverColorMap.get(b.driverId) || "#10B981") : undefined}
+                                driverStats={driverStats}
+                                dispatching={dispatching}
+                                onCheck={() => toggleCheck(b.id)}
+                                onClick={() => handleCardClick(b)}
+                                onDispatch={(dId) => handleDispatch(b.id, dId)}
+                                onUnassign={() => handleUnassign(b.id)}
+                                cardRef={(el) => {
+                                  if (el) cardRefs.current.set(b.id, el);
+                                  else cardRefs.current.delete(b.id);
+                                }}
+                              />,
+                            ];
+
+                            // 수거 소요 시간 표시
+                            const serviceMins = calcServiceMins(b.totalLoadingCube);
+                            elements.push(
+                              <div key={`svc-${b.id}`} className="flex items-center justify-center gap-1 py-0.5 bg-gray-50">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-text-muted opacity-70">
+                                  <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
+                                  <path d="M5 2.5V5L6.5 6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                </svg>
+                                <span className="text-[10px] text-text-muted">수거 약 {serviceMins}분</span>
+                              </div>
+                            );
+
+                            // 하차지 경유 처리
+                            const unloadingPoint = b.unloadingStopAfter
+                              ? unloadingPoints.find((p) => p.id === b.unloadingStopAfter)
+                              : null;
+
+                            if (unloadingPoint) {
+                              // b → 하차지 이동시간
+                              if (b.latitude && b.longitude) {
+                                const tMins = calcTravelMins(b.latitude, b.longitude, unloadingPoint.latitude, unloadingPoint.longitude);
+                                elements.push(
+                                  <div key={`t-unload-${b.id}`} className="flex items-center gap-2 py-1 px-4">
+                                    <div className="flex-1 border-t border-gray-200" />
+                                    <span className="text-[10px] text-text-muted whitespace-nowrap px-1">↓ 이동 약 {tMins}분</span>
+                                    <div className="flex-1 border-t border-gray-200" />
+                                  </div>
+                                );
+                              }
+                              // 하차지 마커
+                              elements.push(
+                                <div key={`stop-${b.id}`} className="flex items-center gap-2 py-1.5 px-4">
+                                  <div className="flex-1 border-t border-dashed border-purple-300" />
+                                  <span className="text-[11px] font-bold text-purple-600 whitespace-nowrap px-1">
+                                    ◆ {unloadingPoint.name}
+                                  </span>
+                                  <div className="flex-1 border-t border-dashed border-purple-300" />
+                                </div>,
+                              );
+                            }
+
+                            // 다음 수거지까지 이동시간
+                            const nextB = filteredBookings[idx + 1];
+                            if (nextB && nextB.latitude && nextB.longitude) {
+                              // 출발지: 하차지가 있으면 하차지, 없으면 현재 수거지
+                              const fromLat = unloadingPoint ? unloadingPoint.latitude : b.latitude;
+                              const fromLng = unloadingPoint ? unloadingPoint.longitude : b.longitude;
+                              if (fromLat && fromLng) {
+                                const tMins = calcTravelMins(fromLat, fromLng, nextB.latitude!, nextB.longitude!);
+                                const km = (haversine(fromLat, fromLng, nextB.latitude!, nextB.longitude!) * ROUTE_ROAD_FACTOR).toFixed(1);
+                                elements.push(
+                                  <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-4">
+                                    <div className="flex-1 border-t border-gray-200" />
+                                    <span className="text-[10px] text-text-muted whitespace-nowrap px-1">↓ 이동 약 {tMins}분 · {km}km</span>
+                                    <div className="flex-1 border-t border-gray-200" />
+                                  </div>
+                                );
+                              }
+                            }
+
+                            return elements;
+                          })}
+                      </SortableContext>
+                    </DndContext>
+                  </>
                 ) : (
                   groupedBySlot.map(([slot, slotBookings]) => (
                     <div key={slot}>
-                      <div className="sticky top-0 z-10 px-4 py-1.5 bg-bg-warm border-b border-border-light">
+                      <div className="sticky top-0 z-10 px-4 py-1.5 bg-bg-warm border-b border-border-light flex items-center gap-1.5">
                         <span className="text-xs font-semibold text-text-sub">
                           {SLOT_LABELS[slot] || slot}
                         </span>
-                        <span className="text-xs text-text-muted ml-1">({slotBookings.length}건)</span>
+                        <span className="text-xs text-text-muted">({slotBookings.length}건)</span>
+                        {slotOverload[slot]?.over && (
+                          <span
+                            className="ml-auto text-[11px] font-semibold text-semantic-orange bg-semantic-orange-tint px-1.5 py-0.5 rounded"
+                            title={`배차된 ${slotOverload[slot].total}건 / 기사 ${slotOverload[slot].driverCount}명 기준 최대 ${slotOverload[slot].max}건`}
+                          >
+                            ⚠ 과부하
+                          </span>
+                        )}
                       </div>
                       {slotBookings.map((b) => (
                         <BookingCard
@@ -1236,14 +1491,20 @@ export default function AdminDispatchPage() {
                       className="flex-1 text-sm px-2 py-1.5 border border-border rounded-lg bg-bg"
                     >
                       <option value="">기사 선택</option>
-                      {driverStats.map((stat) => {
-                        const remaining = stat.vehicleCapacity - stat.totalLoadingCube;
-                        return (
-                          <option key={stat.driverId} value={stat.driverId}>
-                            {stat.driverName} ({remaining.toFixed(1)}m&sup3; 여유)
-                          </option>
-                        );
-                      })}
+                      {(() => {
+                        const checkedCube = filteredBookings
+                          .filter((b) => checkedIds.has(b.id) && b.driverId == null)
+                          .reduce((sum, b) => sum + (b.totalLoadingCube || 0), 0);
+                        return driverStats.map((stat) => {
+                          const remaining = stat.vehicleCapacity - stat.totalLoadingCube;
+                          const wouldExceed = stat.totalLoadingCube + checkedCube > stat.vehicleCapacity;
+                          return (
+                            <option key={stat.driverId} value={stat.driverId}>
+                              {wouldExceed ? "⚠ " : ""}{stat.driverName} ({remaining.toFixed(1)}m³ 여유)
+                            </option>
+                          );
+                        });
+                      })()}
                     </select>
                     <button
                       onClick={handleBatchDispatch}
@@ -1268,6 +1529,7 @@ export default function AdminDispatchPage() {
                 routeLines={mapRouteLines}
                 selectedMarkerId={selectedBookingId}
                 onMarkerClick={handleMarkerClick}
+                disableAutoFit={filterDriverId !== "all" && filterDriverId !== "unassigned"}
                 className="w-full h-full min-h-[400px]"
               />
 
@@ -1302,7 +1564,25 @@ export default function AdminDispatchPage() {
                           return (
                             <button
                               key={stat.driverId}
-                              onClick={() => setFilterDriverId(filterDriverId === stat.driverId ? "all" : stat.driverId)}
+                              onClick={() => {
+                              const next = filterDriverId === stat.driverId ? "all" : stat.driverId;
+                              setFilterDriverId(next);
+                              if (next !== "all") {
+                                const positions: { lat: number; lng: number }[] = [];
+                                const driverBookings = activeBookings.filter(
+                                  (b) => b.driverId === stat.driverId && b.latitude != null && b.longitude != null,
+                                );
+                                driverBookings.forEach((b) => positions.push({ lat: b.latitude!, lng: b.longitude! }));
+                                // 이 기사가 실제 경유하는 하차지만 포함 (전체 활성 하차지 X)
+                                const visitedUnloadingIds = new Set(
+                                  driverBookings.filter((b) => b.unloadingStopAfter != null).map((b) => b.unloadingStopAfter!),
+                                );
+                                unloadingPoints
+                                  .filter((p) => visitedUnloadingIds.has(p.id))
+                                  .forEach((p) => positions.push({ lat: p.latitude, lng: p.longitude }));
+                                if (positions.length > 0) setTimeout(() => mapRef.current?.fitToPositions(positions), 50);
+                              }
+                            }}
                               className={`w-full p-2 rounded-md border transition-all text-left ${
                                 filterDriverId === stat.driverId
                                   ? "border-primary bg-primary-bg"
@@ -1574,6 +1854,75 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
   );
 });
 
+/* ── 드래그 가능한 배차 카드 (flat list DnD용) ── */
+
+interface SortableFlatBookingCardProps extends BookingCardProps {
+  cardRef: (el: HTMLDivElement | null) => void;
+}
+
+function SortableFlatBookingCard({
+  cardRef,
+  booking,
+  isSelected,
+  isChecked,
+  driverColor,
+  driverStats,
+  dispatching,
+  onCheck,
+  onClick,
+  onDispatch,
+  onUnassign,
+}: SortableFlatBookingCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: booking.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className="flex"
+    >
+      {/* 드래그 핸들 컬럼 (좌측) — 배차 해제 버튼과 겹치지 않도록 별도 컬럼 */}
+      <button
+        {...listeners}
+        {...attributes}
+        className="flex flex-col items-center justify-center gap-0.5 w-6 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none text-text-muted hover:text-text-primary hover:bg-fill-tint transition-colors border-r border-border-light/50"
+        title="순서 변경"
+        tabIndex={-1}
+        aria-hidden="true"
+      >
+        {booking.routeOrder != null && (
+          <span className="text-[10px] font-bold leading-none tabular-nums">{booking.routeOrder}</span>
+        )}
+        <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+          <circle cx="3" cy="2" r="1" fill="currentColor"/>
+          <circle cx="7" cy="2" r="1" fill="currentColor"/>
+          <circle cx="3" cy="6" r="1" fill="currentColor"/>
+          <circle cx="7" cy="6" r="1" fill="currentColor"/>
+          <circle cx="3" cy="10" r="1" fill="currentColor"/>
+          <circle cx="7" cy="10" r="1" fill="currentColor"/>
+        </svg>
+      </button>
+      {/* 카드 본체 */}
+      <div className="flex-1 min-w-0">
+        <BookingCard
+          ref={cardRef}
+          booking={booking}
+          isSelected={isSelected}
+          isChecked={isChecked}
+          driverColor={driverColor}
+          driverStats={driverStats}
+          dispatching={dispatching}
+          onCheck={onCheck}
+          onClick={onClick}
+          onDispatch={onDispatch}
+          onUnassign={onUnassign}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── 오버레이 카드 (지도 위 + 모바일 바텀시트) ── */
 
 function OverlayCard({
@@ -1685,9 +2034,11 @@ function OverlayCard({
             <option value="">기사 선택</option>
             {driverStats.map((stat) => {
               const remaining = stat.vehicleCapacity - stat.totalLoadingCube;
+              const bookingCube = booking.totalLoadingCube || 0;
+              const wouldExceed = stat.totalLoadingCube + bookingCube > stat.vehicleCapacity;
               return (
                 <option key={stat.driverId} value={stat.driverId}>
-                  {stat.driverName} {stat.vehicleType} ({remaining.toFixed(1)}m&sup3; 여유)
+                  {wouldExceed ? "⚠ " : ""}{stat.driverName} {stat.vehicleType} ({remaining.toFixed(1)}m&sup3; 여유)
                 </option>
               );
             })}

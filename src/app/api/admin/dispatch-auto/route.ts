@@ -4,9 +4,25 @@ import { getBookings, getDrivers, getUnloadingPoints, updateBooking, getBookingP
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { autoDispatch } from "@/lib/optimizer/auto-dispatch";
+import { insertUnloadingStops } from "@/lib/optimizer/tsp";
 import { getRouteETA, type RoutePoint } from "@/lib/kakao-directions";
 import type { DispatchBooking, DispatchDriver, DispatchUnloadingPoint } from "@/lib/optimizer/types";
 import type { Booking } from "@/types/booking";
+
+// 슬롯 우선순위 (오전→오후→저녁 순서로 routeOrder 배정)
+// 같은 기사에 여러 시간대 주문이 있을 때 시간창 역전(저녁→오후) 원천 차단
+const SLOT_PRIORITY: Record<string, number> = {
+  "오전 (9시~12시)": 0,
+  "오후 (13시~17시)": 1,
+  "저녁 (18시~20시)": 2,
+};
+
+// 현장 서비스 시간 계산 기준
+// 기본 5분: 주차 + 인터폰 + 고객 응대 (큐빅 무관 고정값)
+// m³당 7분: 품목 적재 작업 시간 (큐빅에 비례)
+// 예: 1m³(냉장고+세탁기) → 5+7=12분 / 4m³(장롱+침대+식탁) → 5+28=33분
+const BASE_SERVICE_SECS = 5 * 60;
+const CUBE_SECS_PER_M3 = 7 * 60;
 
 const AutoDispatchSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -154,33 +170,26 @@ export async function POST(req: NextRequest) {
       ? driverSlotFilters!
       : profileSlotFilters;
 
-    // 자동배차 실행 (시간대 제약 있으면 그룹별 분리 실행)
-    let result;
+    // 자동배차: 항상 슬롯별 분리 실행 → 오전→오후→저녁 순서로 routeOrder 배정
+    // 슬롯 필터 없어도 주문의 timeSlot 기준으로 그룹을 나누어 시간창 역전 방지
     const activeFilters = Object.fromEntries(
       Object.entries(effectiveSlotFilters).filter(([, slots]) => slots.length > 0)
     );
-    if (Object.keys(activeFilters).length > 0) {
-      const groups = buildSlotGroups(validBookings, dispatchDrivers, activeFilters);
-      const groupResults = groups.map(({ bookings, drivers }) =>
-        bookings.length > 0 && drivers.length > 0
-          ? autoDispatch(bookings, drivers, dispatchUnloadingPoints)
-          : null,
-      );
-      // 빈 그룹(기사 없음) → unassigned 처리
-      const emptyGroupBookings = groups
-        .filter(({ drivers }) => drivers.length === 0)
-        .flatMap(({ bookings }) => bookings.map((b) => ({ id: b.id, reason: "배정 기사 없음" })));
-      const merged = mergeDispatchResults(groupResults);
-      merged.unassigned.push(...emptyGroupBookings, ...oversizedUnassigned);
-      merged.stats.unassigned += emptyGroupBookings.length + oversizedUnassigned.length;
-      merged.stats.totalBookings += emptyGroupBookings.length + oversizedUnassigned.length;
-      result = merged;
-    } else {
-      result = autoDispatch(validBookings, dispatchDrivers, dispatchUnloadingPoints);
-      result.unassigned.push(...oversizedUnassigned);
-      result.stats.unassigned += oversizedUnassigned.length;
-      result.stats.totalBookings += oversizedUnassigned.length;
-    }
+    const groups = buildSlotGroups(validBookings, dispatchDrivers, activeFilters);
+    const groupResults = groups.map(({ bookings, drivers }) =>
+      bookings.length > 0 && drivers.length > 0
+        ? autoDispatch(bookings, drivers, dispatchUnloadingPoints)
+        : null,
+    );
+    // 빈 그룹(배정 가능한 기사 없음) → unassigned 처리
+    const emptyGroupBookings = groups
+      .filter(({ drivers }) => drivers.length === 0)
+      .flatMap(({ bookings }) => bookings.map((b) => ({ id: b.id, reason: "배정 기사 없음" })));
+    const merged = mergeDispatchResults(groupResults);
+    merged.unassigned.push(...emptyGroupBookings, ...oversizedUnassigned);
+    merged.stats.unassigned += emptyGroupBookings.length + oversizedUnassigned.length;
+    merged.stats.totalBookings += emptyGroupBookings.length + oversizedUnassigned.length;
+    const result = merged;
 
     // 기사별 ETA 병렬 계산 (실패해도 plan은 반환 — graceful degradation)
     const coordMap = new Map<string, RoutePoint>(
@@ -215,7 +224,13 @@ export async function POST(req: NextRequest) {
       const etaRes = etaResults[idx];
       const eta = etaRes.status === "fulfilled" ? etaRes.value : null;
       if (!eta) return dp;
-      return { ...dp, estimatedDuration: eta.duration, estimatedDistance: eta.distance };
+      // 이동 시간 + 수거지별 서비스 시간 합산 (기본 5분 + m³당 7분)
+      const totalServiceSecs = dp.bookings.reduce(
+        (sum, b) => sum + BASE_SERVICE_SECS + Math.round(b.loadCube * CUBE_SECS_PER_M3),
+        0,
+      );
+      const totalDuration = eta.duration + totalServiceSecs;
+      return { ...dp, estimatedDuration: totalDuration, estimatedDistance: eta.distance };
     });
 
     // 좌표 없는 주문을 unassigned에 합산
@@ -236,55 +251,56 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/* ── 시간대 제약 헬퍼 ── */
+/* ── 시간대 분리 헬퍼 ── */
 
 /**
- * 기사별 시간대 제약에 따라 주문·기사를 그룹으로 분리
- * - 제약 있는 기사: 허용 슬롯의 주문만 받음
- * - 제약 없는 기사: 나머지 주문 전체 처리
+ * 주문을 timeSlot 기준으로 슬롯별 그룹 분리 + 오전→오후→저녁 순서 정렬
  *
- * 주의: driverSlotFilters에 명시된 기사가 workDays 필터링으로 drivers 배열에서
- * 이미 제거된 경우, 해당 기사의 슬롯은 slotToDrivers에 등록되지 않아 소속 주문이
- * remaining(제약 없는 기사 그룹)으로 넘어간다. 이는 의도된 동작:
- * 휴무 기사가 담당하던 슬롯 주문은 출근 기사에게 재배정.
+ * 핵심 원칙:
+ *   - 슬롯 필터 유무와 무관하게 항상 주문의 timeSlot으로 그룹을 나눔
+ *   - mergeDispatchResults가 슬롯 순서대로 처리 → routeOrder가 시간창 순서 보장
+ *   - "저녁 고객 → 오후 고객" 역전이 구조적으로 불가능해짐
+ *
+ * 기사 배정 기준:
+ *   - driverSlotFilters에 해당 슬롯이 허용된 기사: 해당 슬롯만 처리
+ *   - driverSlotFilters에 없는 기사: 제한 없음 (모든 슬롯 처리 가능)
+ *   - workDays 필터링은 상위 레이어에서 완료된 상태 (drivers 배열이 이미 당일 근무자만)
  */
 function buildSlotGroups(
   bookings: DispatchBooking[],
   drivers: DispatchDriver[],
   driverSlotFilters: Record<string, string[]>,
 ): Array<{ bookings: DispatchBooking[]; drivers: DispatchDriver[] }> {
-  // drivers는 이미 workDays 필터링된 배열 — 휴무 기사 ID는 여기에 없음
-  const activeDriverIds = new Set(drivers.map((d) => d.id));
-  // driverSlotFilters 중 실제 근무 기사만 제약으로 취급
-  const restrictedIds = new Set(
-    Object.keys(driverSlotFilters).filter((id) => activeDriverIds.has(id)),
-  );
-  const unrestrictedDrivers = drivers.filter((d) => !restrictedIds.has(d.id));
-
-  // 슬롯 → 허용된 (제약) 기사 목록 (근무 기사만)
-  const slotToDrivers = new Map<string, DispatchDriver[]>();
-  for (const driver of drivers) {
-    if (!restrictedIds.has(driver.id)) continue;
-    for (const slot of driverSlotFilters[driver.id] ?? []) {
-      if (!slotToDrivers.has(slot)) slotToDrivers.set(slot, []);
-      slotToDrivers.get(slot)!.push(driver);
-    }
+  // 주문을 timeSlot별로 분류
+  const slotBookingMap = new Map<string, DispatchBooking[]>();
+  for (const booking of bookings) {
+    const slot = booking.timeSlot || "기타";
+    if (!slotBookingMap.has(slot)) slotBookingMap.set(slot, []);
+    slotBookingMap.get(slot)!.push(booking);
   }
+
+  // 슬롯을 SLOT_PRIORITY 순서로 정렬 (오전→오후→저녁→기타)
+  const orderedSlots = [...slotBookingMap.keys()].sort((a, b) => {
+    const pa = SLOT_PRIORITY[a] ?? 99;
+    const pb = SLOT_PRIORITY[b] ?? 99;
+    return pa - pb;
+  });
 
   const groups: Array<{ bookings: DispatchBooking[]; drivers: DispatchDriver[] }> = [];
-  const claimedIds = new Set<string>();
 
-  for (const [slot, slotDrivers] of slotToDrivers.entries()) {
-    const slotBookings = bookings.filter((b) => (b.timeSlot || "기타") === slot);
-    if (slotBookings.length === 0) continue;
-    for (const b of slotBookings) claimedIds.add(b.id);
+  for (const slot of orderedSlots) {
+    const slotBookings = slotBookingMap.get(slot)!;
+
+    // 이 슬롯을 처리 가능한 기사 필터링:
+    // - driverSlotFilters가 있는 기사: 해당 슬롯이 허용 목록에 포함된 경우만
+    // - driverSlotFilters가 없는 기사: 모든 슬롯 처리 가능 (제한 없음)
+    const slotDrivers = drivers.filter((d) => {
+      const filter = driverSlotFilters[d.id];
+      if (!filter || filter.length === 0) return true;
+      return filter.includes(slot);
+    });
+
     groups.push({ bookings: slotBookings, drivers: slotDrivers });
-  }
-
-  // 미분류 주문 → 제약 없는 기사에게
-  const remaining = bookings.filter((b) => !claimedIds.has(b.id));
-  if (remaining.length > 0) {
-    groups.push({ bookings: remaining, drivers: unrestrictedDrivers });
   }
 
   return groups;
@@ -341,6 +357,13 @@ const ApplySchema = z.object({
           routeOrder: z.number().int().positive(),
         }),
       ),
+      // 하차지 경유 정보: 어떤 routeOrder 이후에 어느 하차지를 경유하는지
+      unloadingStops: z.array(
+        z.object({
+          afterRouteOrder: z.number().int().positive(),
+          pointId: z.string().uuid(),
+        }),
+      ).optional().default([]),
     }),
   ),
 });
@@ -392,15 +415,22 @@ export async function PUT(req: NextRequest) {
       plan.map((driverPlan) => {
         const driverName = driverNameMap.get(driverPlan.driverId)!;
         return Promise.allSettled(
-          driverPlan.bookings.map((b) =>
-            // 취소/거부 상태 주문은 supabase에서 .neq("status", "cancelled") 등으로 보호
-            // updateBooking이 조건 불일치 시 null 반환 → failed 처리
-            updateBooking(b.id, {
-              driverId: driverPlan.driverId,
-              driverName,
-              routeOrder: b.routeOrder,
-            } as Partial<Booking>),
-          ),
+          driverPlan.bookings.map((b) => {
+            // 이 수거지 이후 하차지 경유가 있으면 unloadingStopAfter에 저장
+            const stopAfter = (driverPlan.unloadingStops ?? []).find(
+              (s) => s.afterRouteOrder === b.routeOrder,
+            );
+            return (
+              // 취소/거부 상태 주문은 supabase에서 .neq("status", "cancelled") 등으로 보호
+              // updateBooking이 조건 불일치 시 null 반환 → failed 처리
+              updateBooking(b.id, {
+                driverId: driverPlan.driverId,
+                driverName,
+                routeOrder: b.routeOrder,
+                unloadingStopAfter: stopAfter?.pointId ?? null,
+              } as Partial<Booking>)
+            );
+          }),
         ).then((results) => ({ driverPlan, results }));
       }),
     );
@@ -447,5 +477,95 @@ export async function PUT(req: NextRequest) {
   } catch (e) {
     console.error("[dispatch-auto/PUT]", e);
     return NextResponse.json({ error: "적용 실패" }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/admin/dispatch-auto?date=YYYY-MM-DD
+ * 이미 배차된 주문의 unloadingStopAfter 소급 계산
+ * - 기사별 routeOrder 순서로 누적 적재량 계산 → 용량 초과 지점에 하차지 삽입
+ * - 기존 배차(코드 배포 전)에 unloading_stop_after가 NULL인 경우 재계산
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    if (!validateToken(req)) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    const date = req.nextUrl.searchParams.get("date");
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: "date 파라미터가 필요합니다 (YYYY-MM-DD)" }, { status: 400 });
+    }
+
+    const [allBookings, allDrivers, unloadingPoints] = await Promise.all([
+      getBookings(date),
+      getDrivers(false),
+      getUnloadingPoints(true),
+    ]);
+
+    const driverMap = new Map(allDrivers.map((d) => [d.id, d]));
+
+    // 배차 완료된 주문만 (driverId + routeOrder 있는 것)
+    const dispatchedBookings = allBookings.filter(
+      (b) => b.driverId && b.routeOrder != null && b.latitude != null && b.longitude != null,
+    );
+    if (dispatchedBookings.length === 0) {
+      return NextResponse.json({ updated: 0, message: "배차된 주문이 없습니다" });
+    }
+
+    // 기사별 그룹핑
+    const byDriver = new Map<string, typeof dispatchedBookings>();
+    for (const b of dispatchedBookings) {
+      if (!byDriver.has(b.driverId!)) byDriver.set(b.driverId!, []);
+      byDriver.get(b.driverId!)!.push(b);
+    }
+
+    const dispatchUnloadingPoints: DispatchUnloadingPoint[] = unloadingPoints.map((p) => ({
+      id: p.id,
+      lat: p.latitude,
+      lng: p.longitude,
+      name: p.name,
+    }));
+
+    const updateTasks: Array<() => Promise<unknown>> = [];
+
+    for (const [driverId, driverBookings] of byDriver.entries()) {
+      const driver = driverMap.get(driverId);
+      if (!driver || !driver.vehicleCapacity) continue;
+
+      const sorted = [...driverBookings].sort(
+        (a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999),
+      );
+
+      const dispatchBks: DispatchBooking[] = sorted.map((b) => ({
+        id: b.id,
+        lat: b.latitude!,
+        lng: b.longitude!,
+        totalLoadingCube: b.totalLoadingCube || 0,
+        timeSlot: b.timeSlot,
+        address: b.address,
+        customerName: b.customerName,
+      }));
+
+      const stops = insertUnloadingStops(dispatchBks, driver.vehicleCapacity, dispatchUnloadingPoints);
+
+      for (const b of sorted) {
+        const stop = stops.find((s) => s.afterRouteOrder === b.routeOrder);
+        const newStopAfter = stop?.pointId ?? null;
+        // 값이 변경된 경우만 업데이트
+        if (b.unloadingStopAfter !== newStopAfter) {
+          updateTasks.push(() =>
+            updateBooking(b.id, { unloadingStopAfter: newStopAfter } as Partial<Booking>),
+          );
+        }
+      }
+    }
+
+    await Promise.allSettled(updateTasks.map((fn) => fn()));
+
+    return NextResponse.json({ updated: updateTasks.length });
+  } catch (e) {
+    console.error("[dispatch-auto/PATCH]", e);
+    return NextResponse.json({ error: "재계산 실패" }, { status: 500 });
   }
 }

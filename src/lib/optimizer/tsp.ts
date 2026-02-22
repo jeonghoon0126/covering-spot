@@ -2,6 +2,12 @@ import { haversine } from "./haversine";
 import type { DispatchBooking, DispatchUnloadingPoint, UnloadingStop } from "./types";
 
 /**
+ * 직선거리 → 도로거리 보정계수 (서울 시내 평균 우회율 1.4)
+ * TSP 거리 행렬, routeDistance 계산에 적용
+ */
+const ROAD_FACTOR = 1.4;
+
+/**
  * Nearest Neighbor + 2-opt TSP 최적화
  *
  * 1단계: Nearest Neighbor로 초기 경로 생성
@@ -21,7 +27,7 @@ export function optimizeRoute(bookings: DispatchBooking[]): DispatchBooking[] {
 
 /**
  * Nearest Neighbor 휴리스틱
- * 현재 위치에서 가장 가까운 미방문 포인트를 선택
+ * 현재 위치에서 가장 가까운 미방문 포인트를 선택 (도로 보정계수 적용)
  */
 function nearestNeighbor(bookings: DispatchBooking[]): DispatchBooking[] {
   const n = bookings.length;
@@ -48,7 +54,8 @@ function nearestNeighbor(bookings: DispatchBooking[]): DispatchBooking[] {
 
     for (let i = 0; i < n; i++) {
       if (visited.has(i)) continue;
-      const d = haversine(cur.lat, cur.lng, bookings[i].lat, bookings[i].lng);
+      // ROAD_FACTOR 적용: 직선거리보다 실제 도로 거리에 근사한 비교
+      const d = haversine(cur.lat, cur.lng, bookings[i].lat, bookings[i].lng) * ROAD_FACTOR;
       if (d < nearestDist) {
         nearestDist = d;
         nearest = i;
@@ -113,19 +120,24 @@ function twoOpt(route: DispatchBooking[]): DispatchBooking[] {
 }
 
 /**
- * 경로 총 거리 계산 (km)
+ * 경로 총 거리 계산 (km, 도로 보정계수 적용)
+ * 직선거리 × ROAD_FACTOR → 실제 도로거리 추정값
  */
 export function routeDistance(route: { lat: number; lng: number }[]): number {
   let total = 0;
   for (let i = 0; i < route.length - 1; i++) {
     total += haversine(route[i].lat, route[i].lng, route[i + 1].lat, route[i + 1].lng);
   }
-  return Math.round(total * 10) / 10;
+  return Math.round(total * ROAD_FACTOR * 10) / 10;
 }
 
 /**
  * 경로에 하차지 삽입
- * 누적 적재량이 용량 초과 시 가장 가까운 하차지를 경로에 삽입
+ * 누적 적재량이 용량 초과 시 최적 하차지를 경로에 삽입
+ *
+ * 최적 하차지 선택 기준:
+ *   dist(현재수거지 → 하차지) + dist(하차지 → 다음수거지) 최소화
+ *   (기존: 현재 위치에서 가장 가까운 하차지만 고려 → 하차지 이후 경로 비효율 발생)
  */
 export function insertUnloadingStops(
   route: DispatchBooking[],
@@ -154,13 +166,14 @@ export function insertUnloadingStops(
     // 1) 현재 누적이 이미 용량 초과 → 마지막 픽업이어도 반드시 삽입 (과적재 방지)
     // 2) 마지막이 아닌데 다음 픽업 후 초과 예상 → 선제적 삽입
     if (cumLoad > capacity || (!isLast && cumLoad + nextLoad > capacity)) {
-      // 현재 위치에서 가장 가까운 하차지 찾기
-      const nearest = findNearestUnloadingPoint(route[i], unloadingPoints);
-      if (nearest) {
+      // 현재 수거지 → 하차지 → 다음 수거지 총 거리가 최소인 하차지 선택
+      const nextStop = isLast ? null : route[i + 1];
+      const best = findBestUnloadingPoint(route[i], nextStop, unloadingPoints);
+      if (best) {
         stops.push({
           afterRouteOrder: i + 1, // 1-indexed route order
-          pointId: nearest.id,
-          pointName: nearest.name,
+          pointId: best.id,
+          pointName: best.name,
         });
         cumLoad = 0; // 적재량 리셋
       }
@@ -170,20 +183,28 @@ export function insertUnloadingStops(
   return stops;
 }
 
-function findNearestUnloadingPoint(
+/**
+ * 최적 하차지 선택
+ * dist(from → point) + dist(point → nextStop) 합산 최소화
+ * nextStop이 없으면(마지막 수거지) dist(from → point) 만 고려
+ */
+function findBestUnloadingPoint(
   from: { lat: number; lng: number },
+  nextStop: { lat: number; lng: number } | null,
   points: DispatchUnloadingPoint[],
 ): DispatchUnloadingPoint | null {
-  let nearest: DispatchUnloadingPoint | null = null;
-  let nearestDist = Infinity;
+  let best: DispatchUnloadingPoint | null = null;
+  let bestDist = Infinity;
 
   for (const p of points) {
-    const d = haversine(from.lat, from.lng, p.lat, p.lng);
-    if (d < nearestDist) {
-      nearestDist = d;
-      nearest = p;
+    const toPoint = haversine(from.lat, from.lng, p.lat, p.lng);
+    const toNext = nextStop ? haversine(p.lat, p.lng, nextStop.lat, nextStop.lng) : 0;
+    const total = toPoint + toNext;
+    if (total < bestDist) {
+      bestDist = total;
+      best = p;
     }
   }
 
-  return nearest;
+  return best;
 }

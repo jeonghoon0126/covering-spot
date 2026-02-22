@@ -62,6 +62,7 @@ const FIELD_MAP: Record<string, string> = {
   latitude: "latitude",
   longitude: "longitude",
   routeOrder: "route_order",
+  unloadingStopAfter: "unloading_stop_after",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -105,6 +106,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     latitude: row.latitude != null ? (row.latitude as number) : null,
     longitude: row.longitude != null ? (row.longitude as number) : null,
     routeOrder: row.route_order != null ? (row.route_order as number) : null,
+    unloadingStopAfter: (row.unloading_stop_after as string) || null,
   };
 }
 

@@ -54,6 +54,7 @@ export interface Booking {
   latitude?: number | null;  // 주소 좌표 (위도)
   longitude?: number | null; // 주소 좌표 (경도)
   routeOrder?: number | null; // 기사 루트 내 순서 (1, 2, 3...)
+  unloadingStopAfter?: string | null; // 이 수거지 다음 하차지 ID (경유 있을 경우)
 }
 
 export interface UnloadingPoint {
