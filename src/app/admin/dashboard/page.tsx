@@ -239,16 +239,21 @@ export default function AdminDashboardPage() {
 
   // CSV 내보내기
   function exportCSV() {
-    const headers = ["날짜", "시간", "고객명", "전화번호", "지역", "품목수", "예상금액", "확정금액", "상태"];
+    const headers = ["날짜", "시간", "고객명", "전화번호", "지역", "주소", "인원", "사다리", "사다리금액", "품목수", "예상금액", "확정금액", "기사", "상태"];
     const rows = filtered.map((b) => [
       b.date,
-      b.timeSlot,
+      b.confirmedTime || b.timeSlot,
       b.customerName,
       b.phone,
       b.area,
+      `${b.address} ${b.addressDetail || ""}`.trim(),
+      String(b.crewSize),
+      b.needLadder ? "필요" : "",
+      b.needLadder && b.ladderPrice ? String(b.ladderPrice) : "",
       String(b.items.length),
       b.estimateMin && b.estimateMax ? `${b.estimateMin}~${b.estimateMax}` : String(b.totalPrice),
       b.finalPrice != null ? String(b.finalPrice) : "",
+      b.driverName || "",
       STATUS_LABELS[b.status] || b.status,
     ]);
 

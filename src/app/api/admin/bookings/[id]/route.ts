@@ -12,6 +12,14 @@ import {
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
 
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending: ["quote_confirmed", "rejected", "cancelled"],
+  quote_confirmed: ["in_progress", "cancelled"],
+  in_progress: ["completed"],
+  completed: ["payment_requested"],
+  payment_requested: ["payment_completed"],
+};
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -110,6 +118,16 @@ export async function PUT(
         { error: "예약을 찾을 수 없습니다" },
         { status: 404 },
       );
+    }
+
+    if (body.status && body.status !== existing.status) {
+      const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
+      if (!allowed.includes(body.status)) {
+        return NextResponse.json(
+          { error: `'${existing.status}' 상태에서 '${body.status}'(으)로 변경할 수 없습니다.` },
+          { status: 422 },
+        );
+      }
     }
 
     const previousStatus = existing.status;

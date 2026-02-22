@@ -10,10 +10,25 @@ import { isDateBookable } from "@/lib/booking-utils";
 import { generateBookingToken, validateBookingToken } from "@/lib/booking-token";
 import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
 import { geocodeAddress } from "@/lib/geocode";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { sendStatusSms } from "@/lib/sms-notify";
 import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting: 20 requests per IP per 60s
+    const ip = getRateLimitKey(req);
+    const rl = rateLimit(`${ip}:/api/bookings/GET`, 20, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해주세요", retryAfter: rl.retryAfter },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfter) },
+        },
+      );
+    }
+
     const phone = req.nextUrl.searchParams.get("phone");
     if (!phone) {
       return NextResponse.json(
@@ -53,6 +68,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 5 requests per IP per 60s (prevents spam bookings)
+    const ip = getRateLimitKey(req);
+    const rl = rateLimit(`${ip}:/api/bookings/POST`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해주세요", retryAfter: rl.retryAfter },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfter) },
+        },
+      );
+    }
+
     const body = await req.json();
 
     // Zod 서버사이드 검증
@@ -126,6 +154,9 @@ export async function POST(req: NextRequest) {
     }
 
     await createBooking(booking);
+
+    // 수거 신청 접수 SMS (fire-and-forget)
+    sendStatusSms(booking.phone, "received", booking.id).catch(() => {});
 
     // Slack 알림만 fire-and-forget (지연 무관)
     sendBookingCreated(booking).then((threadTs) => {

@@ -312,9 +312,10 @@ export async function getBookingsPaginated(params: {
     // PostgREST 필터 injection 방지: 특수문자 제거
     const sanitized = search.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s\-]/g, "");
     if (sanitized) {
-      query = query.or(
-        `customer_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%,address.ilike.%${sanitized}%`,
-      );
+      // UUID-like pattern: search by ID prefix too (admin views first 8-12 chars of UUID)
+      const isIdLike = /^[0-9a-f-]{4,}$/i.test(sanitized);
+      const baseFilter = `customer_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%,address.ilike.%${sanitized}%`;
+      query = query.or(isIdLike ? `${baseFilter},id::text.ilike.${sanitized}%` : baseFilter);
     }
   }
 

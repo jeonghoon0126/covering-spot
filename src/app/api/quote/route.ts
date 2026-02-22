@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { calculateQuote } from "@/lib/quote-calculator";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 const QuoteRequestSchema = z.object({
   area: z.string().min(1),
@@ -19,6 +20,19 @@ const QuoteRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 30 requests per IP per 60s
+    const ip = getRateLimitKey(req);
+    const rl = rateLimit(`${ip}:/api/quote/POST`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해주세요", retryAfter: rl.retryAfter },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfter) },
+        },
+      );
+    }
+
     const body = await req.json();
     const parsed = QuoteRequestSchema.safeParse(body);
     if (!parsed.success) {

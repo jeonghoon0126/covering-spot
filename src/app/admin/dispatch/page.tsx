@@ -648,6 +648,8 @@ export default function AdminDispatchPage() {
         }),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.capacityWarning) showToast(data.capacityWarning, "warning");
         fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));
@@ -730,6 +732,7 @@ export default function AdminDispatchPage() {
         } else {
           showToast(`${targetIds.length}건 배차 완료`, "success");
         }
+        if (data.capacityWarning) showToast(data.capacityWarning, "warning");
         fetchData({ silent: true });
       } else {
         const data = await res.json().catch(() => ({}));

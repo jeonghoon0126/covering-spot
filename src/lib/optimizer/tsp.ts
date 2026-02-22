@@ -140,6 +140,13 @@ export function insertUnloadingStops(
   for (let i = 0; i < route.length; i++) {
     cumLoad += route[i].totalLoadingCube;
 
+    // 단일 주문이 차량 용량 초과: 물리적으로 적재 불가 — 경고 로그 (배차 제외는 상위 레이어에서 처리)
+    if (i === 0 && route[i].totalLoadingCube > capacity) {
+      console.warn(
+        `[tsp] 단일 주문(id=${route[i].id}) 적재량(${route[i].totalLoadingCube}) > 차량 용량(${capacity}). 하차지 삽입 후 진행.`,
+      );
+    }
+
     const isLast = i === route.length - 1;
     const nextLoad = isLast ? 0 : route[i + 1].totalLoadingCube;
 

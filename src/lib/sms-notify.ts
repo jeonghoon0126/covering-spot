@@ -20,6 +20,8 @@ function formatPrice(n: number): string {
 }
 
 const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null) => string> = {
+  received: () =>
+    `[커버링 방문수거] 수거 신청이 접수되었어요!\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
   quote_confirmed: (finalPrice) =>
     `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
   in_progress: () =>

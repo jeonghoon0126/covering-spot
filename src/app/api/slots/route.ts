@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBookings, getBlockedSlots } from "@/lib/db";
 import { isDateBookable } from "@/lib/booking-utils";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 const DEFAULT_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
 
@@ -57,6 +58,19 @@ function isSlotBlockedByRange(slotStart: string, timeStart: string, timeEnd: str
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting: 30 requests per IP per 60s
+    const ip = getRateLimitKey(req);
+    const rl = rateLimit(`${ip}:/api/slots/GET`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "잠시 후 다시 시도해주세요", retryAfter: rl.retryAfter },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfter) },
+        },
+      );
+    }
+
     const date = req.nextUrl.searchParams.get("date");
     if (!date) {
       return NextResponse.json(

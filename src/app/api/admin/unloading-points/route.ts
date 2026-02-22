@@ -58,12 +58,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-const UpdateSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().trim().min(1).max(50).optional(),
-  address: z.string().trim().min(1).max(200).optional(),
-  active: z.boolean().optional(),
-});
+const UpdateSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string().trim().min(1).max(50).optional(),
+    address: z.string().trim().min(1).max(200).optional(),
+    active: z.boolean().optional(),
+  })
+  .refine(
+    (d) => d.name !== undefined || d.address !== undefined || d.active !== undefined,
+    { message: "수정할 필드를 하나 이상 입력해주세요" },
+  );
 
 /**
  * PUT /api/admin/unloading-points
@@ -120,7 +125,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
     }
 
-    await deleteUnloadingPoint(parsed.data.id);
+    const deleted = await deleteUnloadingPoint(parsed.data.id);
+    if (!deleted) {
+      return NextResponse.json({ error: "하차지를 찾을 수 없습니다" }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("[unloading-points/DELETE]", e);
