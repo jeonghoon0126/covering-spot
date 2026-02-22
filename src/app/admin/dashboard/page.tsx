@@ -81,6 +81,8 @@ export default function AdminDashboardPage() {
   // 토스트 메시지
   const [toast, setToast] = useState<{ msg: string; isError: boolean } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 경쟁 조건 방지: 탭 전환 시 이전 요청 취소
+  const abortRef = useRef<AbortController | null>(null);
 
   const showToast = useCallback((msg: string, isError = false) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -108,6 +110,11 @@ export default function AdminDashboardPage() {
 
   const fetchBookings = useCallback(async () => {
     if (!token) return;
+    // 이전 진행 중인 요청 취소 (탭 전환 시 경쟁 조건 방지)
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -120,20 +127,38 @@ export default function AdminDashboardPage() {
 
       const res = await fetch(`/api/admin/bookings?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal,
       });
+
+      if (signal.aborted) return;
+
       if (res.status === 401) {
         sessionStorage.removeItem("admin_token");
         router.push("/admin");
         return;
       }
+
+      if (!res.ok) {
+        // 서버 오류 시 기존 counts는 유지 (목록만 비움)
+        setBookings([]);
+        setTotal(0);
+        return;
+      }
+
       const data = await res.json();
+      if (signal.aborted) return;
+
       setBookings(data.bookings || []);
-      setCounts(data.counts || {});
-      setTotal(data.total || 0);
-    } catch {
-      // 에러 무시
+      // counts는 항상 응답에 포함된 경우에만 업데이트 (실패 응답으로 덮어쓰기 방지)
+      if (data.counts) setCounts(data.counts);
+      setTotal(data.total ?? 0);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setBookings([]);
+      setTotal(0);
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [token, activeTab, currentPage, debouncedSearch, dateFrom, dateTo, router]);
 

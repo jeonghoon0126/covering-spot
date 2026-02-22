@@ -221,10 +221,12 @@ export async function getBookingsByPhone(
       ? `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
       : phone;
 
+  // .or() 문자열 직접 삽입 대신 .in() 사용 (PostgREST 주입 방지)
+  const phoneVariants = [...new Set([formatted, digits])];
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
-    .or(`phone.eq.${formatted},phone.eq.${digits}`)
+    .in("phone", phoneVariants)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -246,9 +248,11 @@ export async function getAllBookings(): Promise<Booking[]> {
  * getAllBookings() 대비 전체 행 로드 없이 집계만 수행
  */
 export async function getBookingStatusCounts(): Promise<Record<string, number>> {
+  // limit 10000: Supabase 기본 1000행 제한 우회 (대시보드 탭 배지 정확도 보장)
   const { data, error } = await supabase
     .from("bookings")
-    .select("status");
+    .select("status")
+    .limit(10000);
 
   if (error) throw error;
 
@@ -445,11 +449,11 @@ export async function createBlockedSlot(
 export async function deleteBlockedSlot(id: string): Promise<boolean> {
   const { error, count } = await supabase
     .from("blocked_slots")
-    .delete()
+    .delete({ count: "exact" })
     .eq("id", id);
 
   if (error) throw error;
-  return (count ?? 1) > 0;
+  return (count ?? 0) > 0;
 }
 
 /* ── Drivers ── */

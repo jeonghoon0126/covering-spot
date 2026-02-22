@@ -2121,11 +2121,9 @@ function DragHandle({ listeners, attributes }: { listeners?: SyntheticListenerMa
 function SortableBookingRow({
   booking,
   color,
-  stopAfterThis,
 }: {
   booking: DriverPlan["bookings"][number];
   color: string;
-  stopAfterThis?: { pointName: string } | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: booking.id });
@@ -2156,16 +2154,6 @@ function SortableBookingRow({
           {booking.loadCube.toFixed(1)}m³
         </span>
       </div>
-      {/* 하차지 삽입 표시 */}
-      {stopAfterThis && (
-        <div className="flex items-center gap-2 py-1.5 pl-2">
-          <div className="flex-1 border-t border-dashed border-purple-300" />
-          <span className="text-[11px] font-bold text-purple-600 whitespace-nowrap px-1">
-            ◆ {stopAfterThis.pointName}
-          </span>
-          <div className="flex-1 border-t border-dashed border-purple-300" />
-        </div>
-      )}
     </div>
   );
 }
@@ -2251,18 +2239,79 @@ function AutoDispatchPreview({
                     items={dp.bookings.map((b) => b.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    {dp.bookings.map((b) => {
+                    {dp.bookings.flatMap((b, idx) => {
                       const stopAfterThis = dp.unloadingStops.find(
                         (s) => s.afterRouteOrder === b.routeOrder,
                       );
-                      return (
-                        <SortableBookingRow
-                          key={b.id}
-                          booking={b}
-                          color={color}
-                          stopAfterThis={stopAfterThis}
-                        />
+                      const fullBooking = bookings.find((bk) => bk.id === b.id);
+                      const nextDpB = dp.bookings[idx + 1];
+                      const nextFullBooking = nextDpB ? bookings.find((bk) => bk.id === nextDpB.id) : null;
+                      const unloadingUp = stopAfterThis
+                        ? unloadingPoints.find((p) => p.id === stopAfterThis.pointId)
+                        : null;
+
+                      const elements: React.ReactNode[] = [
+                        <SortableBookingRow key={b.id} booking={b} color={color} />,
+                      ];
+
+                      // 수거 소요 시간
+                      const serviceMins = calcServiceMins(b.loadCube);
+                      elements.push(
+                        <div key={`svc-${b.id}`} className="flex items-center justify-center gap-1 py-0.5 bg-gray-50">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-text-muted opacity-70">
+                            <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
+                            <path d="M5 2.5V5L6.5 6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                          </svg>
+                          <span className="text-[10px] text-text-muted">수거 약 {serviceMins}분</span>
+                        </div>,
                       );
+
+                      // 하차지 경유
+                      if (stopAfterThis) {
+                        // 현재 수거지 → 하차지 이동시간
+                        if (fullBooking?.latitude && fullBooking?.longitude && unloadingUp) {
+                          const tMins = calcTravelMins(
+                            fullBooking.latitude, fullBooking.longitude,
+                            unloadingUp.latitude, unloadingUp.longitude,
+                          );
+                          elements.push(
+                            <div key={`t-unload-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                              <div className="flex-1 border-t border-gray-200" />
+                              <span className="text-[10px] text-text-muted whitespace-nowrap px-1">↓ 이동 약 {tMins}분</span>
+                              <div className="flex-1 border-t border-gray-200" />
+                            </div>,
+                          );
+                        }
+                        // 하차지 마커
+                        elements.push(
+                          <div key={`stop-${b.id}`} className="flex items-center gap-2 py-1.5 pl-2">
+                            <div className="flex-1 border-t border-dashed border-purple-300" />
+                            <span className="text-[11px] font-bold text-purple-600 whitespace-nowrap px-1">
+                              ◆ {stopAfterThis.pointName}
+                            </span>
+                            <div className="flex-1 border-t border-dashed border-purple-300" />
+                          </div>,
+                        );
+                      }
+
+                      // 다음 수거지까지 이동시간
+                      if (nextFullBooking?.latitude && nextFullBooking?.longitude) {
+                        const fromLat = unloadingUp ? unloadingUp.latitude : fullBooking?.latitude;
+                        const fromLng = unloadingUp ? unloadingUp.longitude : fullBooking?.longitude;
+                        if (fromLat && fromLng) {
+                          const tMins = calcTravelMins(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!);
+                          const km = (haversine(fromLat, fromLng, nextFullBooking.latitude!, nextFullBooking.longitude!) * ROUTE_ROAD_FACTOR).toFixed(1);
+                          elements.push(
+                            <div key={`travel-${b.id}`} className="flex items-center gap-2 py-1 px-2">
+                              <div className="flex-1 border-t border-gray-200" />
+                              <span className="text-[10px] text-text-muted whitespace-nowrap px-1">↓ 이동 약 {tMins}분 · {km}km</span>
+                              <div className="flex-1 border-t border-gray-200" />
+                            </div>,
+                          );
+                        }
+                      }
+
+                      return elements;
                     })}
                   </SortableContext>
                 </DndContext>

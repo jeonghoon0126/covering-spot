@@ -5,6 +5,9 @@ import { validateToken } from "@/app/api/admin/auth/route";
 import { sendBookingCreated } from "@/lib/slack-notify";
 import type { Booking } from "@/types/booking";
 
+// 캐싱 비활성화: 항상 최신 DB 데이터 반환
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     // 인증 확인
