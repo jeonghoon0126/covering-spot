@@ -56,6 +56,7 @@ export interface UnloadingMarker {
   lat: number;
   lng: number;
   name: string;
+  isUsed?: boolean; // true = 이번 배차에 사용됨(보라색), false = 활성이지만 미사용(회색)
 }
 
 export interface RouteLine {
@@ -289,7 +290,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       const diamond = document.createElement("div");
       diamond.style.width = "22px";
       diamond.style.height = "22px";
-      diamond.style.background = "#7C3AED";
+      diamond.style.background = point.isUsed === false ? "#9CA3AF" : "#7C3AED";
       diamond.style.border = "2.5px solid white";
       diamond.style.borderRadius = "3px";
       diamond.style.transform = "rotate(45deg)";
@@ -301,7 +302,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       const label = document.createElement("div");
       label.style.fontSize = "9px";
       label.style.fontWeight = "700";
-      label.style.color = "#7C3AED";
+      label.style.color = point.isUsed === false ? "#6B7280" : "#7C3AED";
       label.style.whiteSpace = "nowrap";
       label.style.background = "rgba(255,255,255,0.93)";
       label.style.padding = "1px 4px";

@@ -521,33 +521,47 @@ export default function AdminDispatchPage() {
     return result;
   }, [autoMode, autoResult, bookings, driverColorMap]);
 
-  // 하차지 마커 (자동배차 미리보기 시에만 표시)
+  // 하차지 마커: 활성 하차지는 항상 표시, preview 모드에선 사용 여부 구분
   const unloadingMapMarkers: UnloadingMarker[] = useMemo(() => {
-    if (autoMode !== "preview" || !autoResult) return [];
-    const pointIds = new Set<string>();
-    autoResult.plan.forEach((dp) => {
-      dp.unloadingStops.forEach((s) => pointIds.add(s.pointId));
-    });
-    return unloadingPoints
-      .filter((p) => pointIds.has(p.id))
-      .map((p) => ({ id: p.id, lat: p.latitude, lng: p.longitude, name: p.name }));
+    const activePoints = unloadingPoints.filter((p) => p.active);
+    if (activePoints.length === 0) return [];
+    const usedIds = new Set<string>();
+    if (autoMode === "preview" && autoResult) {
+      autoResult.plan.forEach((dp) =>
+        dp.unloadingStops.forEach((s) => usedIds.add(s.pointId))
+      );
+    }
+    return activePoints.map((p) => ({
+      id: p.id,
+      lat: p.latitude,
+      lng: p.longitude,
+      name: p.name,
+      isUsed: autoMode === "preview" && autoResult ? usedIds.has(p.id) : undefined,
+    }));
   }, [autoMode, autoResult, unloadingPoints]);
 
-  // 경로 폴리라인 (자동배차 미리보기 시)
+  // 경로 폴리라인 (자동배차 미리보기 시) — 하차지 경유 좌표 포함
   const mapRouteLines: RouteLine[] = useMemo(() => {
     if (autoMode !== "preview" || !autoResult) return [];
     return autoResult.plan.map((dp) => {
       const color = driverColorMap.get(dp.driverId) || "#10B981";
       const points: { lat: number; lng: number }[] = [];
-      dp.bookings.forEach((b) => {
+      const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
+      sorted.forEach((b) => {
         const booking = bookings.find((bk) => bk.id === b.id);
         if (booking?.latitude && booking?.longitude) {
           points.push({ lat: booking.latitude, lng: booking.longitude });
         }
+        // 이 수거지 다음에 하차지 경유가 있으면 좌표 삽입
+        const stop = dp.unloadingStops.find((s) => s.afterRouteOrder === b.routeOrder);
+        if (stop) {
+          const up = unloadingPoints.find((p) => p.id === stop.pointId);
+          if (up) points.push({ lat: up.latitude, lng: up.longitude });
+        }
       });
       return { driverId: dp.driverId, color, points };
     });
-  }, [autoMode, autoResult, bookings, driverColorMap]);
+  }, [autoMode, autoResult, bookings, driverColorMap, unloadingPoints]);
 
   // 선택된 예약
   const selectedBooking = useMemo(() => {
