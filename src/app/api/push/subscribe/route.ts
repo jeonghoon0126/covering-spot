@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { getBookingById } from "@/lib/db";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SubscribeSchema = z.object({
+  bookingId: z.string().regex(UUID_REGEX, "유효하지 않은 bookingId 형식입니다"),
+  subscription: z.object({
+    endpoint: z.string().url("유효하지 않은 endpoint URL입니다").max(2048),
+    keys: z.object({
+      p256dh: z.string().min(1).max(256),
+      auth: z.string().min(1).max(64),
+    }),
+  }),
+});
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { bookingId, subscription } = body;
-
-    if (!bookingId || !subscription?.endpoint) {
-      return NextResponse.json({ error: "필수 필드 누락" }, { status: 400 });
+    let body: unknown;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ error: "유효하지 않은 JSON입니다" }, { status: 400 });
     }
+
+    const parsed = SubscribeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
+
+    const { bookingId, subscription } = parsed.data;
 
     // bookingId가 실제 DB에 존재하는지 검증
     const booking = await getBookingById(bookingId);

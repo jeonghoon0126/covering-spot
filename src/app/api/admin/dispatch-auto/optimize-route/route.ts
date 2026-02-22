@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const [allBookings, allDrivers, unloadingPoints] = await Promise.all([
       getBookings(date),
-      getDrivers(false),
+      getDrivers(true), // 활성 기사만 조회 (비활성 기사 경로 최적화 방지)
       getUnloadingPoints(true),
     ]);
 

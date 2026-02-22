@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { validateToken } from "@/app/api/admin/auth/route";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SendSchema = z.object({
+  bookingId: z.string().regex(UUID_REGEX, "유효하지 않은 bookingId 형식입니다"),
+  title: z.string().max(100).optional(),
+  message: z.string().max(500).optional(),
+  // url은 /로 시작하는 상대경로만 허용 (피싱 링크 삽입 방지)
+  url: z.string().max(200).regex(/^\//, "url은 /로 시작하는 상대경로여야 합니다").optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,12 +23,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { bookingId, title, message, url } = body;
-
-    if (!bookingId) {
-      return NextResponse.json({ error: "bookingId 필수" }, { status: 400 });
+    let body: unknown;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ error: "유효하지 않은 JSON입니다" }, { status: 400 });
     }
+
+    const parsed = SendSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
+
+    const { bookingId, title, message, url } = parsed.data;
 
     // 구독 조회
     const { data: subs } = await supabase

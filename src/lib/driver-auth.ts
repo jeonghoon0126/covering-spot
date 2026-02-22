@@ -88,7 +88,7 @@ export function validateDriverToken(req: NextRequest): DriverAuth | null {
   }
 
   if (payload.type !== "driver") return null;
-  if (!payload.exp || payload.exp < Date.now()) return null;
+  if (!Number.isFinite(payload.exp) || payload.exp < Date.now()) return null;
   if (!payload.driverId || !payload.driverName) return null;
 
   return { driverId: payload.driverId, driverName: payload.driverName };
