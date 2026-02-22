@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = Math.min(
       parseInt(searchParams.get("limit") || "50", 10),
-      200,
+      1000,
     );
 
     // status가 "all"이면 필터 없이 조회

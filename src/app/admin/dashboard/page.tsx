@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/bookings", {
+      const res = await fetch("/api/admin/bookings?limit=1000", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
