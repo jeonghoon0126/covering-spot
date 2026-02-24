@@ -1162,7 +1162,7 @@ export default function AdminDriverManagePage() {
                 setNewStartAddress(data.roadAddress || data.jibunAddress);
                 setShowNewStartPostcode(false);
               }}
-              style={{ height: 400, width: 360 }}
+              style={{ height: 400 }}
             />
           </div>
         </div>
@@ -1180,7 +1180,7 @@ export default function AdminDriverManagePage() {
                 setNewEndAddress(data.roadAddress || data.jibunAddress);
                 setShowNewEndPostcode(false);
               }}
-              style={{ height: 400, width: 360 }}
+              style={{ height: 400 }}
             />
           </div>
         </div>
@@ -1198,7 +1198,7 @@ export default function AdminDriverManagePage() {
                 setEditStartAddress(data.roadAddress || data.jibunAddress);
                 setShowEditStartPostcode(false);
               }}
-              style={{ height: 400, width: 360 }}
+              style={{ height: 400 }}
             />
           </div>
         </div>
@@ -1216,7 +1216,7 @@ export default function AdminDriverManagePage() {
                 setEditEndAddress(data.roadAddress || data.jibunAddress);
                 setShowEditEndPostcode(false);
               }}
-              style={{ height: 400, width: 360 }}
+              style={{ height: 400 }}
             />
           </div>
         </div>

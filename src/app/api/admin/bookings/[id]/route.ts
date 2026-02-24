@@ -111,7 +111,7 @@ export async function PUT(
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName, crewSize)" },
         { status: 400 },
       );
     }
@@ -229,6 +229,7 @@ export async function PUT(
     if (data.confirmedDuration !== undefined) details.confirmedDuration = data.confirmedDuration;
     if (data.completionPhotos !== undefined) details.completionPhotoCount = data.completionPhotos.length;
     if (data.items !== undefined) details.itemCount = data.items.length;
+    if (data.crewSize !== undefined) details.crewSize = data.crewSize;
 
     // Audit log with retry (최대 3회 재시도 — 감사 기록 손실 방지)
     (async () => {
