@@ -6,6 +6,7 @@ import {
   deleteDriver,
 } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
+import { geocodeAddress } from "@/lib/geocode";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
@@ -55,6 +56,9 @@ const createDriverSchema = z.object({
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
   workSlots: z.string().optional().default("").refine((v) => !v || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 오전 (9시~12시),오후 (13시~17시))" }),
+  initialLoadCube: z.number().min(0).max(30).optional(),
+  startAddress: z.string().max(200).optional(),
+  endAddress: z.string().max(200).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -79,8 +83,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots } = parsed.data;
-    const driver = await createDriver(name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots);
+    const { name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots, initialLoadCube, startAddress, endAddress } = parsed.data;
+    // 주소 → 좌표 변환 (병렬)
+    const [startCoords, endCoords] = await Promise.all([
+      startAddress ? geocodeAddress(startAddress) : Promise.resolve(null),
+      endAddress ? geocodeAddress(endAddress) : Promise.resolve(null),
+    ]);
+    const driver = await createDriver(
+      name, phone, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots,
+      initialLoadCube,
+      startAddress, startCoords?.lat, startCoords?.lng,
+      endAddress, endCoords?.lat, endCoords?.lng,
+    );
     return NextResponse.json({ driver }, { status: 201 });
   } catch (e) {
     console.error("[admin/drivers/POST]", e);
@@ -101,6 +115,9 @@ const updateDriverSchema = z.object({
   licensePlate: z.string().max(20).optional(),
   workDays: z.string().optional().refine((v) => !v || validateWorkDays(v), { message: "올바른 근무요일 형식이 아닙니다" }),
   workSlots: z.string().optional().refine((v) => v === undefined || validateWorkSlots(v), { message: "올바른 슬롯 형식이 아닙니다 (예: 오전 (9시~12시),오후 (13시~17시))" }),
+  initialLoadCube: z.number().min(0).max(30).optional(),
+  startAddress: z.string().max(200).nullable().optional(),
+  endAddress: z.string().max(200).nullable().optional(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -125,7 +142,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots } = parsed.data;
+    const { id, name, phone, active, vehicleType, vehicleCapacity, licensePlate, workDays, workSlots, initialLoadCube, startAddress, endAddress } = parsed.data;
 
     const updates: {
       name?: string;
@@ -136,6 +153,13 @@ export async function PUT(req: NextRequest) {
       licensePlate?: string;
       workDays?: string;
       workSlots?: string;
+      initialLoadCube?: number;
+      startAddress?: string | null;
+      startLatitude?: number | null;
+      startLongitude?: number | null;
+      endAddress?: string | null;
+      endLatitude?: number | null;
+      endLongitude?: number | null;
     } = {};
     if (name !== undefined) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
@@ -145,6 +169,29 @@ export async function PUT(req: NextRequest) {
     if (licensePlate !== undefined) updates.licensePlate = licensePlate;
     if (workDays !== undefined) updates.workDays = workDays;
     if (workSlots !== undefined) updates.workSlots = workSlots;
+    if (initialLoadCube !== undefined) updates.initialLoadCube = initialLoadCube;
+    if (startAddress !== undefined) {
+      updates.startAddress = startAddress;
+      if (startAddress) {
+        const coords = await geocodeAddress(startAddress);
+        updates.startLatitude = coords?.lat ?? null;
+        updates.startLongitude = coords?.lng ?? null;
+      } else {
+        updates.startLatitude = null;
+        updates.startLongitude = null;
+      }
+    }
+    if (endAddress !== undefined) {
+      updates.endAddress = endAddress;
+      if (endAddress) {
+        const coords = await geocodeAddress(endAddress);
+        updates.endLatitude = coords?.lat ?? null;
+        updates.endLongitude = coords?.lng ?? null;
+      } else {
+        updates.endLatitude = null;
+        updates.endLongitude = null;
+      }
+    }
 
     const driver = await updateDriver(id, updates);
     if (!driver) {

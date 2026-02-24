@@ -5,6 +5,56 @@
 GitHub: jeonghoon0126/covering-spot (main 브랜치)
 Vercel 프로젝트: covering_spot (framework: nextjs, Node 24.x)
 CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동 배포
+Vercel Token (GitHub Secret): [~/.claude/rules/api-keys.md 참조]
+GitHub PAT (jeonghoon0126): [~/.claude/rules/api-keys.md 참조]
+
+### 최근 작업 (2026-02-24) — 세션 7 (구글 시트 임포트)
+
+**구글 시트 → 주문 자동 임포트 구현 (TODO #12)**
+- `src/app/api/admin/bookings/sheet-import/route.ts` (신규)
+  - `POST` with `{ url, dryRun }` — 공개 시트 CSV 파싱 → 주문 일괄 생성
+  - `dryRun: true`: 미리보기 (행 파싱 + 유효/오류 분류)
+  - `dryRun: false`: 실제 등록 (createBooking + Slack 알림 fire-and-forget)
+  - 헤더 유연 매핑: 고객명/이름/성함, 전화번호/연락처, 수거일/날짜 등
+  - `source: "구글시트 임포트"` 태깅
+- `src/app/admin/dashboard/page.tsx`
+  - 헤더에 "시트 임포트" 버튼 추가
+  - 3단계 모달: URL 입력 → 미리보기 테이블 (유효/오류 행 색상 구분) → 결과 표시
+
+**시트 컬럼 형식** (헤더 첫 행 필수):
+```
+고객명(필수), 전화번호(필수), 주소(필수), 상세주소, 수거일, 시간대, 평형, 예상금액, 품목설명, 메모
+```
+공유 설정: "링크가 있는 모든 사용자 → 뷰어" 필수
+
+---
+
+### 최근 작업 (2026-02-23) — 세션 6 (CI/CD 복구 + 신규 운영사 요구사항)
+
+**CI/CD 복구**
+- GitHub Actions Run #21~40 (02/21~02/22): `vercel pull` 단계에서 일괄 실패 — VERCEL_TOKEN 만료 원인
+- `.github/workflows/deploy.yml` 수정: `vercel pull` 복원 + `env:` 스코프를 job 레벨로 이동
+- GitHub Secret `VERCEL_TOKEN` 업데이트: 신규 `vcp_` 토큰 (beige@covering.app / beige's projects)
+  - 방법: jeonghoon0126 PAT으로 GitHub API → repo public key → libsodium 암호화 → PUT
+- Run #43: 전체 ✅ 성공 (vercel pull → build → deploy 정상)
+
+**신규 운영사 요구사항 (유대현님 — 2026-02-23 수집)**
+
+우선순위별 정리:
+1. **[HIGH] 구글 시트 → 주문 자동 임포트**: 기존 시트에 있는 주문 데이터를 배차 시스템으로 자동 생성
+2. **[MID] 초기 적재량 설정**: 전날 하차 안 한 차량의 현재 적재 상태 반영 후 배차 시작
+3. **[MID] 기사별 출발지/퇴근지 등록**: 마지막 수거 후 집 또는 하차지로 귀가 동선 반영
+
+배경:
+- 현재 알바 기사 다수 (정규직은 우정훈 1명) — 요일/시간대별 스케줄 모두 다름 → workDays/슬롯으로 대응 가능
+- 런치 서비스 포함 시 30~40건/일 피크 → 수기 동선 짜는 게 불가능
+- 차량 적재량 관리: 매일 저녁 각 차량 적재 상태를 기사/관리자가 확인하고 있음
+- 퇴근 전 하차지 경유가 이상적이나 물리적으로 불가한 경우 있음
+
+현재 시스템으로 가능한 것:
+- 기사 등록 (이름/적재량/근무요일/시간대 슬롯) ✅
+- 자동배차 군집 분배 + 카카오 이동시간 ✅
+- 하차지 경유 + 적재량 초과 시 자동 하차 삽입 ✅
 
 ### 최근 작업 (2026-02-22) — 세션 5 (구간별 ETA + 대시보드 정렬/탭 수정)
 
@@ -187,3 +237,7 @@ src/lib/geocode.ts                    → 카카오 지오코딩
 9. ~~단일 주문 > 차량 용량 → `unassigned` 처리~~ ✅ 완료
 10. Rate Limiting (driver 엔드포인트 외 전체 미적용)
 11. ~~배차·수거 고객 SMS (dispatched / in_progress / completed)~~ ✅ 완료
+12. ~~**[신규] 구글 시트 → 주문 자동 임포트**~~ ✅ 완료 (운영사 요청 #1)
+13. **[신규] 초기 적재량 설정** — 전날 미하차 차량 적재량 반영 (운영사 요청 #2)
+14. **[신규] 기사별 출발지/퇴근지 등록** — 귀가 동선 반영 (운영사 요청 #3, 향후)
+15. ~~GitHub Actions CI/CD 복구~~ ✅ 완료 (VERCEL_TOKEN 갱신 + workflow 수정)

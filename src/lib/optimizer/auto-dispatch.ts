@@ -53,13 +53,22 @@ export function autoDispatch(
     const driver = drivers.find((d) => d.id === driverId);
     if (!driver) continue;
 
-    // TSP 최적화
-    const optimized = optimizeRoute(cluster.bookings);
+    // TSP 최적화 (출발지가 있으면 출발지에서 가장 가까운 수거지를 첫 경유지로 선택)
+    const startPoint =
+      driver.startLat != null && driver.startLng != null
+        ? { lat: driver.startLat, lng: driver.startLng }
+        : undefined;
+    const optimized = optimizeRoute(cluster.bookings, startPoint);
     const dist = routeDistance(optimized);
     totalDist += dist;
 
-    // 하차지 삽입
-    const unloadingStops = insertUnloadingStops(optimized, driver.vehicleCapacity, unloadingPoints);
+    // 하차지 삽입 (초기 적재량 반영: 전날 미하차 분부터 누적 시작)
+    const unloadingStops = insertUnloadingStops(
+      optimized,
+      driver.vehicleCapacity,
+      unloadingPoints,
+      driver.initialLoadCube ?? 0,
+    );
     const legs = unloadingStops.length + 1;
 
     const driverPlan: DriverPlan = {

@@ -26,6 +26,9 @@ interface Driver {
   licensePlate: string | null;
   workDays: string;
   workSlots: string;
+  initialLoadCube: number;
+  startAddress: string | null;
+  endAddress: string | null;
 }
 
 /* ── 상수 ── */
@@ -239,6 +242,9 @@ export default function AdminDriverManagePage() {
   const [newLicensePlate, setNewLicensePlate] = useState("");
   const [newWorkDays, setNewWorkDays] = useState("월,화,수,목,금,토");
   const [newWorkSlots, setNewWorkSlots] = useState("");
+  const [newInitialLoadCube, setNewInitialLoadCube] = useState(0);
+  const [newStartAddress, setNewStartAddress] = useState("");
+  const [newEndAddress, setNewEndAddress] = useState("");
 
   // 기사 수정 폼 상태
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -248,6 +254,9 @@ export default function AdminDriverManagePage() {
   const [editLicensePlate, setEditLicensePlate] = useState("");
   const [editWorkDays, setEditWorkDays] = useState("월,화,수,목,금,토");
   const [editWorkSlots, setEditWorkSlots] = useState("");
+  const [editInitialLoadCube, setEditInitialLoadCube] = useState(0);
+  const [editStartAddress, setEditStartAddress] = useState("");
+  const [editEndAddress, setEditEndAddress] = useState("");
 
   const [saving, setSaving] = useState(false);
 
@@ -334,6 +343,9 @@ export default function AdminDriverManagePage() {
           licensePlate: newLicensePlate.trim() || undefined,
           workDays: newWorkDays,
           workSlots: newWorkSlots,
+          initialLoadCube: newInitialLoadCube || undefined,
+          startAddress: newStartAddress.trim() || undefined,
+          endAddress: newEndAddress.trim() || undefined,
         }),
       });
       if (res.ok) {
@@ -343,6 +355,9 @@ export default function AdminDriverManagePage() {
         setNewLicensePlate("");
         setNewWorkDays("월,화,수,목,금,토");
         setNewWorkSlots("");
+        setNewInitialLoadCube(0);
+        setNewStartAddress("");
+        setNewEndAddress("");
         setShowAddForm(false);
         fetchDrivers();
       } else {
@@ -376,6 +391,9 @@ export default function AdminDriverManagePage() {
           licensePlate: editLicensePlate.trim() || undefined,
           workDays: editWorkDays,
           workSlots: editWorkSlots,
+          initialLoadCube: editInitialLoadCube,
+          startAddress: editStartAddress.trim() || null,
+          endAddress: editEndAddress.trim() || null,
         }),
       });
       if (res.ok) {
@@ -608,6 +626,9 @@ export default function AdminDriverManagePage() {
                   setNewLicensePlate("");
                   setNewWorkDays("월,화,수,목,금,토");
                   setNewWorkSlots("");
+                  setNewInitialLoadCube(0);
+                  setNewStartAddress("");
+                  setNewEndAddress("");
                 }
                 setShowAddForm(!showAddForm);
                 setEditingId(null);
@@ -673,6 +694,44 @@ export default function AdminDriverManagePage() {
               <div>
                 <label className="block text-[11px] text-text-muted font-medium mb-1">가능 슬롯 <span className="text-text-muted/60 font-normal">(전체 = 제한 없음)</span></label>
                 <WorkSlotToggle value={newWorkSlots} onChange={setNewWorkSlots} />
+              </div>
+              <div>
+                <label className="block text-[11px] text-text-muted font-medium mb-1">
+                  초기 적재량 <span className="text-text-muted/60 font-normal">(m³, 전날 미하차 분)</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  step={0.1}
+                  value={newInitialLoadCube}
+                  onChange={(e) => setNewInitialLoadCube(parseFloat(e.target.value) || 0)}
+                  className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-text-muted font-medium mb-1">
+                  출발지 주소 <span className="text-text-muted/60 font-normal">(가장 가까운 수거지 우선 배정)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newStartAddress}
+                  onChange={(e) => setNewStartAddress(e.target.value)}
+                  placeholder="서울 은평구 통일로 1234"
+                  className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-text-muted font-medium mb-1">
+                  퇴근지 주소 <span className="text-text-muted/60 font-normal">(귀가 동선 참고용)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newEndAddress}
+                  onChange={(e) => setNewEndAddress(e.target.value)}
+                  placeholder="서울 마포구 월드컵로 123"
+                  className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                />
               </div>
               <button
                 onClick={handleCreateDriver}
@@ -747,6 +806,40 @@ export default function AdminDriverManagePage() {
                           <label className="block text-[11px] text-text-muted font-medium mb-1">가능 슬롯 <span className="text-text-muted/60 font-normal">(전체 = 제한 없음)</span></label>
                           <WorkSlotToggle value={editWorkSlots} onChange={setEditWorkSlots} />
                         </div>
+                        <div>
+                          <label className="block text-[11px] text-text-muted font-medium mb-1">
+                            초기 적재량 <span className="text-text-muted/60 font-normal">(m³)</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={30}
+                            step={0.1}
+                            value={editInitialLoadCube}
+                            onChange={(e) => setEditInitialLoadCube(parseFloat(e.target.value) || 0)}
+                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-text-muted font-medium mb-1">출발지 주소</label>
+                          <input
+                            type="text"
+                            value={editStartAddress}
+                            onChange={(e) => setEditStartAddress(e.target.value)}
+                            placeholder="출발지 주소 입력"
+                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-text-muted font-medium mb-1">퇴근지 주소</label>
+                          <input
+                            type="text"
+                            value={editEndAddress}
+                            onChange={(e) => setEditEndAddress(e.target.value)}
+                            placeholder="퇴근지 주소 입력"
+                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                          />
+                        </div>
                         <div className="flex gap-2 pt-1">
                           <button
                             onClick={() => handleUpdateDriver(driver.id)}
@@ -803,6 +896,9 @@ export default function AdminDriverManagePage() {
                                 setEditLicensePlate(driver.licensePlate || "");
                                 setEditWorkDays(driver.workDays || "월,화,수,목,금,토");
                                 setEditWorkSlots(driver.workSlots || "");
+                                setEditInitialLoadCube(driver.initialLoadCube || 0);
+                                setEditStartAddress(driver.startAddress || "");
+                                setEditEndAddress(driver.endAddress || "");
                                 setShowAddForm(false);
                               }}
                               className="text-[11px] font-medium text-text-sub hover:text-text-primary px-2 py-1.5 rounded-sm hover:bg-bg-warm transition-colors"
@@ -825,6 +921,26 @@ export default function AdminDriverManagePage() {
                         <WorkDayChips value={driver.workDays || ""} />
                         {/* 가능 슬롯 칩 */}
                         <WorkSlotChips value={driver.workSlots || ""} />
+                        {/* 초기 적재량 / 출발지 / 퇴근지 */}
+                        {(driver.initialLoadCube > 0 || driver.startAddress || driver.endAddress) && (
+                          <div className="mt-2 space-y-0.5">
+                            {driver.initialLoadCube > 0 && (
+                              <p className="text-[11px] text-text-muted">
+                                초기 적재: <span className="text-text-primary font-medium">{driver.initialLoadCube}m³</span>
+                              </p>
+                            )}
+                            {driver.startAddress && (
+                              <p className="text-[11px] text-text-muted truncate">
+                                출발: <span className="text-text-sub">{driver.startAddress}</span>
+                              </p>
+                            )}
+                            {driver.endAddress && (
+                              <p className="text-[11px] text-text-muted truncate">
+                                퇴근: <span className="text-text-sub">{driver.endAddress}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

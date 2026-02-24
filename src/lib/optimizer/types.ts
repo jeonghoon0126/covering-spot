@@ -19,6 +19,14 @@ export interface DispatchDriver {
   name: string;
   vehicleCapacity: number; // m³
   vehicleType: string;
+  /** 배차 시작 시 이미 적재된 물량 (m³) — 전날 미하차 분. 기본 0 */
+  initialLoadCube?: number;
+  /** 출발지 좌표 — 이 지점에서 가장 가까운 수거지를 첫 경유지로 선택 */
+  startLat?: number;
+  startLng?: number;
+  /** 퇴근지 좌표 — 향후 반환 경로 최적화에 활용 예정 */
+  endLat?: number;
+  endLng?: number;
 }
 
 /** 하차지 정보 */

@@ -125,6 +125,11 @@ export async function POST(req: NextRequest) {
       name: d.name,
       vehicleCapacity: d.vehicleCapacity,
       vehicleType: d.vehicleType,
+      initialLoadCube: d.initialLoadCube ?? 0,
+      startLat: d.startLatitude ?? undefined,
+      startLng: d.startLongitude ?? undefined,
+      endLat: d.endLatitude ?? undefined,
+      endLng: d.endLongitude ?? undefined,
     }));
 
     const dispatchUnloadingPoints: DispatchUnloadingPoint[] = unloadingPoints.map((p) => ({

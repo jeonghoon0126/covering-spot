@@ -13,13 +13,14 @@ const ROAD_FACTOR = 1.4;
  * 1단계: Nearest Neighbor로 초기 경로 생성
  * 2단계: 2-opt 개선 (교차 경로 제거)
  *
+ * @param startPoint 기사 출발지 좌표 — 있으면 출발지에서 가장 가까운 포인트를 첫 수거지로 선택
  * 서울 시내 주문 10~20건 기준 수밀리초 내 완료
  */
-export function optimizeRoute(bookings: DispatchBooking[]): DispatchBooking[] {
+export function optimizeRoute(bookings: DispatchBooking[], startPoint?: { lat: number; lng: number }): DispatchBooking[] {
   if (bookings.length <= 2) return [...bookings];
 
-  // 1단계: Nearest Neighbor
-  const route = nearestNeighbor(bookings);
+  // 1단계: Nearest Neighbor (출발지 기준 시작점 결정)
+  const route = nearestNeighbor(bookings, startPoint);
 
   // 2단계: 2-opt 개선
   return twoOpt(route);
@@ -28,19 +29,28 @@ export function optimizeRoute(bookings: DispatchBooking[]): DispatchBooking[] {
 /**
  * Nearest Neighbor 휴리스틱
  * 현재 위치에서 가장 가까운 미방문 포인트를 선택 (도로 보정계수 적용)
+ *
+ * @param startPoint 출발지 좌표 — 있으면 출발지에서 가장 가까운 포인트를 첫 수거지로 선택.
+ *                   없으면 가장 북쪽(위도 높은) 포인트에서 시작 (기존 동작)
  */
-function nearestNeighbor(bookings: DispatchBooking[]): DispatchBooking[] {
+function nearestNeighbor(bookings: DispatchBooking[], startPoint?: { lat: number; lng: number }): DispatchBooking[] {
   const n = bookings.length;
   const visited = new Set<number>();
   const route: DispatchBooking[] = [];
 
-  // 가장 북쪽(위도 높은) 포인트에서 시작 (일반적 수거 패턴)
   let current = 0;
-  let maxLat = -Infinity;
-  for (let i = 0; i < n; i++) {
-    if (bookings[i].lat > maxLat) {
-      maxLat = bookings[i].lat;
-      current = i;
+  if (startPoint) {
+    // 출발지에서 가장 가까운 수거지를 첫 수거지로 선택
+    let minDist = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = haversine(startPoint.lat, startPoint.lng, bookings[i].lat, bookings[i].lng);
+      if (d < minDist) { minDist = d; current = i; }
+    }
+  } else {
+    // 기본: 가장 북쪽(위도 높은) 포인트에서 시작 (일반적 수거 패턴)
+    let maxLat = -Infinity;
+    for (let i = 0; i < n; i++) {
+      if (bookings[i].lat > maxLat) { maxLat = bookings[i].lat; current = i; }
     }
   }
 
@@ -138,16 +148,19 @@ export function routeDistance(route: { lat: number; lng: number }[]): number {
  * 최적 하차지 선택 기준:
  *   dist(현재수거지 → 하차지) + dist(하차지 → 다음수거지) 최소화
  *   (기존: 현재 위치에서 가장 가까운 하차지만 고려 → 하차지 이후 경로 비효율 발생)
+ *
+ * @param initialLoad 배차 시작 시 이미 적재된 물량 (m³) — 전날 미하차 분. 기본 0
  */
 export function insertUnloadingStops(
   route: DispatchBooking[],
   capacity: number,
   unloadingPoints: DispatchUnloadingPoint[],
+  initialLoad = 0,
 ): UnloadingStop[] {
   if (unloadingPoints.length === 0) return [];
 
   const stops: UnloadingStop[] = [];
-  let cumLoad = 0;
+  let cumLoad = initialLoad; // 전날 미하차 분부터 시작
 
   for (let i = 0; i < route.length; i++) {
     cumLoad += route[i].totalLoadingCube;

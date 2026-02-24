@@ -18,11 +18,18 @@ export interface Driver {
   phone: string | null;
   active: boolean;
   createdAt: string;
-  vehicleType: string;       // '1톤', '1.4톤', '2.5톤', '5톤'
-  vehicleCapacity: number;   // 적재 용량 (m³)
+  vehicleType: string;         // '1톤', '1.4톤', '2.5톤', '5톤'
+  vehicleCapacity: number;     // 적재 용량 (m³)
   licensePlate: string | null; // 차량번호
-  workDays: string;          // 근무요일 (예: '월,화,수,목,금,토') — 기본값: 월~토
-  workSlots: string;         // 가능 슬롯 (예: "10:00,12:00") — 빈 문자열 = 모든 슬롯
+  workDays: string;            // 근무요일 (예: '월,화,수,목,금,토') — 기본값: 월~토
+  workSlots: string;           // 가능 슬롯 (예: "10:00,12:00") — 빈 문자열 = 모든 슬롯
+  initialLoadCube: number;     // 배차 시작 시 초기 적재량 (m³) — 전날 미하차 분
+  startAddress: string | null; // 출발지 주소
+  startLatitude: number | null;
+  startLongitude: number | null;
+  endAddress: string | null;   // 퇴근지 주소
+  endLatitude: number | null;
+  endLongitude: number | null;
 }
 
 /* ── camelCase ↔ snake_case 매핑 ── */
@@ -471,6 +478,13 @@ function rowToDriver(row: Record<string, unknown>): Driver {
     licensePlate: (row.license_plate as string) || null,
     workDays: (row.work_days as string) || "월,화,수,목,금,토",
     workSlots: (row.work_slots as string) || "",
+    initialLoadCube: (row.initial_load_cube as number) ?? 0,
+    startAddress: (row.start_address as string) || null,
+    startLatitude: row.start_latitude != null ? (row.start_latitude as number) : null,
+    startLongitude: row.start_longitude != null ? (row.start_longitude as number) : null,
+    endAddress: (row.end_address as string) || null,
+    endLatitude: row.end_latitude != null ? (row.end_latitude as number) : null,
+    endLongitude: row.end_longitude != null ? (row.end_longitude as number) : null,
   };
 }
 
@@ -495,6 +509,13 @@ export async function createDriver(
   licensePlate?: string,
   workDays?: string,
   workSlots?: string,
+  initialLoadCube?: number,
+  startAddress?: string,
+  startLatitude?: number,
+  startLongitude?: number,
+  endAddress?: string,
+  endLatitude?: number,
+  endLongitude?: number,
 ): Promise<Driver> {
   const { data, error } = await supabase
     .from("drivers")
@@ -506,6 +527,13 @@ export async function createDriver(
       license_plate: licensePlate || null,
       work_days: workDays || "월,화,수,목,금,토",
       work_slots: workSlots || "",
+      initial_load_cube: initialLoadCube ?? 0,
+      start_address: startAddress || null,
+      start_latitude: startLatitude ?? null,
+      start_longitude: startLongitude ?? null,
+      end_address: endAddress || null,
+      end_latitude: endLatitude ?? null,
+      end_longitude: endLongitude ?? null,
     })
     .select()
     .single();
@@ -516,7 +544,13 @@ export async function createDriver(
 
 export async function updateDriver(
   id: string,
-  updates: { name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number; licensePlate?: string; workDays?: string; workSlots?: string },
+  updates: {
+    name?: string; phone?: string; active?: boolean; vehicleType?: string; vehicleCapacity?: number;
+    licensePlate?: string; workDays?: string; workSlots?: string;
+    initialLoadCube?: number;
+    startAddress?: string | null; startLatitude?: number | null; startLongitude?: number | null;
+    endAddress?: string | null; endLatitude?: number | null; endLongitude?: number | null;
+  },
 ): Promise<Driver | null> {
   const row: Record<string, unknown> = {};
   if (updates.name !== undefined) row.name = updates.name;
@@ -527,6 +561,13 @@ export async function updateDriver(
   if (updates.licensePlate !== undefined) row.license_plate = updates.licensePlate;
   if (updates.workDays !== undefined) row.work_days = updates.workDays;
   if (updates.workSlots !== undefined) row.work_slots = updates.workSlots;
+  if (updates.initialLoadCube !== undefined) row.initial_load_cube = updates.initialLoadCube;
+  if (updates.startAddress !== undefined) row.start_address = updates.startAddress;
+  if (updates.startLatitude !== undefined) row.start_latitude = updates.startLatitude;
+  if (updates.startLongitude !== undefined) row.start_longitude = updates.startLongitude;
+  if (updates.endAddress !== undefined) row.end_address = updates.endAddress;
+  if (updates.endLatitude !== undefined) row.end_latitude = updates.endLatitude;
+  if (updates.endLongitude !== undefined) row.end_longitude = updates.endLongitude;
 
   const { data, error } = await supabase
     .from("drivers")
