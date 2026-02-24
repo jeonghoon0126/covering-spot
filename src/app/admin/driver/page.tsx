@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import DaumPostcodeEmbed from "react-daum-postcode";
 
 /* ── 타입 ── */
 
@@ -245,6 +246,8 @@ export default function AdminDriverManagePage() {
   const [newInitialLoadCube, setNewInitialLoadCube] = useState(0);
   const [newStartAddress, setNewStartAddress] = useState("");
   const [newEndAddress, setNewEndAddress] = useState("");
+  const [showNewStartPostcode, setShowNewStartPostcode] = useState(false);
+  const [showNewEndPostcode, setShowNewEndPostcode] = useState(false);
 
   // 기사 수정 폼 상태
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -257,6 +260,8 @@ export default function AdminDriverManagePage() {
   const [editInitialLoadCube, setEditInitialLoadCube] = useState(0);
   const [editStartAddress, setEditStartAddress] = useState("");
   const [editEndAddress, setEditEndAddress] = useState("");
+  const [showEditStartPostcode, setShowEditStartPostcode] = useState(false);
+  const [showEditEndPostcode, setShowEditEndPostcode] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -713,25 +718,55 @@ export default function AdminDriverManagePage() {
                 <label className="block text-[11px] text-text-muted font-medium mb-1">
                   출발지 주소 <span className="text-text-muted/60 font-normal">(가장 가까운 수거지 우선 배정)</span>
                 </label>
-                <input
-                  type="text"
-                  value={newStartAddress}
-                  onChange={(e) => setNewStartAddress(e.target.value)}
-                  placeholder="서울 은평구 통일로 1234"
-                  className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewStartPostcode(true)}
+                    className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  >
+                    {newStartAddress ? (
+                      <span className="text-text-primary">{newStartAddress}</span>
+                    ) : (
+                      <span className="text-text-muted">주소 검색</span>
+                    )}
+                  </button>
+                  {newStartAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setNewStartAddress("")}
+                      className="shrink-0 h-10 w-10 flex items-center justify-center rounded-md border border-border-light bg-bg-warm text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-[11px] text-text-muted font-medium mb-1">
                   퇴근지 주소 <span className="text-text-muted/60 font-normal">(귀가 동선 참고용)</span>
                 </label>
-                <input
-                  type="text"
-                  value={newEndAddress}
-                  onChange={(e) => setNewEndAddress(e.target.value)}
-                  placeholder="서울 마포구 월드컵로 123"
-                  className="w-full h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewEndPostcode(true)}
+                    className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg-warm text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  >
+                    {newEndAddress ? (
+                      <span className="text-text-primary">{newEndAddress}</span>
+                    ) : (
+                      <span className="text-text-muted">주소 검색</span>
+                    )}
+                  </button>
+                  {newEndAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setNewEndAddress("")}
+                      className="shrink-0 h-10 w-10 flex items-center justify-center rounded-md border border-border-light bg-bg-warm text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleCreateDriver}
@@ -822,23 +857,53 @@ export default function AdminDriverManagePage() {
                         </div>
                         <div>
                           <label className="block text-[11px] text-text-muted font-medium mb-1">출발지 주소</label>
-                          <input
-                            type="text"
-                            value={editStartAddress}
-                            onChange={(e) => setEditStartAddress(e.target.value)}
-                            placeholder="출발지 주소 입력"
-                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                          />
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowEditStartPostcode(true)}
+                              className="flex-1 h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            >
+                              {editStartAddress ? (
+                                <span className="text-text-primary">{editStartAddress}</span>
+                              ) : (
+                                <span className="text-text-muted">주소 검색</span>
+                              )}
+                            </button>
+                            {editStartAddress && (
+                              <button
+                                type="button"
+                                onClick={() => setEditStartAddress("")}
+                                className="shrink-0 h-9 w-9 flex items-center justify-center rounded-sm border border-border-light bg-bg-warm text-text-muted hover:text-text-primary transition-colors text-xs"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <label className="block text-[11px] text-text-muted font-medium mb-1">퇴근지 주소</label>
-                          <input
-                            type="text"
-                            value={editEndAddress}
-                            onChange={(e) => setEditEndAddress(e.target.value)}
-                            placeholder="퇴근지 주소 입력"
-                            className="w-full h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                          />
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowEditEndPostcode(true)}
+                              className="flex-1 h-9 px-3 rounded-sm border border-border-light bg-bg-warm text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                            >
+                              {editEndAddress ? (
+                                <span className="text-text-primary">{editEndAddress}</span>
+                              ) : (
+                                <span className="text-text-muted">주소 검색</span>
+                              )}
+                            </button>
+                            {editEndAddress && (
+                              <button
+                                type="button"
+                                onClick={() => setEditEndAddress("")}
+                                className="shrink-0 h-9 w-9 flex items-center justify-center rounded-sm border border-border-light bg-bg-warm text-text-muted hover:text-text-primary transition-colors text-xs"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-2 pt-1">
                           <button
@@ -1084,6 +1149,78 @@ export default function AdminDriverManagePage() {
           </div>
         )}
       </div>
+
+      {/* 주소 검색 팝업 - 추가 폼 출발지 */}
+      {showNewStartPostcode && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim"
+          onClick={() => setShowNewStartPostcode(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setNewStartAddress(data.roadAddress || data.jibunAddress);
+                setShowNewStartPostcode(false);
+              }}
+              style={{ height: 400, width: 360 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 주소 검색 팝업 - 추가 폼 퇴근지 */}
+      {showNewEndPostcode && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim"
+          onClick={() => setShowNewEndPostcode(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setNewEndAddress(data.roadAddress || data.jibunAddress);
+                setShowNewEndPostcode(false);
+              }}
+              style={{ height: 400, width: 360 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 주소 검색 팝업 - 수정 폼 출발지 */}
+      {showEditStartPostcode && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim"
+          onClick={() => setShowEditStartPostcode(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setEditStartAddress(data.roadAddress || data.jibunAddress);
+                setShowEditStartPostcode(false);
+              }}
+              style={{ height: 400, width: 360 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 주소 검색 팝업 - 수정 폼 퇴근지 */}
+      {showEditEndPostcode && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim"
+          onClick={() => setShowEditEndPostcode(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <DaumPostcodeEmbed
+              onComplete={(data) => {
+                setEditEndAddress(data.roadAddress || data.jibunAddress);
+                setShowEditEndPostcode(false);
+              }}
+              style={{ height: 400, width: 360 }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 에러 토스트 */}
       {toast && (
