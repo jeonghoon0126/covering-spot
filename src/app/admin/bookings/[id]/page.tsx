@@ -80,6 +80,7 @@ export default function AdminBookingDetailPage() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [confirmedDurationInput, setConfirmedDurationInput] = useState<number | null>(null);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
+  const [crewSizeInput, setCrewSizeInput] = useState<number | null>(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   // sessionStorage에서 token 가져오기
@@ -140,6 +141,7 @@ export default function AdminBookingDetailPage() {
           if (data.booking.completionPhotos?.length) {
             setCompletionPhotos(data.booking.completionPhotos);
           }
+          setCrewSizeInput(data.booking.crewSize ?? 1);
         }
       })
       .finally(() => setLoading(false));
@@ -244,8 +246,34 @@ export default function AdminBookingDetailPage() {
         if (data.booking.confirmedTime) setConfirmedTimeInput(data.booking.confirmedTime);
         if (data.booking.confirmedDuration != null) setConfirmedDurationInput(data.booking.confirmedDuration);
         if (data.booking.completionPhotos?.length) setCompletionPhotos(data.booking.completionPhotos);
+        setCrewSizeInput(data.booking.crewSize ?? 1);
       }
     } catch { /* ignore */ }
+  }
+
+  async function handleSaveCrewSize() {
+    if (!booking || !token || crewSizeInput == null) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ crewSize: crewSizeInput, expectedUpdatedAt: booking.updatedAt }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBooking(data.booking);
+      } else if (res.status === 409) {
+        alert("다른 탭에서 이미 수정되었습니다.");
+        await refetchBooking();
+      } else {
+        alert(data.error || "저장 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveMemo() {
@@ -598,11 +626,36 @@ export default function AdminBookingDetailPage() {
                 </span>
               </div>
             )}
-            <div className={`flex justify-between py-2.5 ${booking.finalPrice != null ? "border-b border-border-light" : ""}`}>
+            <div className={`flex justify-between items-center py-2.5 ${booking.finalPrice != null ? "border-b border-border-light" : ""}`}>
               <span className="text-text-sub">자동 산정</span>
-              <span className="font-medium">
-                {formatPrice(booking.totalPrice)}원 ({booking.crewSize}명)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{formatPrice(booking.totalPrice)}원</span>
+                {isLocked ? (
+                  <span className="text-sm text-text-muted">({booking.crewSize}명)</span>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-text-muted">(인력</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={crewSizeInput ?? booking.crewSize}
+                      onChange={(e) => setCrewSizeInput(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 h-7 px-1 text-center text-sm rounded border border-border-light bg-bg-warm focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                    />
+                    <span className="text-sm text-text-muted">명)</span>
+                    {crewSizeInput !== booking.crewSize && (
+                      <button
+                        onClick={handleSaveCrewSize}
+                        disabled={saving}
+                        className="text-[11px] font-semibold text-primary border border-primary/30 rounded px-2 py-0.5 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                      >
+                        저장
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             {booking.finalPrice != null && (
               <div className="flex justify-between py-2.5 text-primary font-bold">

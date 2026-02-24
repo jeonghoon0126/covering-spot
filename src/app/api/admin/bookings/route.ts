@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getBookingStatusCounts, getBookingsPaginated, createBooking, updateBooking } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendBookingCreated } from "@/lib/slack-notify";
+import { calcCrewSize } from "@/lib/crew-utils";
 import type { Booking } from "@/types/booking";
 
 // 캐싱 비활성화: 항상 최신 DB 데이터 반환
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
       area: body.area || "",
       items,
       totalPrice: priceNum,
-      crewSize: 1,
+      crewSize: calcCrewSize(totalLoadingCube),
       needLadder: false,
       ladderPrice: 0,
       customerName: body.customerName.trim(),

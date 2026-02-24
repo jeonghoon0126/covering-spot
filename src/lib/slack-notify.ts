@@ -427,6 +427,32 @@ export async function sendStatusChanged(
   await postSlack(blocks);
 }
 
+// 고객 수거 일정 변경 → 스레드 답글
+export async function sendRescheduleNotify(
+  b: Booking,
+  prevDate: string,
+  prevTimeSlot: string,
+): Promise<void> {
+  const lines = [
+    `📅 수거 일정 변경 (고객 요청)`,
+    `변경 전: ${prevDate} (${getDayName(prevDate)}) ${prevTimeSlot}`,
+    `변경 후: ${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
+  ];
+  if (b.slackThreadTs) {
+    await sendThreadReply(b.slackThreadTs, lines.join("\n"));
+    return;
+  }
+  await postSlack([
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: lines.join("\n") },
+    },
+    actionsBlock([
+      { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
+    ]),
+  ]);
+}
+
 // 관리자 메모 업데이트 → 스레드 답글
 export async function sendAdminMemoUpdated(
   b: Booking,

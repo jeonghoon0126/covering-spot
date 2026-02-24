@@ -107,6 +107,7 @@ export async function PUT(
     if (data.driverName !== undefined) allowedUpdates.driverName = data.driverName;
     if (data.confirmedDuration !== undefined) allowedUpdates.confirmedDuration = data.confirmedDuration;
     if (data.completionPhotos !== undefined) allowedUpdates.completionPhotos = data.completionPhotos;
+    if (data.crewSize !== undefined) allowedUpdates.crewSize = data.crewSize;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(

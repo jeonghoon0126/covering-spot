@@ -12,6 +12,7 @@ import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
 import { geocodeAddress } from "@/lib/geocode";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { sendStatusSms } from "@/lib/sms-notify";
+import { calcCrewSize } from "@/lib/crew-utils";
 import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       area: validData.area,
       items,
       totalPrice: validData.totalPrice || 0,
-      crewSize: validData.crewSize || 1,
+      crewSize: validData.crewSize || calcCrewSize(totalLoadingCube),
       needLadder: validData.needLadder || false,
       ladderType: validData.ladderType || "",
       ladderHours: validData.ladderHours,

@@ -8,6 +8,7 @@ import {
 import {
   sendBookingUpdated,
   sendBookingDeleted,
+  sendRescheduleNotify,
 } from "@/lib/slack-notify";
 import { validateBookingToken } from "@/lib/booking-token";
 import { getCustomerDeadline } from "@/lib/booking-utils";
@@ -152,7 +153,7 @@ export async function PUT(
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
       }
-      sendBookingUpdated(updated).catch(() => {});
+      sendRescheduleNotify(updated, existing.date, existing.timeSlot).catch(() => {});
       return NextResponse.json({ booking: updated });
     }
 
