@@ -82,14 +82,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "주소는 필수입니다" }, { status: 400 });
     }
 
+    // items: BookingItem[] 수신 (없으면 빈 배열)
+    const items: Booking["items"] = Array.isArray(body.items)
+      ? body.items.map((i: { category: string; name: string; displayName: string; price: number; quantity: number; loadingCube: number }) => ({
+          category: String(i.category || ""),
+          name: String(i.name || ""),
+          displayName: String(i.displayName || i.name || ""),
+          price: Math.max(0, Number(i.price) || 0),
+          quantity: Math.max(1, Math.min(100, Number(i.quantity) || 1)),
+          loadingCube: Math.max(0, Number(i.loadingCube) || 0),
+        }))
+      : [];
+
+    // totalLoadingCube: items에서 계산
+    const totalLoadingCube = items.reduce(
+      (s, i) => s + i.loadingCube * i.quantity,
+      0,
+    );
+
+    // estimatedPrice: 클라이언트 override 있으면 사용, 없으면 items 합계
+    const itemsTotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const priceNum = body.estimatedPrice || itemsTotal || 0;
+
     const now = new Date().toISOString();
     const booking: Booking = {
       id: uuidv4(),
       date: body.date || "",
       timeSlot: body.timeSlot || "",
       area: body.area || "",
-      items: [],
-      totalPrice: body.estimatedPrice || 0,
+      items,
+      totalPrice: priceNum,
       crewSize: 1,
       needLadder: false,
       ladderPrice: 0,
@@ -103,17 +125,15 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
       hasElevator: false,
       hasParking: false,
-      estimateMin: body.estimatedPrice || 0,
-      estimateMax: body.estimatedPrice || 0,
+      estimateMin: priceNum,
+      estimateMax: priceNum,
       finalPrice: null,
       photos: [],
-      adminMemo: [
-        body.itemsDescription ? `[품목] ${body.itemsDescription}` : "",
-        body.adminMemo || "",
-      ].filter(Boolean).join("\n"),
+      adminMemo: body.adminMemo?.trim() || "",
       confirmedTime: null,
       slackThreadTs: null,
       source: body.source || "카카오톡 상담",
+      totalLoadingCube,
     };
 
     const created = await createBooking(booking);
