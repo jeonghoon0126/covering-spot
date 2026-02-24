@@ -92,7 +92,7 @@ export default function BookingManagePage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
-  const [rescheduleForm, setRescheduleForm] = useState<{ date: string; timeSlot: string; confirmedTime: string } | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState<{ date: string; timeSlot: string } | null>(null);
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -216,7 +216,7 @@ export default function BookingManagePage() {
 
   function startReschedule(b: Booking) {
     setReschedulingId(b.id);
-    setRescheduleForm({ date: b.date, timeSlot: b.timeSlot, confirmedTime: b.confirmedTime || "" });
+    setRescheduleForm({ date: b.date, timeSlot: b.timeSlot || "" });
     fetchSlots(b.date, b.id);
   }
 
@@ -334,7 +334,7 @@ export default function BookingManagePage() {
                         : `${formatPrice(b.totalPrice)}원`}
                     </p>
                   </div>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={`text-text-muted shrink-0 ml-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={`text-text-muted shrink-0 ml-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
 
                 {/* 상세 정보 */}
@@ -372,11 +372,10 @@ export default function BookingManagePage() {
                                 key={slot}
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, timeSlot: slot })}
-                                className={`py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                                  editForm.timeSlot === slot
-                                    ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                                    : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
-                                }`}
+                                className={`py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${editForm.timeSlot === slot
+                                  ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                                  : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
+                                  }`}
                               >
                                 {TIME_SLOT_LABELS[slot] || slot}
                               </button>
@@ -530,7 +529,7 @@ export default function BookingManagePage() {
                                 value={rescheduleForm.date}
                                 onChange={(e) => {
                                   const newDate = e.target.value;
-                                  setRescheduleForm({ ...rescheduleForm, date: newDate, confirmedTime: "" });
+                                  setRescheduleForm({ ...rescheduleForm, date: newDate, timeSlot: "" });
                                   fetchSlots(newDate, b.id);
                                 }}
                                 className="w-full h-12 px-4 border border-border rounded-md text-base text-text-primary bg-bg transition-all duration-200 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 appearance-none"
@@ -549,14 +548,13 @@ export default function BookingManagePage() {
                                       key={slot.time}
                                       type="button"
                                       disabled={!slot.available}
-                                      onClick={() => setRescheduleForm({ ...rescheduleForm, confirmedTime: slot.time })}
-                                      className={`py-2.5 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
-                                        !slot.available
-                                          ? "bg-fill-tint text-text-muted cursor-not-allowed line-through"
-                                          : rescheduleForm.confirmedTime === slot.time
-                                            ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                                            : "bg-bg hover:bg-primary-bg hover:-translate-y-0.5"
-                                      }`}
+                                      onClick={() => setRescheduleForm({ ...rescheduleForm, timeSlot: slot.time })}
+                                      className={`py-2.5 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97] ${!slot.available
+                                        ? "bg-fill-tint text-text-muted cursor-not-allowed line-through"
+                                        : rescheduleForm.timeSlot === slot.time
+                                          ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                                          : "bg-bg hover:bg-primary-bg hover:-translate-y-0.5"
+                                        }`}
                                     >
                                       {slot.time}
                                     </button>
@@ -572,7 +570,7 @@ export default function BookingManagePage() {
                                 size="md"
                                 fullWidth
                                 onClick={() => handleReschedule(b.id)}
-                                disabled={rescheduleSaving || !rescheduleForm.confirmedTime}
+                                disabled={rescheduleSaving || !rescheduleForm.timeSlot}
                                 loading={rescheduleSaving}
                               >
                                 변경 저장
