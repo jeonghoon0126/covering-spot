@@ -40,6 +40,7 @@ export const BookingUpdateSchema = z.object({
       "pending",
       "confirmed",
       "quote_confirmed",
+      "change_requested",
       "in_progress",
       "completed",
       "payment_requested",

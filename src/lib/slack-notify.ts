@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "접수 대기",
   confirmed: "확인됨",
   quote_confirmed: "견적 확정",
+  change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
   payment_requested: "결제 요청",

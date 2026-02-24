@@ -15,6 +15,7 @@ import { createPaymentLink } from "@/lib/payment-link";
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
   quote_confirmed: ["in_progress", "cancelled"],
+  change_requested: ["quote_confirmed", "cancelled"],
   in_progress: ["completed"],
   completed: ["payment_requested"],
   payment_requested: ["payment_completed"],

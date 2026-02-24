@@ -10,6 +10,7 @@ import type { Booking } from "@/types/booking";
 const STATUS_LABELS: Record<string, string> = {
   pending: "접수",
   quote_confirmed: "견적확정",
+  change_requested: "일정변경",
   in_progress: "진행중",
   completed: "수거완료",
   payment_requested: "정산요청",
@@ -21,6 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
   payment_requested: "bg-semantic-orange-tint text-semantic-orange",

@@ -26,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
   payment_requested: "정산 요청",
@@ -37,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
   payment_requested: "bg-semantic-orange-tint text-semantic-orange",
@@ -54,6 +56,10 @@ const NEXT_STATUS: Record<string, { status: string; label: string }[]> = {
   ],
   quote_confirmed: [
     { status: "in_progress", label: "수거 시작" },
+    { status: "cancelled", label: "취소" },
+  ],
+  change_requested: [
+    { status: "quote_confirmed", label: "변경 확인 완료" },
     { status: "cancelled", label: "취소" },
   ],
   in_progress: [{ status: "completed", label: "수거 완료" }],
@@ -340,7 +346,7 @@ export default function AdminBookingDetailPage() {
 
   const nextActions = NEXT_STATUS[booking.status] || [];
   // 수거 시작(in_progress) 이후 상태에서는 견적/시간/품목 수정 불가
-  const isLocked = !["pending", "quote_confirmed"].includes(booking.status);
+  const isLocked = !["pending", "quote_confirmed", "change_requested"].includes(booking.status);
 
   return (
     <div className="min-h-screen bg-bg-warm">

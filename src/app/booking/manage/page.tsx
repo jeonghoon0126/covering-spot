@@ -17,19 +17,20 @@ function canEdit(b: Booking): boolean {
   return b.status === "pending" && isBeforeDeadline(b.date);
 }
 
-/** 일정 변경 가능 여부: quote_confirmed 상태 + 수거일 전날 22시 이전 */
+/** 일정 변경 가능 여부: quote_confirmed 상태 + 수거일 전날 22시 이전 (change_requested는 이미 요청 중이므로 불가) */
 function canReschedule(b: Booking): boolean {
   return b.status === "quote_confirmed" && isBeforeDeadline(b.date);
 }
 
-/** 취소 가능 여부: pending 또는 quote_confirmed + 수거일 전날 22시 이전 */
+/** 취소 가능 여부: pending, quote_confirmed, change_requested + 수거일 전날 22시 이전 */
 function canCancel(b: Booking): boolean {
-  return (b.status === "pending" || b.status === "quote_confirmed") && isBeforeDeadline(b.date);
+  return (b.status === "pending" || b.status === "quote_confirmed" || b.status === "change_requested") && isBeforeDeadline(b.date);
 }
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
   payment_requested: "정산 요청",
@@ -41,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
   payment_requested: "bg-semantic-orange-tint text-semantic-orange",
@@ -52,6 +54,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_MESSAGES: Record<string, string> = {
   pending: "담당자가 견적을 확인 중입니다",
   quote_confirmed: "최종 견적이 확정되었습니다",
+  change_requested: "일정 변경을 요청하셨습니다. 담당자가 확인 중입니다",
   in_progress: "수거 팀이 방문 중입니다",
   completed: "수거가 완료되었습니다",
   payment_requested: "정산 요청이 발송되었습니다",

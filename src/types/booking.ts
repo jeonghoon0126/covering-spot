@@ -28,6 +28,7 @@ export interface Booking {
     | "pending"
     | "confirmed"
     | "quote_confirmed"
+    | "change_requested"
     | "in_progress"
     | "completed"
     | "payment_requested"

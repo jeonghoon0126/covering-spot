@@ -28,6 +28,7 @@ const STATUS_TABS = [
   { key: "all", label: "전체" },
   { key: "pending", label: "접수" },
   { key: "quote_confirmed", label: "견적확정" },
+  { key: "change_requested", label: "일정변경요청" },
   { key: "in_progress", label: "진행중" },
   { key: "completed", label: "수거완료" },
   { key: "payment_requested", label: "정산요청" },
@@ -38,6 +39,7 @@ const STATUS_TABS = [
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
   payment_requested: "정산 요청",
@@ -49,6 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
   payment_requested: "bg-semantic-orange-tint text-semantic-orange",
