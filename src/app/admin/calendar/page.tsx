@@ -33,31 +33,31 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-fill-tint text-text-muted",
 };
 
-// Gantt 블록 배경색 (불투명 배경, status 기반)
+// Gantt 블록 배경색 — 디자인 시스템 CSS 변수 기준 (globals.css)
 const GANTT_BLOCK_BG: Record<string, string> = {
-  pending: "#FFF3E0",
-  quote_confirmed: "#E3F2FD",
-  user_confirmed: "#E8F5E9",
-  change_requested: "#FFF3E0",
-  in_progress: "#E3F2FD",
-  completed: "#E8F5E9",
-  payment_requested: "#FFF3E0",
-  payment_completed: "#E8F5E9",
-  cancelled: "#FFEBEE",
-  rejected: "#F5F5F5",
+  pending:           "#FFF7E5",  // --color-semantic-orange-tint
+  quote_confirmed:   "#E5F4FF",  // --color-primary-tint
+  user_confirmed:    "#EDFCF6",  // --color-semantic-green-tint
+  change_requested:  "#FFF7E5",  // --color-semantic-orange-tint
+  in_progress:       "#E5F4FF",  // --color-primary-tint
+  completed:         "#EDFCF6",  // --color-semantic-green-tint
+  payment_requested: "#FFF7E5",  // --color-semantic-orange-tint
+  payment_completed: "#EDFCF6",  // --color-semantic-green-tint
+  cancelled:         "#FFEBEE",  // --color-semantic-red-tint
+  rejected:          "#EEF2F6",  // --color-fill-tint
 };
 
 const GANTT_BLOCK_BORDER: Record<string, string> = {
-  pending: "#FB8C00",
-  quote_confirmed: "#1E88E5",
-  user_confirmed: "#43A047",
-  change_requested: "#FB8C00",
-  in_progress: "#1E88E5",
-  completed: "#43A047",
-  payment_requested: "#FB8C00",
-  payment_completed: "#43A047",
-  cancelled: "#E53935",
-  rejected: "#9E9E9E",
+  pending:           "#FF9C1A",  // --color-semantic-orange
+  quote_confirmed:   "#1AA3FF",  // --color-primary
+  user_confirmed:    "#07C576",  // --color-semantic-green
+  change_requested:  "#FF9C1A",  // --color-semantic-orange
+  in_progress:       "#1AA3FF",  // --color-primary
+  completed:         "#07C576",  // --color-semantic-green
+  payment_requested: "#FF9C1A",  // --color-semantic-orange
+  payment_completed: "#07C576",  // --color-semantic-green
+  cancelled:         "#FF3358",  // --color-semantic-red
+  rejected:          "#8A96A8",  // --color-border-strong
 };
 
 // Gantt 시간 범위: 09:00 ~ 19:00 (1시간 단위, 10개 구간)
@@ -180,24 +180,16 @@ function GanttBlock({ booking, isUnloading = false, onDragStart, onClick }: Gant
   if (isUnloading) {
     return (
       <div
+        className="absolute inset-y-1 flex items-center px-1.5 overflow-hidden rounded z-[1]"
         style={{
-          position: "absolute",
           left: `${leftPercent}%`,
           width: `${Math.max(clampedWidth, 3)}%`,
-          top: "4px",
-          bottom: "4px",
-          backgroundColor: "#ECEFF1",
-          borderLeft: "3px solid #90A4AE",
-          borderRadius: "4px",
-          zIndex: 1,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 6px",
-          overflow: "hidden",
+          backgroundColor: "#EEF2F6",
+          borderLeft: "3px solid #8A96A8",
         }}
         title="하차지"
       >
-        <span style={{ fontSize: "10px", color: "#607D8B", fontWeight: 600, whiteSpace: "nowrap" }}>
+        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub">
           하차지
         </span>
       </div>
@@ -212,34 +204,23 @@ function GanttBlock({ booking, isUnloading = false, onDragStart, onClick }: Gant
       draggable
       onDragStart={(e) => onDragStart(e, booking.id, booking.driverId ?? null, time)}
       onClick={() => onClick(booking.id)}
+      className="absolute inset-y-1 flex flex-col justify-center px-1.5 py-0.5 overflow-hidden rounded cursor-grab z-[2] shadow-sm"
       style={{
-        position: "absolute",
         left: `${leftPercent}%`,
         width: `${Math.max(clampedWidth, 3)}%`,
-        top: "4px",
-        bottom: "4px",
         backgroundColor: bg,
         borderLeft: `3px solid ${border}`,
-        borderRadius: "4px",
-        cursor: "grab",
-        zIndex: 2,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "2px 6px",
-        overflow: "hidden",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
       }}
       title={`${booking.customerName} | ${booking.address} | ${cube}m³`}
     >
-      <span style={{ fontSize: "10px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
+      <span className="text-[10px] font-bold whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
         {booking.customerName}
       </span>
-      <span style={{ fontSize: "9px", color: "#546E7A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
+      <span className="text-[9px] text-text-sub whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
         {address}
       </span>
       {cube > 0 && (
-        <span style={{ fontSize: "9px", color: "#37474F", fontWeight: 600, lineHeight: 1.3 }}>
+        <span className="text-[9px] text-text-primary font-semibold leading-[1.3]">
           {cube}m³
         </span>
       )}
@@ -390,39 +371,22 @@ function GanttView({ drivers, bookings, token, onBookingUpdated, onBookingClick 
         onDragOver={(e) => handleDragOver(e, driverId)}
         onDrop={(e) => handleDrop(e, driverId)}
         onDragLeave={() => setDropTarget(null)}
-        style={{
-          display: "flex",
-          borderBottom: "1px solid #E0E0E0",
-          minHeight: "52px",
-          backgroundColor: isDropTarget ? "#F3F4F6" : "white",
-          transition: "background-color 0.15s",
-        }}
+        className={`flex border-b border-border-light min-h-[52px] transition-colors duration-150 ${isDropTarget ? "bg-bg-warm" : "bg-bg"}`}
       >
         {/* 기사 정보 컬럼 */}
-        <div
-          style={{
-            width: "140px",
-            minWidth: "140px",
-            padding: "8px 10px",
-            borderRight: "1px solid #E0E0E0",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            backgroundColor: "#FAFAFA",
-          }}
-        >
+        <div className="w-[140px] min-w-[140px] px-2.5 py-2 border-r border-border-light flex flex-col justify-center bg-bg-warm">
           {driver ? (
             <>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "#212121" }}>{driver.name}</span>
-              <span style={{ fontSize: "10px", color: "#757575", marginTop: "1px" }}>
+              <span className="text-xs font-bold text-text-primary">{driver.name}</span>
+              <span className="text-[10px] text-text-sub mt-px">
                 {driver.vehicleType} · {driver.vehicleCapacity}m³
               </span>
               {driver.licensePlate && (
-                <span style={{ fontSize: "9px", color: "#9E9E9E" }}>{driver.licensePlate}</span>
+                <span className="text-[9px] text-text-muted">{driver.licensePlate}</span>
               )}
             </>
           ) : (
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#9E9E9E" }}>미배차</span>
+            <span className="text-xs font-semibold text-text-muted">미배차</span>
           )}
         </div>
 
@@ -430,42 +394,22 @@ function GanttView({ drivers, bookings, token, onBookingUpdated, onBookingClick 
         <div
           data-gantt-grid
           ref={driverId === (drivers[0]?.id ?? null) ? gridRef : undefined}
-          style={{
-            flex: 1,
-            position: "relative",
-            overflow: "hidden",
-          }}
+          className="flex-1 relative overflow-hidden"
         >
           {/* 시간 격자선 */}
           {Array.from({ length: GANTT_HOURS - 1 }, (_, i) => i + 1).map((i) => (
             <div
               key={i}
-              style={{
-                position: "absolute",
-                left: `${(i / GANTT_HOURS) * 100}%`,
-                top: 0,
-                bottom: 0,
-                width: "1px",
-                backgroundColor: "#F0F0F0",
-                pointerEvents: "none",
-              }}
+              className="absolute top-0 bottom-0 w-px bg-[#EEF2F6] pointer-events-none"
+              style={{ left: `${(i / GANTT_HOURS) * 100}%` }}
             />
           ))}
 
           {/* 드롭 타임 표시 */}
           {isDropTarget && dropTarget?.time && (
             <div
-              style={{
-                position: "absolute",
-                left: `${timeToPercent(dropTarget.time)}%`,
-                top: 0,
-                bottom: 0,
-                width: "2px",
-                backgroundColor: "#1976D2",
-                opacity: 0.7,
-                pointerEvents: "none",
-                zIndex: 10,
-              }}
+              className="absolute top-0 bottom-0 w-0.5 bg-primary opacity-70 pointer-events-none z-10"
+              style={{ left: `${timeToPercent(dropTarget.time)}%` }}
             />
           )}
 
@@ -504,18 +448,8 @@ function GanttView({ drivers, bookings, token, onBookingUpdated, onBookingClick 
 
           {/* 업데이트 중 오버레이 */}
           {rowBookings.some((b) => b.id === updating) && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 20,
-              }}
-            >
-              <span style={{ fontSize: "11px", color: "#1976D2" }}>저장 중...</span>
+            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/60">
+              <span className="text-[11px] text-primary">저장 중...</span>
             </div>
           )}
         </div>
@@ -525,43 +459,20 @@ function GanttView({ drivers, bookings, token, onBookingUpdated, onBookingClick 
 
   return (
     <div
-      style={{
-        border: "1px solid #E0E0E0",
-        borderRadius: "8px",
-        overflow: "hidden",
-        fontSize: "12px",
-      }}
+      className="border border-border-light rounded-lg overflow-hidden text-xs"
       onDragEnd={handleDragEnd}
     >
       {/* 헤더: 시간축 */}
-      <div style={{ display: "flex", borderBottom: "2px solid #E0E0E0", backgroundColor: "#F5F5F5" }}>
-        <div
-          style={{
-            width: "140px",
-            minWidth: "140px",
-            padding: "6px 10px",
-            borderRight: "1px solid #E0E0E0",
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "#616161",
-          }}
-        >
+      <div className="flex border-b-2 border-border-light bg-bg-warm2">
+        <div className="w-[140px] min-w-[140px] px-2.5 py-1.5 border-r border-border-light text-[11px] font-semibold text-text-sub">
           기사
         </div>
-        <div style={{ flex: 1, position: "relative", height: "28px" }}>
+        <div className="flex-1 relative h-7">
           {hours.map((h) => (
             <div
               key={h}
-              style={{
-                position: "absolute",
-                left: `${((h - GANTT_START_HOUR) / GANTT_HOURS) * 100}%`,
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                fontSize: "10px",
-                color: "#757575",
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-              }}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-text-sub font-semibold whitespace-nowrap"
+              style={{ left: `${((h - GANTT_START_HOUR) / GANTT_HOURS) * 100}%` }}
             >
               {h}시
             </div>

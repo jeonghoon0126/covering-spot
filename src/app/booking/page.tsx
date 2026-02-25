@@ -1536,14 +1536,14 @@ function BookingPageContent() {
                   }}
                   className="w-full flex items-center gap-3 py-3 px-4 rounded-md bg-bg-warm hover:bg-primary-bg transition-colors text-left"
                 >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
-                    allChecked ? "bg-primary border-primary" : anyChecked ? "bg-primary/20 border-primary/40" : "border-border"
+                  <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center shrink-0 transition-all ${
+                    allChecked || anyChecked ? "bg-brand-400 border-brand-400" : "border-border-strong"
                   }`}>
                     {allChecked && (
                       <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
                     {!allChecked && anyChecked && (
-                      <div className="w-2.5 h-0.5 bg-primary/60 rounded-full" />
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 6H9" stroke="white" strokeWidth="1.8" strokeLinecap="round"/></svg>
                     )}
                   </div>
                   <span className="font-semibold text-sm">모두 동의하기</span>
@@ -1560,8 +1560,8 @@ function BookingPageContent() {
                         onClick={() => setter(!checked)}
                         className="flex items-center gap-3 flex-1 text-left"
                       >
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
-                          checked ? "bg-primary border-primary" : "border-border"
+                        <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center shrink-0 transition-all ${
+                          checked ? "bg-brand-400 border-brand-400" : "border-border-strong"
                         }`}>
                           {checked && (
                             <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1577,7 +1577,7 @@ function BookingPageContent() {
                       <button
                         type="button"
                         onClick={() => setConsentModal(CONSENT_CONTENTS[key])}
-                        className="text-xs text-text-muted underline decoration-dotted shrink-0 ml-3 hover:text-text-sub"
+                        className="text-xs text-text-muted shrink-0 ml-3 hover:text-primary transition-colors"
                       >
                         내용보기
                       </button>
