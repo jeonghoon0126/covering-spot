@@ -71,6 +71,10 @@ const FIELD_MAP: Record<string, string> = {
   longitude: "longitude",
   routeOrder: "route_order",
   unloadingStopAfter: "unloading_stop_after",
+  agreedToTerms: "agreed_to_terms",
+  agreedToPrivacy: "agreed_to_privacy",
+  agreedToMarketing: "agreed_to_marketing",
+  agreedToNightNotification: "agreed_to_night_notification",
 };
 
 function rowToBooking(row: Record<string, unknown>): Booking {
@@ -116,6 +120,10 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     longitude: row.longitude != null ? (row.longitude as number) : null,
     routeOrder: row.route_order != null ? (row.route_order as number) : null,
     unloadingStopAfter: (row.unloading_stop_after as string) || null,
+    agreedToTerms: (row.agreed_to_terms as boolean) || false,
+    agreedToPrivacy: (row.agreed_to_privacy as boolean) || false,
+    agreedToMarketing: (row.agreed_to_marketing as boolean) || false,
+    agreedToNightNotification: (row.agreed_to_night_notification as boolean) || false,
   };
 }
 
@@ -159,6 +167,10 @@ function bookingToRow(b: Booking) {
     latitude: b.latitude ?? null,
     longitude: b.longitude ?? null,
     route_order: b.routeOrder ?? null,
+    agreed_to_terms: b.agreedToTerms ?? false,
+    agreed_to_privacy: b.agreedToPrivacy ?? false,
+    agreed_to_marketing: b.agreedToMarketing ?? false,
+    agreed_to_night_notification: b.agreedToNightNotification ?? false,
   };
 }
 

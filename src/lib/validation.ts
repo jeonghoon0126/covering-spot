@@ -33,6 +33,10 @@ export const BookingCreateSchema = z.object({
   estimateMin: z.number().min(0).optional(),
   estimateMax: z.number().min(0).optional(),
   photos: z.array(z.string().url()).max(5).optional(),
+  agreedToTerms: z.boolean(),
+  agreedToPrivacy: z.boolean(),
+  agreedToMarketing: z.boolean().optional().default(false),
+  agreedToNightNotification: z.boolean().optional().default(false),
 });
 
 export const BookingUpdateSchema = z.object({

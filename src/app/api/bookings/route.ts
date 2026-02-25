@@ -106,6 +106,14 @@ export async function POST(req: NextRequest) {
 
     const validData = parsed.data;
 
+    // 필수 약관 동의 서버사이드 검증
+    if (!validData.agreedToTerms || !validData.agreedToPrivacy) {
+      return NextResponse.json(
+        { error: "서비스 이용약관 및 개인정보 수집·이용에 동의해 주세요" },
+        { status: 400 },
+      );
+    }
+
     // 전날 12시 마감 정책 검증
     if (!isDateBookable(validData.date)) {
       return NextResponse.json(
@@ -165,6 +173,10 @@ export async function POST(req: NextRequest) {
       confirmedTime: null,
       slackThreadTs: null,
       totalLoadingCube: Math.round(totalLoadingCube * 100) / 100,
+      agreedToTerms: validData.agreedToTerms,
+      agreedToPrivacy: validData.agreedToPrivacy,
+      agreedToMarketing: validData.agreedToMarketing ?? false,
+      agreedToNightNotification: validData.agreedToNightNotification ?? false,
     };
 
     // Geocoding을 createBooking 전에 완료: 자동배차 시 lat/lng가 null이면 주문 제외되는 버그 방지

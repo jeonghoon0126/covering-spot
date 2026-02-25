@@ -20,6 +20,85 @@ import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
 const VAGUE_ITEM_KEYWORDS = ["잡동사니", "쓰레기", "박스들", "박스류", "물건들", "짐", "기타등등", "여러가지", "잡것", "잡아이"];
+
+const CONSENT_CONTENTS: Record<string, { title: string; body: string }> = {
+  terms: {
+    title: "서비스 이용약관",
+    body: `커버링 방문수거 서비스 이용약관
+
+제1조 (목적)
+본 약관은 커버링(이하 "회사")이 제공하는 방문수거 서비스의 이용에 관한 조건 및 절차를 규정합니다.
+
+제2조 (서비스 내용)
+회사는 고객이 신청한 대형폐기물 등 방문수거 서비스를 제공합니다. 수거 신청 후 매니저가 일정 및 견적을 확정하며, 방문 후 실제 작업량에 따라 최종 요금이 변동될 수 있습니다.
+
+제3조 (예약 및 취소)
+• 수거일 전날 낮 12시 이전까지 취소 가능합니다.
+• 이후 취소 또는 당일 취소 시 취소 수수료가 발생할 수 있습니다.
+• 기상 악화, 교통 상황 등 불가피한 사유로 수거 일정이 변경될 수 있으며, 이 경우 사전에 안내드립니다.
+
+제4조 (요금)
+• 견적은 신청 품목 기준 예상 금액이며, 실제 수거 시 추가 품목 발생 시 요금이 변동됩니다.
+• 최종 요금은 작업 완료 후 확정되어 안내됩니다.
+
+제5조 (면책)
+고객이 제공한 정보(주소, 품목 등)가 부정확하여 발생한 불이익에 대해 회사는 책임을 지지 않습니다.`,
+  },
+  privacy: {
+    title: "개인정보 수집·이용 동의",
+    body: `개인정보 수집·이용 동의
+
+수집 항목
+• 이름, 연락처(휴대폰 번호), 주소(수거지)
+
+수집·이용 목적
+• 방문수거 서비스 예약 접수 및 확인
+• 수거 일정·견적 안내 (문자, 전화)
+• 서비스 완료 후 결제 안내
+
+보유 및 이용 기간
+• 서비스 완료일로부터 3년
+• 단, 관계 법령에서 보관 의무를 규정한 경우 해당 기간까지 보관
+
+동의 거부 권리
+고객은 개인정보 수집·이용에 동의하지 않을 권리가 있습니다. 다만, 동의 거부 시 방문수거 서비스 이용이 불가합니다.`,
+  },
+  marketing: {
+    title: "마케팅 정보 수신 동의",
+    body: `마케팅 정보 수신 동의 (선택)
+
+수신 내용
+• 커버링의 신규 서비스 출시, 이벤트, 할인 혜택 안내
+• 방문수거 관련 유용한 정보 및 팁
+
+수신 방법
+• 문자 메시지(SMS/카카오 알림톡)
+
+수신 거부
+• 동의 후에도 언제든지 수신 거부 가능합니다.
+• 수신 거부 방법: 문자 내 수신거부 번호 회신 또는 고객센터 문의
+
+본 동의는 선택 사항으로, 동의하지 않아도 방문수거 서비스 이용에는 지장이 없습니다.`,
+  },
+  night: {
+    title: "야간 수신 동의 (21:00~익일 08:00)",
+    body: `야간 수신 동의 (선택)
+
+수신 시간대
+• 야간: 21:00 ~ 익일 08:00
+
+수신 내용
+• 수거 예약 확인 및 일정 변경 알림
+• 수거 완료 안내
+• 기타 서비스 관련 중요 알림
+
+안내 사항
+• 야간 수신에 동의하지 않으면 해당 시간대 알림은 발송되지 않습니다.
+• 단, 긴급한 수거 일정 변경 등의 경우 주간(08:00~21:00)에 별도 연락드릴 수 있습니다.
+
+본 동의는 선택 사항으로, 동의하지 않아도 방문수거 서비스 이용에는 지장이 없습니다.`,
+  },
+};
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["10:00", "12:00", "14:00", "16:00"];
 const TIME_LABELS: Record<string, string> = {
@@ -114,6 +193,13 @@ function BookingPageContent() {
   const [quoteError, setQuoteError] = useState(false);
   const [leadSaved, setLeadSaved] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
+
+  // Step 5: 약관 동의
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [agreedToMarketing, setAgreedToMarketing] = useState(false);
+  const [agreedToNightNotification, setAgreedToNightNotification] = useState(false);
+  const [consentModal, setConsentModal] = useState<{ title: string; body: string } | null>(null);
 
   // localStorage 복원 (마운트 시 1회) — 수정 모드가 아닐 때만
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -449,6 +535,10 @@ function BookingPageContent() {
         address,
         addressDetail,
         memo,
+        agreedToTerms,
+        agreedToPrivacy,
+        agreedToMarketing,
+        agreedToNightNotification,
       };
 
       if (editMode && editId) {
@@ -511,7 +601,7 @@ function BookingPageContent() {
     selectedItems.length > 0,                            // Step 2: 품목 (사진은 선택)
     hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 3: 작업 환경
     true,                                                 // Step 4: 사다리차
-    !!quote,                                              // Step 5: 견적 확인
+    !!quote && agreedToTerms && agreedToPrivacy,          // Step 5: 견적 확인 + 필수 약관 동의
   ];
 
   const earliestBookable = getEarliestBookableDate();
@@ -1420,6 +1510,83 @@ function BookingPageContent() {
               <p className="text-text-muted mt-4 text-sm">견적을 계산하고 있습니다...</p>
             </div>
           )}
+
+          {/* 약관 동의 */}
+          {(() => {
+            const allChecked = agreedToTerms && agreedToPrivacy && agreedToMarketing && agreedToNightNotification;
+            const anyChecked = agreedToTerms || agreedToPrivacy || agreedToMarketing || agreedToNightNotification;
+            const consentItems = [
+              { key: "terms",    label: "서비스 이용약관",               required: true,  checked: agreedToTerms,              setter: setAgreedToTerms },
+              { key: "privacy",  label: "개인정보 수집·이용",            required: true,  checked: agreedToPrivacy,            setter: setAgreedToPrivacy },
+              { key: "marketing",label: "마케팅 정보 수신",              required: false, checked: agreedToMarketing,          setter: setAgreedToMarketing },
+              { key: "night",    label: "야간 수신 (21:00~익일 08:00)", required: false, checked: agreedToNightNotification,  setter: setAgreedToNightNotification },
+            ];
+            return (
+              <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+                <h3 className="font-semibold">약관 동의</h3>
+                {/* 전체 동의 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !allChecked;
+                    setAgreedToTerms(next);
+                    setAgreedToPrivacy(next);
+                    setAgreedToMarketing(next);
+                    setAgreedToNightNotification(next);
+                  }}
+                  className="w-full flex items-center gap-3 py-3 px-4 rounded-md bg-bg-warm hover:bg-primary-bg transition-colors text-left"
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                    allChecked ? "bg-primary border-primary" : anyChecked ? "bg-primary/20 border-primary/40" : "border-border"
+                  }`}>
+                    {allChecked && (
+                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    )}
+                    {!allChecked && anyChecked && (
+                      <div className="w-2.5 h-0.5 bg-primary/60 rounded-full" />
+                    )}
+                  </div>
+                  <span className="font-semibold text-sm">모두 동의하기</span>
+                </button>
+
+                <div className="border-t border-border-light" />
+
+                {/* 개별 항목 */}
+                <div className="space-y-3">
+                  {consentItems.map(({ key, label, required, checked, setter }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setter(!checked)}
+                        className="flex items-center gap-3 flex-1 text-left"
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                          checked ? "bg-primary border-primary" : "border-border"
+                        }`}>
+                          {checked && (
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          )}
+                        </div>
+                        <span className="text-sm">
+                          <span className={`text-xs font-semibold mr-1 ${required ? "text-semantic-red" : "text-text-muted"}`}>
+                            {required ? "(필수)" : "(선택)"}
+                          </span>
+                          {label}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConsentModal(CONSENT_CONTENTS[key])}
+                        className="text-xs text-text-muted underline decoration-dotted shrink-0 ml-3 hover:text-text-sub"
+                      >
+                        내용보기
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1481,6 +1648,31 @@ function BookingPageContent() {
           </Button>
         )}
       </div>
+
+      {/* 약관 내용 모달 */}
+      {consentModal && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={consentModal.title}
+          onKeyDown={(e) => { if (e.key === "Escape") setConsentModal(null); }}
+        >
+          <div className="bg-white rounded-lg overflow-hidden w-full max-w-[28rem] max-h-[80vh] flex flex-col">
+            <ModalHeader title={consentModal.title} onClose={() => setConsentModal(null)} />
+            <div className="p-6 overflow-y-auto">
+              <pre className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap font-sans">
+                {consentModal.body}
+              </pre>
+            </div>
+            <div className="p-4 border-t border-border-light">
+              <Button variant="primary" size="md" fullWidth onClick={() => setConsentModal(null)}>
+                확인
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 모호한 품목 경고 모달 */}
       {vagueModalOpen && (
