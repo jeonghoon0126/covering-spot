@@ -26,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  user_confirmed: "견적 확인 완료",
   change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
@@ -38,6 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  user_confirmed: "bg-semantic-green-tint text-semantic-green",
   change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
@@ -55,8 +57,12 @@ const NEXT_STATUS: Record<string, { status: string; label: string }[]> = {
     { status: "cancelled", label: "취소" },
   ],
   quote_confirmed: [
+    { status: "cancelled", label: "취소" },
+  ],
+  user_confirmed: [
     { status: "in_progress", label: "수거 시작" },
     { status: "cancelled", label: "취소" },
+    { status: "rejected", label: "수거 불가" },
   ],
   change_requested: [
     { status: "quote_confirmed", label: "변경 확인 완료" },
@@ -346,7 +352,7 @@ export default function AdminBookingDetailPage() {
 
   const nextActions = NEXT_STATUS[booking.status] || [];
   // 수거 시작(in_progress) 이후 상태에서는 견적/시간/품목 수정 불가
-  const isLocked = !["pending", "quote_confirmed", "change_requested"].includes(booking.status);
+  const isLocked = !["pending", "quote_confirmed", "user_confirmed", "change_requested"].includes(booking.status);
 
   return (
     <div className="min-h-screen bg-bg-warm">
@@ -432,13 +438,23 @@ export default function AdminBookingDetailPage() {
                     : "-"}
               </span>
             </div>
-            <div className={`flex justify-between py-2.5 ${booking.needLadder || booking.memo ? "border-b border-border-light" : ""}`}>
+            <div className="flex justify-between py-2.5 border-b border-border-light">
               <span className="text-text-sub">주차</span>
               <span className="font-medium">
                 {booking.hasParking === true
                   ? "가능"
                   : booking.hasParking === false
                     ? "불가능"
+                    : "-"}
+              </span>
+            </div>
+            <div className={`flex justify-between py-2.5 ${booking.needLadder || booking.memo ? "border-b border-border-light" : ""}`}>
+              <span className="text-text-sub">지상 출입</span>
+              <span className="font-medium">
+                {booking.hasGroundAccess === true
+                  ? "가능"
+                  : booking.hasGroundAccess === false
+                    ? "불가"
                     : "-"}
               </span>
             </div>

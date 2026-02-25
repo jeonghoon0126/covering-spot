@@ -22,14 +22,15 @@ function canReschedule(b: Booking): boolean {
   return b.status === "quote_confirmed" && isBeforeDeadline(b.date);
 }
 
-/** 취소 가능 여부: pending, quote_confirmed, change_requested + 수거일 전날 22시 이전 */
+/** 취소 가능 여부: pending, quote_confirmed, user_confirmed, change_requested + 수거일 전날 22시 이전 */
 function canCancel(b: Booking): boolean {
-  return (b.status === "pending" || b.status === "quote_confirmed" || b.status === "change_requested") && isBeforeDeadline(b.date);
+  return (b.status === "pending" || b.status === "quote_confirmed" || b.status === "user_confirmed" || b.status === "change_requested") && isBeforeDeadline(b.date);
 }
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  user_confirmed: "견적 확인 완료",
   change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
@@ -42,6 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  user_confirmed: "bg-semantic-green-tint text-semantic-green",
   change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
@@ -54,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_MESSAGES: Record<string, string> = {
   pending: "담당자가 견적을 확인 중입니다",
   quote_confirmed: "최종 견적이 확정되었습니다",
+  user_confirmed: "견적을 확인하셨습니다. 수거 일정이 확정됩니다",
   change_requested: "일정 변경을 요청하셨습니다. 담당자가 확인 중입니다",
   in_progress: "수거 팀이 방문 중입니다",
   completed: "수거가 완료되었습니다",
@@ -77,6 +80,7 @@ interface EditForm {
   addressDetail: string;
   hasElevator: boolean;
   hasParking: boolean;
+  hasGroundAccess: boolean;
   memo: string;
 }
 
@@ -163,6 +167,7 @@ export default function BookingManagePage() {
       addressDetail: b.addressDetail,
       hasElevator: b.hasElevator,
       hasParking: b.hasParking,
+      hasGroundAccess: b.hasGroundAccess,
       memo: b.memo,
     });
   }
@@ -224,6 +229,23 @@ export default function BookingManagePage() {
     setReschedulingId(null);
     setRescheduleForm(null);
     setAvailableSlots([]);
+  }
+
+  async function handleUserConfirm(id: string) {
+    const token = getBookingToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["x-booking-token"] = token;
+    const res = await fetch(`/api/bookings/${id}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ action: "user_confirm" })
+    });
+    if (res.ok) {
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "user_confirmed" as const } : b));
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "확인 처리 실패");
+    }
   }
 
   async function handleReschedule(id: string) {
@@ -401,6 +423,11 @@ export default function BookingManagePage() {
                             onChange={(e) => setEditForm({ ...editForm, hasParking: e.target.checked })}
                             label="주차 가능"
                           />
+                          <Checkbox
+                            checked={editForm.hasGroundAccess}
+                            onChange={(e) => setEditForm({ ...editForm, hasGroundAccess: e.target.checked })}
+                            label="지상 출입 가능"
+                          />
                         </div>
                         <TextArea
                           label="요청사항"
@@ -447,16 +474,16 @@ export default function BookingManagePage() {
                           </span>
                         </div>
                         <div className="flex justify-between py-2.5 border-b border-border-light">
-                          <span className="text-text-sub">인력</span>
-                          <span className="font-medium">{b.crewSize}명</span>
-                        </div>
-                        <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">엘리베이터</span>
                           <span className="font-medium">{b.hasElevator ? "사용 가능" : "사용 불가"}</span>
                         </div>
                         <div className="flex justify-between py-2.5 border-b border-border-light">
                           <span className="text-text-sub">주차</span>
                           <span className="font-medium">{b.hasParking ? "가능" : "불가능"}</span>
+                        </div>
+                        <div className="flex justify-between py-2.5 border-b border-border-light">
+                          <span className="text-text-sub">지상 출입</span>
+                          <span className="font-medium">{b.hasGroundAccess ? "가능" : "불가"}</span>
                         </div>
 
                         {b.estimateMin > 0 && b.estimateMax > 0 && (
@@ -585,6 +612,15 @@ export default function BookingManagePage() {
                                 취소
                               </Button>
                             </div>
+                          </div>
+                        )}
+
+                        {/* 견적 확인 완료 버튼 (quote_confirmed 상태일 때만) */}
+                        {b.status === "quote_confirmed" && (
+                          <div className="mt-3">
+                            <Button variant="primary" size="md" fullWidth onClick={() => handleUserConfirm(b.id)}>
+                              견적 확인 완료
+                            </Button>
                           </div>
                         )}
 

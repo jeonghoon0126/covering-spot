@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
       hasElevator: false,
       hasParking: false,
+      hasGroundAccess: body.hasGroundAccess ?? false,
       estimateMin: priceNum,
       estimateMax: priceNum,
       finalPrice: null,

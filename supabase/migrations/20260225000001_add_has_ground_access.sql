@@ -1,0 +1,1 @@
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS has_ground_access BOOLEAN NOT NULL DEFAULT false;

@@ -9,6 +9,7 @@ import {
   sendBookingUpdated,
   sendBookingDeleted,
   sendRescheduleNotify,
+  sendStatusChanged,
 } from "@/lib/slack-notify";
 import { validateBookingToken } from "@/lib/booking-token";
 import { getCustomerDeadline } from "@/lib/booking-utils";
@@ -106,6 +107,24 @@ export async function PUT(
       );
     }
 
+    const body = await req.json();
+
+    // 유저 견적 확인 완료 처리 (action: "user_confirm")
+    if (body.action === "user_confirm") {
+      if (existing.status !== "quote_confirmed") {
+        return NextResponse.json(
+          { error: "견적 확정 상태에서만 확인할 수 있습니다" },
+          { status: 400 },
+        );
+      }
+      const updated = await updateBooking(id, { status: "user_confirmed" });
+      if (!updated) {
+        return NextResponse.json({ error: "수정 실패" }, { status: 500 });
+      }
+      sendStatusChanged(updated, "user_confirmed").catch(() => {});
+      return NextResponse.json({ booking: updated });
+    }
+
     // 수정 가능 조건: pending 또는 quote_confirmed/change_requested 상태
     const isReschedule = existing.status === "quote_confirmed" || existing.status === "change_requested";
     if (existing.status !== "pending" && !isReschedule) {
@@ -123,8 +142,6 @@ export async function PUT(
         { status: 400 },
       );
     }
-
-    const body = await req.json();
 
     // quote_confirmed 상태에서는 date, timeSlot만 변경 가능 (confirmedTime은 admin 전용)
     if (isReschedule) {
@@ -210,8 +227,8 @@ export async function DELETE(
       );
     }
 
-    // pending, quote_confirmed, change_requested 상태에서만 취소 가능
-    if (booking.status !== "pending" && booking.status !== "quote_confirmed" && booking.status !== "change_requested") {
+    // pending, quote_confirmed, user_confirmed, change_requested 상태에서만 취소 가능
+    if (booking.status !== "pending" && booking.status !== "quote_confirmed" && booking.status !== "user_confirmed" && booking.status !== "change_requested") {
       return NextResponse.json(
         { error: "수거 진행 중에는 취소할 수 없습니다" },
         { status: 400 },

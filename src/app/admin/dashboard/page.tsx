@@ -28,6 +28,7 @@ const STATUS_TABS = [
   { key: "all", label: "전체" },
   { key: "pending", label: "접수" },
   { key: "quote_confirmed", label: "견적확정" },
+  { key: "user_confirmed", label: "견적확인완료" },
   { key: "change_requested", label: "일정변경요청" },
   { key: "in_progress", label: "진행중" },
   { key: "completed", label: "수거완료" },
@@ -39,6 +40,7 @@ const STATUS_TABS = [
 const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
+  user_confirmed: "견적 확인 완료",
   change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",
   completed: "수거 완료",
@@ -51,6 +53,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
+  user_confirmed: "bg-semantic-green-tint text-semantic-green",
   change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
@@ -62,7 +65,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 // 대시보드에서 바로 실행 가능한 다음 상태 (추가 입력 불필요한 것만)
 const QUICK_ACTIONS: Record<string, { status: string; label: string; color: string }> = {
-  quote_confirmed: { status: "in_progress", label: "수거 시작", color: "bg-primary text-white" },
+  user_confirmed: { status: "in_progress", label: "수거 시작", color: "bg-primary text-white" },
   in_progress: { status: "completed", label: "수거 완료", color: "bg-semantic-green text-white" },
   completed: { status: "payment_requested", label: "정산 요청", color: "bg-semantic-orange text-white" },
   payment_requested: { status: "payment_completed", label: "정산 완료", color: "bg-semantic-green text-white" },

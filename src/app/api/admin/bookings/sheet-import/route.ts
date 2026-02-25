@@ -166,6 +166,7 @@ function rowToBooking(row: SheetRow): Booking {
     updatedAt: now,
     hasElevator: false,
     hasParking: false,
+    hasGroundAccess: false,
     estimateMin: row.estimatedPrice ? parseInt(row.estimatedPrice.replace(/,/g, ""), 10) || 0 : 0,
     estimateMax: row.estimatedPrice ? parseInt(row.estimatedPrice.replace(/,/g, ""), 10) || 0 : 0,
     finalPrice: null,

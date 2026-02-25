@@ -27,6 +27,7 @@ export interface Booking {
   status:
     | "pending"
     | "quote_confirmed"
+    | "user_confirmed"
     | "change_requested"
     | "in_progress"
     | "completed"
@@ -38,6 +39,7 @@ export interface Booking {
   updatedAt: string;
   hasElevator: boolean;
   hasParking: boolean;
+  hasGroundAccess: boolean;
   estimateMin: number;
   estimateMax: number;
   finalPrice: number | null;

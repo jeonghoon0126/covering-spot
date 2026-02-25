@@ -53,6 +53,7 @@ const FIELD_MAP: Record<string, string> = {
   status: "status",
   hasElevator: "has_elevator",
   hasParking: "has_parking",
+  hasGroundAccess: "has_ground_access",
   estimateMin: "estimate_min",
   estimateMax: "estimate_max",
   finalPrice: "final_price",
@@ -96,6 +97,7 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     updatedAt: row.updated_at as string,
     hasElevator: (row.has_elevator as boolean) || false,
     hasParking: (row.has_parking as boolean) || false,
+    hasGroundAccess: (row.has_ground_access as boolean) || false,
     estimateMin: (row.estimate_min as number) || 0,
     estimateMax: (row.estimate_max as number) || 0,
     finalPrice:
@@ -140,6 +142,7 @@ function bookingToRow(b: Booking) {
     updated_at: b.updatedAt,
     has_elevator: b.hasElevator,
     has_parking: b.hasParking,
+    has_ground_access: b.hasGroundAccess,
     estimate_min: b.estimateMin,
     estimate_max: b.estimateMax,
     final_price: b.finalPrice,
@@ -499,6 +502,23 @@ export async function getDrivers(activeOnly = true): Promise<Driver[]> {
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(rowToDriver);
+}
+
+/**
+ * 특정 날짜에 근무하는 기사 목록 반환 (active=true + workDays에 해당 요일 포함)
+ * workDays 예: "월,화,수,목,금,토"
+ */
+export async function getDriversForDate(date: string): Promise<Driver[]> {
+  const dayIndex = new Date(date).getDay(); // 0=일,1=월,...,6=토
+  const DAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+  const dayKo = DAY_KO[dayIndex];
+
+  const drivers = await getDrivers(true);
+  return drivers.filter((d) => {
+    if (!d.workDays) return false;
+    const days = d.workDays.split(",").map((s) => s.trim());
+    return days.includes(dayKo);
+  });
 }
 
 export async function createDriver(

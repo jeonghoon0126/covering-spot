@@ -10,7 +10,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import type { BookingItem } from "@/types/booking";
 
-const SOURCE_OPTIONS = ["카카오톡 상담", "전화 상담", "기타"];
+const SOURCE_OPTIONS = ["런치", "카카오톡 상담", "전화 상담", "기타"];
 const TIME_SLOTS = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
 const POPULAR_ITEMS = [
@@ -58,6 +58,7 @@ interface FormData {
   timeSlot: string;
   memo: string;
   source: string;
+  hasGroundAccess: boolean;
 }
 
 interface FormErrors {
@@ -82,6 +83,7 @@ export default function AdminBookingNewPage() {
     timeSlot: "",
     memo: "",
     source: "카카오톡 상담",
+    hasGroundAccess: false,
   });
   const [showPostcode, setShowPostcode] = useState(false);
 
@@ -223,6 +225,7 @@ export default function AdminBookingNewPage() {
           timeSlot: form.timeSlot,
           memo: form.memo.trim(),
           source: form.source,
+          hasGroundAccess: form.hasGroundAccess,
         }),
       });
 
@@ -689,6 +692,36 @@ export default function AdminBookingNewPage() {
               placeholder="수거 시 참고할 사항 (선택)"
               rows={3}
             />
+
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
+                지상 출입 가능
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, hasGroundAccess: true }))}
+                  className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                    form.hasGroundAccess === true
+                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                      : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                  }`}
+                >
+                  가능
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, hasGroundAccess: false }))}
+                  className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                    form.hasGroundAccess === false
+                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                      : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                  }`}
+                >
+                  불가
+                </button>
+              </div>
+            </div>
 
             <div className="flex flex-col">
               <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">

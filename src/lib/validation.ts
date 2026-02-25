@@ -29,6 +29,7 @@ export const BookingCreateSchema = z.object({
   memo: z.string().max(500).optional(),
   hasElevator: z.boolean(),
   hasParking: z.boolean(),
+  hasGroundAccess: z.boolean(),
   estimateMin: z.number().min(0).optional(),
   estimateMax: z.number().min(0).optional(),
   photos: z.array(z.string().url()).max(5).optional(),
@@ -39,6 +40,7 @@ export const BookingUpdateSchema = z.object({
     .enum([
       "pending",
       "quote_confirmed",
+      "user_confirmed",
       "change_requested",
       "in_progress",
       "completed",

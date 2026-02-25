@@ -156,6 +156,7 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
       hasElevator: validData.hasElevator || false,
       hasParking: validData.hasParking || false,
+      hasGroundAccess: validData.hasGroundAccess || false,
       estimateMin: serverQuote.estimateMin, // 서버 계산값 적용
       estimateMax: serverQuote.estimateMax, // 서버 계산값 적용
       finalPrice: null,

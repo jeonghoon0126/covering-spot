@@ -19,6 +19,7 @@ import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 
 const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
+const VAGUE_ITEM_KEYWORDS = ["잡동사니", "쓰레기", "박스들", "박스류", "물건들", "짐", "기타등등", "여러가지", "잡것", "잡아이"];
 const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 const TIME_OPTIONS = ["10:00", "12:00", "14:00", "16:00"];
 const TIME_LABELS: Record<string, string> = {
@@ -93,9 +94,15 @@ function BookingPageContent() {
   const [customItemName, setCustomItemName] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
+  // 모호한 품목 경고 모달
+  const [vagueModalOpen, setVagueModalOpen] = useState(false);
+  const [vagueModalItemName, setVagueModalItemName] = useState("");
+  const [vagueModalOnContinue, setVagueModalOnContinue] = useState<(() => void) | null>(null);
+
   // Step 3: 작업 환경
   const [hasElevator, setHasElevator] = useState<boolean | null>(null);
   const [hasParking, setHasParking] = useState<boolean | null>(null);
+  const [hasGroundAccess, setHasGroundAccess] = useState<boolean | null>(null);
 
   // Step 4: 사다리차
   const [needLadder, setNeedLadder] = useState(false);
@@ -127,6 +134,7 @@ function BookingPageContent() {
       if (d.selectedItems?.length) setSelectedItems(d.selectedItems);
       if (d.hasElevator !== undefined) setHasElevator(d.hasElevator);
       if (d.hasParking !== undefined) setHasParking(d.hasParking);
+      if (d.hasGroundAccess !== undefined) setHasGroundAccess(d.hasGroundAccess);
       if (d.needLadder !== undefined) setNeedLadder(d.needLadder);
       if (d.ladderType) setLadderType(d.ladderType);
       if (d.ladderHours !== undefined) setLadderHours(d.ladderHours);
@@ -158,6 +166,7 @@ function BookingPageContent() {
         if (b.items?.length) setSelectedItems(b.items);
         if (b.hasElevator != null) setHasElevator(b.hasElevator);
         if (b.hasParking != null) setHasParking(b.hasParking);
+        if (b.hasGroundAccess != null) setHasGroundAccess(b.hasGroundAccess);
         if (b.needLadder != null) setNeedLadder(b.needLadder);
         if (b.ladderType) setLadderType(b.ladderType);
         setStep(0);
@@ -176,12 +185,12 @@ function BookingPageContent() {
         localStorage.setItem("covering_spot_booking_draft", JSON.stringify({
           customerName, phone, address, addressDetail, memo,
           selectedDate, selectedTime, selectedArea, selectedItems,
-          hasElevator, hasParking, needLadder, ladderType, ladderHours, step,
+          hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step,
         }));
       } catch { /* quota 초과 무시 */ }
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, needLadder, ladderType, ladderHours, step]);
+  }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step]);
 
   // 예약 시작 트래킹
   useEffect(() => {
@@ -212,11 +221,16 @@ function BookingPageContent() {
     });
   }, [selectedDate]);
 
-  // 날짜 선택 시 슬롯 가용성 조회
+  // 날짜 선택 시 슬롯 가용성 조회 (선택된 품목의 총 적재량도 함께 전달)
   useEffect(() => {
     if (!selectedDate) return;
     setSlotsLoading(true);
-    fetch(`/api/slots?date=${selectedDate}`)
+    const totalLoadingCube = selectedItems.reduce(
+      (sum, item) => sum + (item.loadingCube ?? 0) * item.quantity,
+      0,
+    );
+    const cubeParam = totalLoadingCube > 0 ? `&loadingCube=${totalLoadingCube}` : "";
+    fetch(`/api/slots?date=${selectedDate}${cubeParam}`)
       .then((r) => r.json())
       .then((data) => {
         const slots = data.slots || [];
@@ -228,7 +242,7 @@ function BookingPageContent() {
       })
       .catch(() => {})
       .finally(() => setSlotsLoading(false));
-  }, [selectedDate]);
+  }, [selectedDate, selectedItems]);
 
   // 사진 선택 시 미리보기 생성
   useEffect(() => {
@@ -342,13 +356,14 @@ function BookingPageContent() {
           items: selectedItems,
           hasElevator,
           hasParking,
+          hasGroundAccess,
           needLadder,
         }),
       }).catch(() => {
         /* 리드 저장 실패는 무시 */
       });
     }
-  }, [step, leadSaved, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, needLadder]);
+  }, [step, leadSaved, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder]);
 
   // 품목 수량 변경
   function updateItemQty(
@@ -427,6 +442,7 @@ function BookingPageContent() {
         ladderPrice: quote.ladderPrice,
         hasElevator,
         hasParking,
+        hasGroundAccess,
         photos: photoUrls.length > 0 ? photoUrls : undefined,
         customerName,
         phone,
@@ -493,7 +509,7 @@ function BookingPageContent() {
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
     selectedDate && selectedTime,                        // Step 1: 날짜/시간
     selectedItems.length > 0,                            // Step 2: 품목 (사진은 선택)
-    hasElevator !== null && hasParking !== null,          // Step 3: 작업 환경
+    hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 3: 작업 환경
     true,                                                 // Step 4: 사다리차
     !!quote,                                              // Step 5: 견적 확인
   ];
@@ -1002,9 +1018,20 @@ function BookingPageContent() {
                 size="md"
                 disabled={!customItemName.trim()}
                 onClick={() => {
-                  if (!customItemName.trim()) return;
-                  updateItemQty("직접입력", customItemName.trim(), customItemName.trim(), 0, 1);
-                  setCustomItemName("");
+                  const trimmed = customItemName.trim();
+                  if (!trimmed) return;
+                  const isVague = VAGUE_ITEM_KEYWORDS.some((kw) => trimmed.includes(kw));
+                  if (isVague) {
+                    setVagueModalItemName(trimmed);
+                    setVagueModalOnContinue(() => () => {
+                      updateItemQty("직접입력", trimmed, trimmed, 0, 1);
+                      setCustomItemName("");
+                    });
+                    setVagueModalOpen(true);
+                  } else {
+                    updateItemQty("직접입력", trimmed, trimmed, 0, 1);
+                    setCustomItemName("");
+                  }
                 }}
               >
                 추가
@@ -1136,6 +1163,31 @@ function BookingPageContent() {
               </button>
             </div>
           </div>
+          <div>
+            <p className="font-semibold mb-4">지상 출입 가능</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setHasGroundAccess(true)}
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                  hasGroundAccess === true
+                    ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                    : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
+                }`}
+              >
+                가능
+              </button>
+              <button
+                onClick={() => setHasGroundAccess(false)}
+                className={`flex-1 py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                  hasGroundAccess === false
+                    ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                    : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
+                }`}
+              >
+                불가능
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1247,6 +1299,10 @@ function BookingPageContent() {
               <div className="flex justify-between">
                 <span className="text-text-sub shrink-0 w-20">주차</span>
                 <span className="font-medium">{hasParking ? "가능" : "불가능"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-sub shrink-0 w-20">지상 출입</span>
+                <span className="font-medium">{hasGroundAccess ? "가능" : "불가"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-sub shrink-0 w-20">사다리차</span>
@@ -1385,7 +1441,21 @@ function BookingPageContent() {
             size="lg"
             fullWidth
             disabled={!canNext[step]}
-            onClick={() => setStep(step + 1)}
+            onClick={() => {
+              if (step === 2) {
+                const vagueItem = selectedItems.find((item) =>
+                  item.category === "직접입력" &&
+                  VAGUE_ITEM_KEYWORDS.some((kw) => item.name.includes(kw))
+                );
+                if (vagueItem) {
+                  setVagueModalItemName(vagueItem.name);
+                  setVagueModalOnContinue(() => () => setStep(step + 1));
+                  setVagueModalOpen(true);
+                  return;
+                }
+              }
+              setStep(step + 1);
+            }}
           >
             다음
           </Button>
@@ -1407,10 +1477,57 @@ function BookingPageContent() {
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? "" : editMode ? "수정 완료" : "수거 신청하기"}
+            {loading ? "" : editMode ? "수정 완료" : "최종 견적 요청하기"}
           </Button>
         )}
       </div>
+
+      {/* 모호한 품목 경고 모달 */}
+      {vagueModalOpen && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="품목 입력 안내"
+          onKeyDown={(e) => { if (e.key === "Escape") setVagueModalOpen(false); }}
+        >
+          <div className="bg-white rounded-lg overflow-hidden w-full max-w-[28rem]">
+            <ModalHeader
+              title="품목을 구체적으로 입력해주세요"
+              onClose={() => setVagueModalOpen(false)}
+            />
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-text-primary leading-relaxed">
+                &apos;{vagueModalItemName}&apos;처럼 뭉뚱그린 품목은 실제 수거 시 시간이 크게 늘어날 수 있습니다.
+              </p>
+              <p className="text-sm text-text-sub leading-relaxed">
+                예시: 소파 1개, 장롱 2자 1개, 박스 10개 등 구체적으로 입력해주세요.
+              </p>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  onClick={() => setVagueModalOpen(false)}
+                >
+                  다시 입력하기
+                </Button>
+                <Button
+                  variant="tertiary"
+                  size="md"
+                  fullWidth
+                  onClick={() => {
+                    setVagueModalOpen(false);
+                    if (vagueModalOnContinue) vagueModalOnContinue();
+                  }}
+                >
+                  이대로 진행
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 주소 검색 팝업 */}
       {showPostcode && (

@@ -11,10 +11,12 @@ import {
 } from "@/lib/slack-notify";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
+import { calculateQuote } from "@/lib/quote-calculator";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
-  quote_confirmed: ["in_progress", "cancelled"],
+  quote_confirmed: ["user_confirmed", "in_progress", "cancelled"],
+  user_confirmed: ["in_progress", "cancelled", "rejected"],
   change_requested: ["quote_confirmed", "cancelled"],
   in_progress: ["completed"],
   completed: ["payment_requested"],
@@ -118,6 +120,31 @@ export async function PUT(
     }
 
     const existing = await getBookingByIdAdmin(id);
+
+    // crewSize 변경 시 totalPrice, estimateMin, estimateMax 자동 재계산
+    if (
+      data.crewSize !== undefined &&
+      existing &&
+      data.crewSize !== existing.crewSize
+    ) {
+      try {
+        const recalculated = calculateQuote(
+          {
+            area: existing.area,
+            items: existing.items,
+            needLadder: existing.needLadder,
+            ladderType: existing.ladderType,
+            ladderHours: existing.ladderHours,
+          },
+          data.crewSize,
+        );
+        allowedUpdates.totalPrice = recalculated.totalPrice;
+        allowedUpdates.estimateMin = recalculated.estimateMin;
+        allowedUpdates.estimateMax = recalculated.estimateMax;
+      } catch (err) {
+        console.error("[admin/bookings] crewSize 변경 시 견적 재계산 실패", { bookingId: id, crewSize: data.crewSize, err });
+      }
+    }
     if (!existing) {
       return NextResponse.json(
         { error: "예약을 찾을 수 없습니다" },

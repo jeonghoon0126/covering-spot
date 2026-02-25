@@ -10,7 +10,7 @@ const DISASSEMBLY_CATEGORIES = ["장롱", "침대", "소파", "장식장", "거�
 const CREW_SIZE_2_THRESHOLD = 500_000;  // 50만원 이상 → 2인
 const CREW_SIZE_3_THRESHOLD = 1_000_000; // 100만원 이상 → 3인
 
-export function calculateQuote(input: QuoteInput): QuoteResult {
+export function calculateQuote(input: QuoteInput, overrideCrewSize?: number): QuoteResult {
   // 1. 품목 단가를 서버 기준으로 덮어쓰기 (클라이언트 변조 방어)
   const secureItems = enforceServerItems(input.items);
 
@@ -24,10 +24,13 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
 
   const itemsTotal = breakdown.reduce((sum, b) => sum + b.subtotal, 0);
 
-  // 2. 인력 수 자동 계산
-  let crewSize = 1;
-  if (itemsTotal >= CREW_SIZE_3_THRESHOLD) crewSize = 3;
-  else if (itemsTotal >= CREW_SIZE_2_THRESHOLD) crewSize = 2;
+  // 2. 인력 수 자동 계산 (overrideCrewSize가 있으면 어드민 지정값 사용)
+  let crewSize = overrideCrewSize ?? 1;
+  if (!overrideCrewSize) {
+    if (itemsTotal >= CREW_SIZE_3_THRESHOLD) crewSize = 3;
+    else if (itemsTotal >= CREW_SIZE_2_THRESHOLD) crewSize = 2;
+    else crewSize = 1;
+  }
 
   // 3. 지역 단가로 인력비 계산
   const area = SPOT_AREAS.find((a) => a.name === input.area);
