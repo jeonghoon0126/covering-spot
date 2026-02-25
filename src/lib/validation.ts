@@ -38,7 +38,6 @@ export const BookingUpdateSchema = z.object({
   status: z
     .enum([
       "pending",
-      "confirmed",
       "quote_confirmed",
       "change_requested",
       "in_progress",

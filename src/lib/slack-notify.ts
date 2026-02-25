@@ -19,7 +19,6 @@ function actionsBlock(buttons: { text: string; url: string; primary?: boolean }[
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "접수 대기",
-  confirmed: "확인됨",
   quote_confirmed: "견적 확정",
   change_requested: "일정 변경 요청",
   in_progress: "수거 진행중",

@@ -26,7 +26,6 @@ export interface Booking {
   memo: string;
   status:
     | "pending"
-    | "confirmed"
     | "quote_confirmed"
     | "change_requested"
     | "in_progress"
