@@ -1,5 +1,6 @@
 import { SPOT_AREAS } from "@/data/spot-areas";
 import { LADDER_PRICES } from "@/data/spot-ladder";
+import { enforceServerItems } from "@/lib/server-price";
 import type { QuoteInput, QuoteResult } from "@/types/booking";
 
 // 해체 작업이 필요할 수 있는 카테고리 (max 견적에 추가 10% 가산)
@@ -10,8 +11,11 @@ const CREW_SIZE_2_THRESHOLD = 500_000;  // 50만원 이상 → 2인
 const CREW_SIZE_3_THRESHOLD = 1_000_000; // 100만원 이상 → 3인
 
 export function calculateQuote(input: QuoteInput): QuoteResult {
-  // 1. 품목별 소계 계산
-  const breakdown = input.items.map((item) => ({
+  // 1. 품목 단가를 서버 기준으로 덮어쓰기 (클라이언트 변조 방어)
+  const secureItems = enforceServerItems(input.items);
+
+  // 1-1. 품목별 소계 계산
+  const breakdown = secureItems.map((item) => ({
     name: `${item.category} - ${item.name}`,
     quantity: item.quantity,
     unitPrice: item.price,
@@ -58,11 +62,11 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   let itemsTotalMax = itemsTotal * 1.15;
 
   // 해체 가능 카테고리 품목이 있으면 해당 품목 금액의 10%만 추가 가산
-  const hasDisassemblyItem = input.items.some((item) =>
+  const hasDisassemblyItem = secureItems.some((item) =>
     DISASSEMBLY_CATEGORIES.includes(item.category),
   );
   if (hasDisassemblyItem) {
-    const disassemblyTotal = input.items
+    const disassemblyTotal = secureItems
       .filter((item) => DISASSEMBLY_CATEGORIES.includes(item.category))
       .reduce((sum, item) => sum + item.price * item.quantity, 0);
     itemsTotalMax += disassemblyTotal * 0.1;

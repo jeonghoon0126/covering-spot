@@ -12,7 +12,8 @@ import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
 import { geocodeAddress } from "@/lib/geocode";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { sendStatusSms } from "@/lib/sms-notify";
-import { calcCrewSize } from "@/lib/crew-utils";
+import { enforceServerItems } from "@/lib/server-price";
+import { calculateQuote } from "@/lib/quote-calculator";
 import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -115,15 +116,23 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString();
 
-    // 적재큐브 합계 계산
-    const items: BookingItem[] = (validData.items || []).map((item) => ({
-      ...item,
-      displayName: item.displayName || item.name,
-    }));
+    // 서버 단가표를 기준으로 품목 정보 덮어쓰기 (가격, 적재량 변조 방지)
+    const items = enforceServerItems(validData.items || []);
+
+    // 서버 단가 기준 총 적재량 재계산
     const totalLoadingCube = items.reduce(
-      (sum: number, item: BookingItem) => sum + (item.loadingCube || 0) * item.quantity,
+      (sum, item) => sum + (item.loadingCube || 0) * item.quantity,
       0,
     );
+
+    // 고객이 던진 totalPrice, estimateMin/Max 대신 서버에서 엄격히 재계산한 견적값 적용
+    const serverQuote = calculateQuote({
+      area: validData.area,
+      items: items,
+      needLadder: validData.needLadder,
+      ladderType: validData.ladderType,
+      ladderHours: validData.ladderHours,
+    });
 
     const booking: Booking = {
       id: uuidv4(),
@@ -131,12 +140,12 @@ export async function POST(req: NextRequest) {
       timeSlot: validData.timeSlot,
       area: validData.area,
       items,
-      totalPrice: validData.totalPrice || 0,
-      crewSize: validData.crewSize || calcCrewSize(totalLoadingCube),
+      totalPrice: serverQuote.totalPrice, // 서버 계산값 적용
+      crewSize: validData.crewSize || serverQuote.crewSize, // 고객 요청 우선 또는 자동
       needLadder: validData.needLadder || false,
       ladderType: validData.ladderType || "",
       ladderHours: validData.ladderHours,
-      ladderPrice: validData.ladderPrice || 0,
+      ladderPrice: serverQuote.ladderPrice, // 서버 계산값 적용
       customerName: validData.customerName,
       phone: validData.phone,
       address: validData.address,
@@ -147,8 +156,8 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
       hasElevator: validData.hasElevator || false,
       hasParking: validData.hasParking || false,
-      estimateMin: validData.estimateMin || 0,
-      estimateMax: validData.estimateMax || 0,
+      estimateMin: serverQuote.estimateMin, // 서버 계산값 적용
+      estimateMax: serverQuote.estimateMax, // 서버 계산값 적용
       finalPrice: null,
       photos: validData.photos || [],
       adminMemo: "",
@@ -167,14 +176,14 @@ export async function POST(req: NextRequest) {
     await createBooking(booking);
 
     // 수거 신청 접수 SMS (fire-and-forget)
-    sendStatusSms(booking.phone, "received", booking.id).catch(() => {});
+    sendStatusSms(booking.phone, "received", booking.id).catch(() => { });
 
     // Slack 알림만 fire-and-forget (지연 무관)
     sendBookingCreated(booking).then((threadTs) => {
       if (threadTs) {
-        updateBooking(booking.id, { slackThreadTs: threadTs }).catch(() => {});
+        updateBooking(booking.id, { slackThreadTs: threadTs }).catch(() => { });
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     // 예약 생성 시 bookingToken 반환 (고객이 조회/수정/삭제에 사용)
     const bookingToken = generateBookingToken(booking.phone);
