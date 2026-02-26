@@ -8,9 +8,16 @@ import { track } from "@/lib/analytics";
 export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  // Page view
+  // Page view (pathname → 화면 이름 매핑)
   useEffect(() => {
-    track("page_view");
+    const screenMap: Record<string, Parameters<typeof track>[0]> = {
+      "/": "[ROUTE] SpotHomeScreen",
+      "/booking": "[ROUTE] SpotBookingScreen",
+      "/booking/complete": "[ROUTE] SpotBookingCompleteScreen",
+      "/booking/manage": "[ROUTE] SpotBookingManageScreen",
+    };
+    const screen = screenMap[pathname];
+    if (screen) track(screen);
   }, [pathname]);
 
   // Scroll depth tracking
@@ -27,7 +34,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       for (const t of thresholds) {
         if (pct >= t && !fired.has(t)) {
           fired.add(t);
-          track("scroll_depth", { depth: t });
+          track("[VIEW] SpotScrollDepth", { depth: t });
         }
       }
     };

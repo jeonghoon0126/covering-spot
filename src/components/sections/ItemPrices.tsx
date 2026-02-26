@@ -218,7 +218,7 @@ export function ItemPrices({ categories }: Props) {
                 key={cat.id}
                 onClick={() => {
                   setActiveId(cat.id);
-                  track("price_tab_select", { item: cat.id });
+                  track("[CLICK] SpotHomeScreen_priceTab", { item: cat.id });
                 }}
                 className={`group flex items-center gap-2 py-3 px-5 rounded-full font-semibold text-sm border cursor-pointer transition-all duration-300 ease-out whitespace-nowrap shrink-0 hover:-translate-y-0.5 active:scale-[0.97] ${
                   cat.id === activeId

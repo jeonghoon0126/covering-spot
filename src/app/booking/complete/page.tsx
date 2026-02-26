@@ -62,7 +62,7 @@ function BookingCompleteContent() {
   // 예약 완료 트래킹
   useEffect(() => {
     if (id) {
-      track("booking_complete", { bookingId: id });
+      track("[EVENT] SpotBookingComplete", { bookingId: id });
     }
   }, [id]);
 

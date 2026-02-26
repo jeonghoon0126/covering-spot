@@ -82,7 +82,7 @@ export function FAQ({ items }: Props) {
   const toggle = useCallback((index: number) => {
     setOpenIndex((prev) => {
       if (prev === index) return null;
-      track("faq_open", { question: items[index].question, index });
+      track("[CLICK] SpotHomeScreen_faqOpen", { question: items[index].question, index });
       return index;
     });
   }, [items]);

@@ -17,7 +17,7 @@ export function CTALink({ location, children, className }: Props) {
       target="_blank"
       rel="noopener noreferrer"
       className={className}
-      onClick={() => track("cta_click", { location })}
+      onClick={() => track("[CLICK] SpotHomeScreen_cta", { location })}
     >
       {children}
     </a>

@@ -278,16 +278,11 @@ function BookingPageContent() {
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step]);
 
-  // 예약 시작 트래킹
-  useEffect(() => {
-    track("booking_start");
-  }, []);
-
   // 스텝 변경 트래킹
   const prevStepRef = useRef(step);
   useEffect(() => {
     if (step !== prevStepRef.current) {
-      track("booking_step_complete", { step: prevStepRef.current, stepName: STEPS[prevStepRef.current] });
+      track("[CLICK] SpotBookingScreen_nextStep", { step: prevStepRef.current, stepName: STEPS[prevStepRef.current] });
       prevStepRef.current = step;
     }
   }, [step]);
@@ -350,7 +345,7 @@ function BookingPageContent() {
     setPhotos((prev) => {
       const combined = [...prev, ...newFiles];
       const result = combined.slice(0, 5);
-      track("booking_photo_upload", { count: result.length });
+      track("[CLICK] SpotBookingScreen_uploadPhoto", { count: result.length });
       return result;
     });
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -387,7 +382,7 @@ function BookingPageContent() {
         const data = await res.json();
         setPreviewQuote(data);
         if (data.estimateMin) {
-          track("quote_preview", { itemCount: selectedItems.length, total: data.estimateMin });
+          track("[VIEW] SpotBookingScreen_quotePreview", { itemCount: selectedItems.length, total: data.estimateMin });
         }
       } catch { /* 미리보기 실패 무시 */ }
     }, QUOTE_PREVIEW_DEBOUNCE);
@@ -460,7 +455,7 @@ function BookingPageContent() {
     delta: number,
   ) {
     if (delta > 0) {
-      track("booking_item_select", { category: cat, name, price });
+      track("[CLICK] SpotBookingScreen_selectItem", { category: cat, name, price });
     }
     setSelectedItems((prev) => {
       const idx = prev.findIndex(
@@ -492,7 +487,7 @@ function BookingPageContent() {
   // 수거 신청 확정 (신규 / 수정)
   async function handleSubmit() {
     if (!quote) return;
-    track(editMode ? "booking_edit_submit" : "booking_submit", { itemCount: selectedItems.length, estimatedTotal: quote.estimateMin });
+    track(editMode ? "[CLICK] SpotBookingEditScreen_submit" : "[CLICK] SpotBookingScreen_submit", { itemCount: selectedItems.length, estimatedTotal: quote.estimateMin });
     setLoading(true);
     try {
       // 1. 사진이 있으면 먼저 업로드

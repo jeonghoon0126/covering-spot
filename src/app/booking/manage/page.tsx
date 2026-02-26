@@ -101,12 +101,7 @@ export default function BookingManagePage() {
   const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  // 신청 관리 페이지 트래킹
-  useEffect(() => {
-    track("booking_manage_view");
-  }, []);
-
-  /** localStorage에서 bookingToken 가져오기 */
+/** localStorage에서 bookingToken 가져오기 */
   function getBookingToken(): string | null {
     try {
       return localStorage.getItem("covering_spot_booking_token");
@@ -135,7 +130,7 @@ export default function BookingManagePage() {
 
   async function handleCancel(id: string) {
     if (!confirm("정말 신청을 취소하시겠습니까?")) return;
-    track("booking_cancel", { bookingId: id });
+    track("[EVENT] SpotBookingCancel", { bookingId: id });
     setCancelling(id);
     try {
       const token = getBookingToken();

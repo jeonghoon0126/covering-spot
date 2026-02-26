@@ -78,7 +78,7 @@ export function ItemsCarousel({ items }: Props) {
                 stopAutoplay();
                 prev();
                 startAutoplay();
-                track("carousel_interact", { type: "arrow", direction: "left" });
+                track("[CLICK] SpotHomeScreen_carousel", { type: "arrow", direction: "left" });
               }}
               className="absolute top-1/2 -translate-y-1/2 z-[2] w-11 h-11 rounded-full bg-bg border border-border cursor-pointer flex items-center justify-center shadow-md transition-all hover:shadow-lg hover:border-[#CBD5E1] hover:text-text-primary text-text-sub -left-[22px] max-lg:left-2 max-md:w-9 max-md:h-9"
               style={{ opacity: currentPage === 0 ? 0.35 : 1 }}
@@ -101,7 +101,7 @@ export function ItemsCarousel({ items }: Props) {
                 stopAutoplay();
                 next();
                 startAutoplay();
-                track("carousel_interact", { type: "arrow", direction: "right" });
+                track("[CLICK] SpotHomeScreen_carousel", { type: "arrow", direction: "right" });
               }}
               className="absolute top-1/2 -translate-y-1/2 z-[2] w-11 h-11 rounded-full bg-bg border border-border cursor-pointer flex items-center justify-center shadow-md transition-all hover:shadow-lg hover:border-[#CBD5E1] hover:text-text-primary text-text-sub -right-[22px] max-lg:right-2 max-md:w-9 max-md:h-9"
               style={{ opacity: currentPage >= totalPages - 1 ? 0.35 : 1 }}
@@ -129,7 +129,7 @@ export function ItemsCarousel({ items }: Props) {
               key={i}
               onClick={() => {
                 goTo(i);
-                track("carousel_interact", { type: "dot" });
+                track("[CLICK] SpotHomeScreen_carousel", { type: "dot" });
               }}
               className={`h-2 rounded-full border-none cursor-pointer p-0 transition-all duration-300 ${
                 i === currentPage

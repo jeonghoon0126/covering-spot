@@ -1,43 +1,43 @@
 type EventName =
-  | "page_view"
-  | "cta_click"
-  | "carousel_interact"
-  | "price_tab_select"
-  | "faq_open"
-  | "compare_section_viewed"
-  | "scroll_depth"
-  | "booking_start"
-  | "booking_step_complete"
-  | "booking_item_select"
-  | "booking_photo_upload"
-  | "booking_submit"
-  | "booking_edit_submit"
-  | "booking_complete"
-  | "booking_manage_view"
-  | "booking_cancel"
-  | "quote_preview";
+  // ROUTE - 화면 진입
+  | "[ROUTE] SpotHomeScreen"
+  | "[ROUTE] SpotBookingScreen"
+  | "[ROUTE] SpotBookingCompleteScreen"
+  | "[ROUTE] SpotBookingManageScreen"
+  // CLICK - 유저 액션
+  | "[CLICK] SpotHomeScreen_cta"
+  | "[CLICK] SpotHomeScreen_carousel"
+  | "[CLICK] SpotHomeScreen_priceTab"
+  | "[CLICK] SpotHomeScreen_faqOpen"
+  | "[CLICK] SpotBookingScreen_nextStep"
+  | "[CLICK] SpotBookingScreen_selectItem"
+  | "[CLICK] SpotBookingScreen_uploadPhoto"
+  | "[CLICK] SpotBookingScreen_submit"
+  | "[CLICK] SpotBookingEditScreen_submit"
+  | "[CLICK] SpotBookingManageScreen_cancel"
+  // VIEW - 노출
+  | "[VIEW] SpotBookingScreen_quotePreview"
+  | "[VIEW] SpotScrollDepth"
+  | "[VIEW] SpotHomeScreen_compareSection"
+  // EVENT - 결과
+  | "[EVENT] SpotBookingComplete"
+  | "[EVENT] SpotBookingCancel";
 
 interface EventProps {
-  cta_click: { location: "hero" | "price" | "floating" | "bottom" | "nav" };
-  carousel_interact: {
-    type: "scroll" | "arrow" | "dot";
-    direction?: "left" | "right";
-  };
-  price_tab_select: { item: string };
-  faq_open: { question: string; index: number };
-  scroll_depth: { depth: 25 | 50 | 75 | 100 };
-  compare_section_viewed: Record<string, never>;
-  page_view: { variant?: string };
-  booking_start: Record<string, never>;
-  booking_step_complete: { step: number; stepName: string };
-  booking_item_select: { category: string; name: string; price: number };
-  booking_photo_upload: { count: number };
-  booking_submit: { itemCount: number; estimatedTotal: number };
-  booking_edit_submit: { itemCount: number; estimatedTotal: number };
-  booking_complete: { bookingId: string };
-  booking_manage_view: Record<string, never>;
-  booking_cancel: { bookingId: string; reason?: string };
-  quote_preview: { itemCount: number; total: number };
+  "[CLICK] SpotHomeScreen_cta": { location: "hero" | "price" | "floating" | "bottom" | "nav" };
+  "[CLICK] SpotHomeScreen_carousel": { type: "scroll" | "arrow" | "dot"; direction?: "left" | "right" };
+  "[CLICK] SpotHomeScreen_priceTab": { item: string };
+  "[CLICK] SpotHomeScreen_faqOpen": { question: string; index: number };
+  "[CLICK] SpotBookingScreen_nextStep": { step: number; stepName: string };
+  "[CLICK] SpotBookingScreen_selectItem": { category: string; name: string; price: number };
+  "[CLICK] SpotBookingScreen_uploadPhoto": { count: number };
+  "[CLICK] SpotBookingScreen_submit": { itemCount: number; estimatedTotal: number };
+  "[CLICK] SpotBookingEditScreen_submit": { itemCount: number; estimatedTotal: number };
+  "[CLICK] SpotBookingManageScreen_cancel": { bookingId: string; reason?: string };
+  "[VIEW] SpotBookingScreen_quotePreview": { itemCount: number; total: number };
+  "[VIEW] SpotScrollDepth": { depth: 25 | 50 | 75 | 100 };
+  "[EVENT] SpotBookingComplete": { bookingId: string };
+  "[EVENT] SpotBookingCancel": { bookingId: string; reason?: string };
 }
 
 declare global {
@@ -75,7 +75,7 @@ export function track<T extends EventName>(
 
   // Mixpanel
   if (window.mixpanel) {
-    window.mixpanel.track(`[Spot] ${event}`, props);
+    window.mixpanel.track(event, props);
   }
 
   // Airbridge
