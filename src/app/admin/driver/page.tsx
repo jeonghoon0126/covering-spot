@@ -631,6 +631,7 @@ export default function AdminDriverManagePage() {
   const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
+  const [activeTab, setActiveTab] = useState<"drivers" | "dispatch">("drivers");
 
   // 기사 추가 폼 상태
   const [showAddForm, setShowAddForm] = useState(false);
@@ -673,17 +674,14 @@ export default function AdminDriverManagePage() {
 
   // 슬롯 차단 관리 상태
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
-  const [slotMgmtDate, setSlotMgmtDate] = useState(getToday());
   const [selectedDriverId, setSelectedDriverId] = useState<string>("all");
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotActionLoading, setSlotActionLoading] = useState<string | null>(null);
   const [slotBookings, setSlotBookings] = useState<{ id: string; confirmedTime: string | null; timeSlot: string }[]>([]);
 
   // 기사별 배차 Gantt 상태
-  const [ganttDate, setGanttDate] = useState(getToday());
   const [ganttBookings, setGanttBookings] = useState<Booking[]>([]);
   const [ganttLoading, setGanttLoading] = useState(false);
-  const [showGantt, setShowGantt] = useState(false);
 
   // 토스트
   const [toast, setToast] = useState<string | null>(null);
@@ -888,7 +886,7 @@ export default function AdminDriverManagePage() {
     setSlotsLoading(true);
     try {
       const driverParam = selectedDriverId !== "all" ? `&driverId=${selectedDriverId}` : "";
-      const res = await fetch(`/api/admin/blocked-slots?date=${slotMgmtDate}${driverParam}`, {
+      const res = await fetch(`/api/admin/blocked-slots?date=${assignDate}${driverParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
@@ -903,12 +901,12 @@ export default function AdminDriverManagePage() {
     } finally {
       setSlotsLoading(false);
     }
-  }, [token, slotMgmtDate, selectedDriverId, router]);
+  }, [token, assignDate, selectedDriverId, router]);
 
   const fetchSlotBookings = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`/api/admin/bookings?dateFrom=${slotMgmtDate}&dateTo=${slotMgmtDate}&limit=200`, {
+      const res = await fetch(`/api/admin/bookings?dateFrom=${assignDate}&dateTo=${assignDate}&limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -916,7 +914,7 @@ export default function AdminDriverManagePage() {
         setSlotBookings(
           (data.bookings || []).filter(
             (b: { date: string; status: string }) =>
-              b.date === slotMgmtDate &&
+              b.date === assignDate &&
               b.status !== "cancelled" &&
               b.status !== "rejected",
           ),
@@ -925,7 +923,7 @@ export default function AdminDriverManagePage() {
     } catch {
       // ignore
     }
-  }, [token, slotMgmtDate]);
+  }, [token, assignDate]);
 
   useEffect(() => {
     fetchBlockedSlots();
@@ -938,7 +936,7 @@ export default function AdminDriverManagePage() {
     if (!token) return;
     setGanttLoading(true);
     try {
-      const res = await fetch(`/api/admin/bookings?dateFrom=${ganttDate}&dateTo=${ganttDate}&limit=200`, {
+      const res = await fetch(`/api/admin/bookings?dateFrom=${assignDate}&dateTo=${assignDate}&limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -946,7 +944,7 @@ export default function AdminDriverManagePage() {
         setGanttBookings(
           (data.bookings || []).filter(
             (b: { date: string; status: string }) =>
-              b.date === ganttDate &&
+              b.date === assignDate &&
               b.status !== "cancelled" &&
               b.status !== "rejected",
           ),
@@ -957,11 +955,11 @@ export default function AdminDriverManagePage() {
     } finally {
       setGanttLoading(false);
     }
-  }, [token, ganttDate]);
+  }, [token, assignDate]);
 
   useEffect(() => {
-    if (showGantt) fetchGanttBookings();
-  }, [showGantt, fetchGanttBookings]);
+    if (activeTab === "dispatch") fetchGanttBookings();
+  }, [activeTab, fetchGanttBookings]);
 
   async function handleBlockSlot(timeStart: string) {
     const timeEnd = nextHour(timeStart);
@@ -971,7 +969,7 @@ export default function AdminDriverManagePage() {
       const res = await fetch("/api/admin/blocked-slots", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ date: slotMgmtDate, timeStart, timeEnd, reason: "관리자 수동 차단", driverId: driverId || null }),
+        body: JSON.stringify({ date: assignDate, timeStart, timeEnd, reason: "관리자 수동 차단", driverId: driverId || null }),
       });
       if (res.ok) {
         fetchBlockedSlots();
@@ -1028,7 +1026,7 @@ export default function AdminDriverManagePage() {
     return map;
   }, [blockedSlots]);
 
-  const isSlotMgmtToday = slotMgmtDate === getToday();
+  const isAssignToday = assignDate === getToday();
 
   /* ── 활성화 토글 ── */
 
@@ -1071,6 +1069,20 @@ export default function AdminDriverManagePage() {
     { key: "inactive", label: "비활성", count: inactiveCount },
   ];
 
+  // Gantt용 기사 목록: assignments의 실제 배정 차량을 드라이버 프로필에 merge
+  const ganttDrivers = useMemo(() => {
+    return allDrivers.filter((d) => d.active).map((d) => {
+      const assignment = assignments.find((a) => a.driverId === d.id);
+      if (!assignment?.vehicle) return d;
+      return {
+        ...d,
+        vehicleType: assignment.vehicle.type,
+        vehicleCapacity: assignment.vehicle.capacity,
+        licensePlate: assignment.vehicle.licensePlate ?? d.licensePlate,
+      };
+    });
+  }, [allDrivers, assignments]);
+
   /* ── 렌더 ── */
 
   return (
@@ -1078,9 +1090,27 @@ export default function AdminDriverManagePage() {
       <div className="min-h-screen bg-bg-warm">
         {/* 헤더 */}
         <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
-          <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
             <h1 className="text-lg font-bold">기사 관리</h1>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-md border border-border-light overflow-hidden">
+                <button
+                  onClick={() => setActiveTab("drivers")}
+                  className={`px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    activeTab === "drivers" ? "bg-primary text-white" : "bg-bg text-text-sub hover:bg-bg-warm"
+                  }`}
+                >
+                  기사 목록
+                </button>
+                <button
+                  onClick={() => setActiveTab("dispatch")}
+                  className={`px-4 py-1.5 text-xs font-semibold transition-colors border-l border-border-light ${
+                    activeTab === "dispatch" ? "bg-primary text-white" : "bg-bg text-text-sub hover:bg-bg-warm"
+                  }`}
+                >
+                  배차 현황
+                </button>
+              </div>
               <button
                 onClick={() => router.push("/admin/vehicles")}
                 className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-3 py-1.5 hover:bg-bg-warm transition-colors"
@@ -1093,16 +1123,12 @@ export default function AdminDriverManagePage() {
               >
                 캘린더
               </button>
-              <button
-                onClick={() => router.push("/admin/dispatch")}
-                className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-3 py-1.5 hover:bg-bg-warm transition-colors"
-              >
-                배차
-              </button>
             </div>
           </div>
         </div>
 
+        {/* ── Tab 1: 기사 목록 ── */}
+        {activeTab === "drivers" && (
         <div className="max-w-[42rem] mx-auto px-4 py-4">
           {/* 탭 필터 + 추가 버튼 */}
           <div className="flex items-center justify-between mb-4">
@@ -1517,52 +1543,61 @@ export default function AdminDriverManagePage() {
             </div>
           )}
         </div>
-      </div>
+        )}
 
-      {/* ── 기사-차량 일별 배정 ── */}
-      <div className="max-w-[42rem] mx-auto px-4">
-        <div className="mt-8 mb-4 border-t border-border-light pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-text-primary mb-1">기사-차량 일별 배정</h2>
-              <p className="text-[11px] text-text-muted">특정일에 기사와 차량을 매칭합니다</p>
-            </div>
+        {/* ── Tab 2: 배차 현황 ── */}
+        {activeTab === "dispatch" && (
+        <div className="max-w-[56rem] mx-auto px-4 py-4 pb-8">
+          {/* 날짜 선택 (단일) */}
+          <div className="flex items-center gap-2 mb-6 max-w-[42rem]">
             <button
-              onClick={() => router.push("/admin/vehicles")}
-              className="text-xs text-primary font-medium hover:underline"
+              onClick={() => setAssignDate(addDays(assignDate, -1))}
+              className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
             >
-              차량 관리 →
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
+            <input
+              type="date"
+              value={assignDate}
+              onChange={(e) => setAssignDate(e.target.value)}
+              className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+            />
+            <button
+              onClick={() => setAssignDate(addDays(assignDate, 1))}
+              className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {!isAssignToday && (
+              <button
+                onClick={() => setAssignDate(getToday())}
+                className="text-xs text-primary font-medium hover:underline px-2"
+              >
+                오늘로
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* 날짜 선택 */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={() => setAssignDate(addDays(assignDate, -1))}
-            className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <input
-            type="date"
-            value={assignDate}
-            onChange={(e) => setAssignDate(e.target.value)}
-            className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-          />
-          <button
-            onClick={() => setAssignDate(addDays(assignDate, 1))}
-            className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
+          {/* ── 기사-차량 배정 ── */}
+          <div className="max-w-[42rem]">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-text-primary mb-1">기사-차량 배정</h2>
+                <p className="text-[11px] text-text-muted">특정일에 기사와 차량을 매칭합니다</p>
+              </div>
+              <button
+                onClick={() => router.push("/admin/vehicles")}
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                차량 관리 →
+              </button>
+            </div>
 
-        {vehicles.length === 0 && (
+            {vehicles.length === 0 && (
           <div className="text-center py-6 text-text-muted text-xs border border-dashed border-border-light rounded-lg">
             차량이 없습니다.{" "}
             <button onClick={() => router.push("/admin/vehicles")} className="text-primary font-medium hover:underline">
@@ -1661,69 +1696,30 @@ export default function AdminDriverManagePage() {
         )}
       </div>
 
-      {/* ── 기사별 배차 현황 (Gantt) ── */}
-      <div className="max-w-[56rem] mx-auto px-4">
-        <div className="mt-8 mb-4 border-t border-border-light pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-text-primary mb-1">기사별 배차 현황</h2>
-              <p className="text-[11px] text-text-muted">시간 블록을 드래그해 기사·시간을 변경할 수 있습니다</p>
-            </div>
-            <button
-              onClick={() => setShowGantt((prev) => !prev)}
-              className="text-xs px-3 py-1.5 rounded-md border border-border-light text-text-sub hover:bg-bg transition-colors font-medium flex items-center gap-1"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <rect x="1" y="3" width="10" height="2" rx="1" fill="currentColor"/>
-                <rect x="1" y="7" width="7" height="2" rx="1" fill="currentColor"/>
-              </svg>
-              {showGantt ? "접기" : "펼치기"}
-            </button>
-          </div>
-        </div>
-
-        {showGantt && (
-          <div className="mb-8">
-            {/* 날짜 선택 */}
-            <div className="flex items-center gap-2 mb-4">
-              <button
-                onClick={() => setGanttDate(addDays(ganttDate, -1))}
-                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <input
-                type="date"
-                value={ganttDate}
-                onChange={(e) => setGanttDate(e.target.value)}
-                className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-              />
-              <button
-                onClick={() => setGanttDate(addDays(ganttDate, 1))}
-                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <button
-                onClick={fetchGanttBookings}
-                className="shrink-0 h-10 px-3 rounded-md border border-border-light text-text-sub hover:bg-bg-warm transition-colors text-xs font-medium"
-              >
-                새로고침
-              </button>
+          {/* ── 기사별 배차 현황 (Gantt) - 항상 보임 ── */}
+          <div className="mt-8">
+            <div className="mb-4 border-t border-border-light pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-text-primary mb-1">기사별 배차 현황</h2>
+                  <p className="text-[11px] text-text-muted">시간 블록을 드래그해 기사·시간을 변경할 수 있습니다</p>
+                </div>
+                <button
+                  onClick={fetchGanttBookings}
+                  className="text-xs px-3 py-1.5 rounded-md border border-border-light text-text-sub hover:bg-bg transition-colors font-medium"
+                >
+                  새로고침
+                </button>
+              </div>
             </div>
 
-            {/* Gantt 본문 */}
             <div className="overflow-x-auto" style={{ minWidth: 0 }}>
               {ganttLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <LoadingSpinner size="md" />
                   <span className="ml-2 text-sm text-text-muted">불러오는 중...</span>
                 </div>
-              ) : allDrivers.filter((d) => d.active).length === 0 ? (
+              ) : ganttDrivers.length === 0 ? (
                 <div className="text-center py-8 text-text-muted text-sm">등록된 기사가 없습니다</div>
               ) : (
                 <div style={{ minWidth: "700px" }}>
@@ -1751,7 +1747,7 @@ export default function AdminDriverManagePage() {
                   </div>
 
                   <GanttView
-                    drivers={allDrivers.filter((d) => d.active)}
+                    drivers={ganttDrivers}
                     bookings={ganttBookings}
                     token={token}
                     onBookingUpdated={fetchGanttBookings}
@@ -1761,140 +1757,102 @@ export default function AdminDriverManagePage() {
               )}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* ── 슬롯 차단 관리 ── */}
-      <div className="max-w-[42rem] mx-auto px-4 pb-8">
-        <div className="mt-8 mb-4 border-t border-border-light pt-6">
-          <h2 className="text-sm font-bold text-text-primary mb-1">슬롯 차단 관리</h2>
-          <p className="text-[11px] text-text-muted">특정 날짜/시간에 신규 예약을 차단합니다</p>
-        </div>
-
-        {/* 날짜 + 기사 선택 */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4 mb-4">
-          <div className="flex-1">
-            <label className="block text-[11px] text-text-muted font-medium mb-1">날짜</label>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, -1))}
-                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <input
-                type="date"
-                value={slotMgmtDate}
-                onChange={(e) => setSlotMgmtDate(e.target.value)}
-                className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-              />
-              <button
-                onClick={() => setSlotMgmtDate(addDays(slotMgmtDate, 1))}
-                className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
+          {/* ── 슬롯 차단 관리 ── */}
+          <div className="max-w-[42rem] mt-8">
+            <div className="mb-4 border-t border-border-light pt-6">
+              <h2 className="text-sm font-bold text-text-primary mb-1">슬롯 차단 관리</h2>
+              <p className="text-[11px] text-text-muted">특정 날짜/시간에 신규 예약을 차단합니다</p>
             </div>
-            {!isSlotMgmtToday && (
-              <button
-                onClick={() => setSlotMgmtDate(getToday())}
-                className="text-[11px] text-primary font-medium mt-1 hover:underline"
+
+            <div className="mb-4">
+              <label className="block text-[11px] text-text-muted font-medium mb-1">기사 선택</label>
+              <select
+                value={selectedDriverId}
+                onChange={(e) => setSelectedDriverId(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
               >
-                오늘로 이동
-              </button>
+                <option value="all">전체</option>
+                {allDrivers.filter((d) => d.active).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}{d.phone ? ` (${d.phone})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <p className="text-xs text-text-muted text-center mb-3">
+              {formatDate(assignDate)} ·{" "}
+              {blockedSlots.length > 0 ? `차단 ${blockedSlots.length}개` : "차단 없음"} ·{" "}
+              예약 {slotBookings.length}건
+            </p>
+
+            {slotsLoading ? (
+              <div className="text-center py-8">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : (
+              <div className="bg-bg rounded-lg border border-border-light overflow-hidden">
+                {SLOT_MGMT_HOURS.map((time) => {
+                  const blocked = blockedSlotMap[time];
+                  const bookingCount = slotBookingCounts[time] || 0;
+                  const isActionLoading = slotActionLoading === time;
+                  return (
+                    <div
+                      key={time}
+                      className={`flex items-stretch border-b border-border-light/50 last:border-0 transition-colors ${blocked ? "bg-red-50" : ""}`}
+                    >
+                      <div className="w-16 shrink-0 py-3 pr-2 text-right flex flex-col justify-center">
+                        <span className={`text-xs font-medium ${blocked ? "text-semantic-red" : bookingCount > 0 ? "text-text-primary" : "text-text-muted"}`}>
+                          {time}
+                        </span>
+                      </div>
+                      <div className="flex-1 border-l border-border-light min-h-[3rem] flex items-center px-3 gap-3">
+                        {bookingCount > 0 && (
+                          <span className="text-[11px] font-medium text-text-sub bg-bg-warm px-2 py-1 rounded-sm">
+                            예약 {bookingCount}건
+                          </span>
+                        )}
+                        {blocked ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-semantic-red shrink-0" />
+                              <span className="text-xs font-medium text-semantic-red">차단됨</span>
+                            </span>
+                            {blocked.reason && (
+                              <span className="text-[11px] text-text-muted truncate">{blocked.reason}</span>
+                            )}
+                            <button
+                              onClick={() => handleUnblockSlot(blocked.id!, time)}
+                              disabled={isActionLoading}
+                              className="ml-auto shrink-0 text-[11px] font-medium text-semantic-red bg-white border border-red-200 rounded-sm px-3 py-1.5 hover:bg-red-50 active:scale-[0.97] transition-all disabled:opacity-50"
+                            >
+                              {isActionLoading ? "..." : "해제"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-semantic-green shrink-0" />
+                              <span className="text-xs text-text-muted">가능</span>
+                            </span>
+                            <button
+                              onClick={() => handleBlockSlot(time)}
+                              disabled={isActionLoading}
+                              className="ml-auto shrink-0 text-[11px] font-medium text-text-sub bg-bg border border-border-light rounded-sm px-3 py-1.5 hover:bg-bg-warm active:scale-[0.97] transition-all disabled:opacity-50"
+                            >
+                              {isActionLoading ? "..." : "차단"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <div className="flex-1">
-            <label className="block text-[11px] text-text-muted font-medium mb-1">기사 선택</label>
-            <select
-              value={selectedDriverId}
-              onChange={(e) => setSelectedDriverId(e.target.value)}
-              className="w-full h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-            >
-              <option value="all">전체</option>
-              {allDrivers.filter((d) => d.active).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}{d.phone ? ` (${d.phone})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
-
-        <p className="text-xs text-text-muted text-center mb-3">
-          {formatDate(slotMgmtDate)} ·{" "}
-          {blockedSlots.length > 0 ? `차단 ${blockedSlots.length}개` : "차단 없음"} ·{" "}
-          예약 {slotBookings.length}건
-        </p>
-
-        {/* 시간대 그리드 */}
-        {slotsLoading ? (
-          <div className="text-center py-8">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : (
-          <div className="bg-bg rounded-lg border border-border-light overflow-hidden">
-            {SLOT_MGMT_HOURS.map((time) => {
-              const blocked = blockedSlotMap[time];
-              const bookingCount = slotBookingCounts[time] || 0;
-              const isActionLoading = slotActionLoading === time;
-              return (
-                <div
-                  key={time}
-                  className={`flex items-stretch border-b border-border-light/50 last:border-0 transition-colors ${blocked ? "bg-red-50" : ""}`}
-                >
-                  <div className="w-16 shrink-0 py-3 pr-2 text-right flex flex-col justify-center">
-                    <span className={`text-xs font-medium ${blocked ? "text-semantic-red" : bookingCount > 0 ? "text-text-primary" : "text-text-muted"}`}>
-                      {time}
-                    </span>
-                  </div>
-                  <div className="flex-1 border-l border-border-light min-h-[3rem] flex items-center px-3 gap-3">
-                    {bookingCount > 0 && (
-                      <span className="text-[11px] font-medium text-text-sub bg-bg-warm px-2 py-1 rounded-sm">
-                        예약 {bookingCount}건
-                      </span>
-                    )}
-                    {blocked ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-semantic-red shrink-0" />
-                          <span className="text-xs font-medium text-semantic-red">차단됨</span>
-                        </span>
-                        {blocked.reason && (
-                          <span className="text-[11px] text-text-muted truncate">{blocked.reason}</span>
-                        )}
-                        <button
-                          onClick={() => handleUnblockSlot(blocked.id!, time)}
-                          disabled={isActionLoading}
-                          className="ml-auto shrink-0 text-[11px] font-medium text-semantic-red bg-white border border-red-200 rounded-sm px-3 py-1.5 hover:bg-red-50 active:scale-[0.97] transition-all disabled:opacity-50"
-                        >
-                          {isActionLoading ? "..." : "해제"}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-semantic-green shrink-0" />
-                          <span className="text-xs text-text-muted">가능</span>
-                        </span>
-                        <button
-                          onClick={() => handleBlockSlot(time)}
-                          disabled={isActionLoading}
-                          className="ml-auto shrink-0 text-[11px] font-medium text-text-sub bg-bg border border-border-light rounded-sm px-3 py-1.5 hover:bg-bg-warm active:scale-[0.97] transition-all disabled:opacity-50"
-                        >
-                          {isActionLoading ? "..." : "차단"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         )}
       </div>
 
