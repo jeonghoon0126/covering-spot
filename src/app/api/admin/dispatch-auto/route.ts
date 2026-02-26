@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getBookings, getDrivers, getUnloadingPoints, updateBooking, getBookingPhonesByIds } from "@/lib/db";
+import { getBookings, getDrivers, getUnloadingPoints, updateBooking, getBookingPhonesByIds, getDriversWithVehicleForDate } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { autoDispatch } from "@/lib/optimizer/auto-dispatch";
@@ -60,17 +60,15 @@ export async function POST(req: NextRequest) {
     const dayOfWeek = KO_DAYS[new Date(dy, dm - 1, dd).getDay()];
 
     // 병렬 조회
-    const [allBookings, allDrivers, unloadingPoints] = await Promise.all([
+    // getDriversWithVehicleForDate: workDays 필터 + 차량 배정 기반 capacity 해석 (차량 이용불가 기간 반영)
+    const [allBookings, driversWithVehicle, unloadingPoints] = await Promise.all([
       getBookings(date),
-      getDrivers(true),
+      getDriversWithVehicleForDate(date),
       getUnloadingPoints(true),
     ]);
 
-    // 해당 요일에 근무하는 기사만 필터링 (workDays 미설정 시 항상 근무로 간주)
-    const drivers = allDrivers.filter((d) => {
-      if (!d.workDays) return true;
-      return d.workDays.split(",").map((s) => s.trim()).includes(dayOfWeek);
-    });
+    // resolvedCapacity=0인 기사 = 차량이 이용불가 상태 → 자동배차에서 제외
+    const drivers = driversWithVehicle.filter((d) => d.resolvedCapacity > 0);
 
     // quote_confirmed 상태만 배차 가능 (pending=견적전, in_progress=수거중 등 제외)
     // 좌표 없는 주문(lat=0 또는 lng=0)은 별도 unassigned 처리 (0,0 = 아프리카 근해)
@@ -123,7 +121,8 @@ export async function POST(req: NextRequest) {
     const dispatchDrivers: DispatchDriver[] = drivers.map((d) => ({
       id: d.id,
       name: d.name,
-      vehicleCapacity: d.vehicleCapacity,
+      // resolvedCapacity: 차량 배정이 있으면 vehicle.capacity, 없으면 driver.vehicleCapacity 폴백
+      vehicleCapacity: d.resolvedCapacity,
       vehicleType: d.vehicleType,
       initialLoadCube: d.initialLoadCube ?? 0,
       startLat: d.startLatitude ?? undefined,

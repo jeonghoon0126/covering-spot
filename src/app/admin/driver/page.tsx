@@ -32,6 +32,24 @@ interface Driver {
   endAddress: string | null;
 }
 
+interface Vehicle {
+  id: string;
+  name: string;
+  type: string;
+  capacity: number;
+  licensePlate: string | null;
+  active: boolean;
+}
+
+interface Assignment {
+  id: string;
+  driverId: string;
+  vehicleId: string;
+  date: string;
+  driverName?: string;
+  vehicle?: Vehicle;
+}
+
 /* ── 상수 ── */
 
 // 슬롯 차단 관리: 시간대 (10:00 ~ 17:00, 1시간 단위)
@@ -265,6 +283,15 @@ export default function AdminDriverManagePage() {
 
   const [saving, setSaving] = useState(false);
 
+  // 기사-차량 배정 상태
+  const [assignDate, setAssignDate] = useState(getToday());
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [assignError, setAssignError] = useState("");
+
   // 슬롯 차단 관리 상태
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [slotMgmtDate, setSlotMgmtDate] = useState(getToday());
@@ -412,6 +439,60 @@ export default function AdminDriverManagePage() {
       showToast("네트워크 오류");
     } finally {
       setSaving(false);
+    }
+  }
+
+  /* ── 기사-차량 배정 ── */
+
+  const fetchAssignmentsAndVehicles = useCallback(async () => {
+    if (!token) return;
+    setAssignLoading(true);
+    try {
+      const [aRes, vRes] = await Promise.all([
+        fetch(`/api/admin/assignments?date=${assignDate}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/admin/vehicles", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const [aData, vData] = await Promise.all([aRes.json(), vRes.json()]);
+      setAssignments(aData.assignments || []);
+      setVehicles(vData.vehicles || []);
+    } catch {
+      // ignore
+    } finally {
+      setAssignLoading(false);
+    }
+  }, [token, assignDate]);
+
+  useEffect(() => {
+    fetchAssignmentsAndVehicles();
+  }, [fetchAssignmentsAndVehicles]);
+
+  async function handleCreateAssignment(driverId: string, vehicleId: string) {
+    if (!token || !vehicleId) return;
+    setAssignError("");
+    try {
+      const res = await fetch("/api/admin/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ driverId, vehicleId, date: assignDate }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAssignError(data.error || "배정 실패"); return; }
+      setAssignments((prev) => [...prev, data.assignment]);
+      setAssigningDriverId(null);
+      setSelectedVehicleId("");
+    } catch {
+      setAssignError("네트워크 오류");
+    }
+  }
+
+  async function handleDeleteAssignment(id: string) {
+    if (!token) return;
+    const res = await fetch(`/api/admin/assignments?id=${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setAssignments((prev) => prev.filter((a) => a.id !== id));
     }
   }
 
@@ -584,6 +665,12 @@ export default function AdminDriverManagePage() {
           <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center justify-between">
             <h1 className="text-lg font-bold">기사 관리</h1>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => router.push("/admin/vehicles")}
+                className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-3 py-1.5 hover:bg-bg-warm transition-colors"
+              >
+                차량
+              </button>
               <button
                 onClick={() => router.push("/admin/calendar")}
                 className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-3 py-1.5 hover:bg-bg-warm transition-colors"
@@ -1014,6 +1101,148 @@ export default function AdminDriverManagePage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── 기사-차량 일별 배정 ── */}
+      <div className="max-w-[42rem] mx-auto px-4">
+        <div className="mt-8 mb-4 border-t border-border-light pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-text-primary mb-1">기사-차량 일별 배정</h2>
+              <p className="text-[11px] text-text-muted">특정일에 기사와 차량을 매칭합니다</p>
+            </div>
+            <button
+              onClick={() => router.push("/admin/vehicles")}
+              className="text-xs text-primary font-medium hover:underline"
+            >
+              차량 관리 →
+            </button>
+          </div>
+        </div>
+
+        {/* 날짜 선택 */}
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => setAssignDate(addDays(assignDate, -1))}
+            className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <input
+            type="date"
+            value={assignDate}
+            onChange={(e) => setAssignDate(e.target.value)}
+            className="flex-1 h-10 px-3 rounded-md border border-border-light bg-bg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+          />
+          <button
+            onClick={() => setAssignDate(addDays(assignDate, 1))}
+            className="shrink-0 p-2 rounded-sm hover:bg-bg-warm transition-colors border border-border-light"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {vehicles.length === 0 && (
+          <div className="text-center py-6 text-text-muted text-xs border border-dashed border-border-light rounded-lg">
+            차량이 없습니다.{" "}
+            <button onClick={() => router.push("/admin/vehicles")} className="text-primary font-medium hover:underline">
+              차량 먼저 등록하세요 →
+            </button>
+          </div>
+        )}
+
+        {assignError && (
+          <p className="text-xs text-red-500 mb-2">{assignError}</p>
+        )}
+
+        {assignLoading ? (
+          <div className="text-center py-6 text-text-muted text-xs">불러오는 중...</div>
+        ) : (
+          <div className="space-y-2">
+            {allDrivers.filter((d) => d.active).map((driver) => {
+              const assignment = assignments.find((a) => a.driverId === driver.id);
+              const isAssigning = assigningDriverId === driver.id;
+
+              return (
+                <div key={driver.id} className="bg-bg rounded-lg border border-border-light p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold text-text-primary">{driver.name}</span>
+                      {assignment ? (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-semantic-green shrink-0" />
+                          <span className="text-xs text-text-sub">
+                            {assignment.vehicle?.name} ({assignment.vehicle?.type} · {assignment.vehicle?.capacity}m³)
+                          </span>
+                          {assignment.vehicle?.licensePlate && (
+                            <span className="text-xs text-text-muted">{assignment.vehicle.licensePlate}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-text-muted shrink-0" />
+                          <span className="text-xs text-text-muted">차량 미배정</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      {assignment ? (
+                        <button
+                          onClick={() => handleDeleteAssignment(assignment.id)}
+                          className="text-[11px] font-medium text-semantic-red px-2 py-1 rounded-sm hover:bg-red-50 transition-colors"
+                        >
+                          해제
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setAssigningDriverId(isAssigning ? null : driver.id);
+                            setSelectedVehicleId("");
+                            setAssignError("");
+                          }}
+                          className="text-[11px] font-medium text-primary px-2 py-1 rounded-sm hover:bg-primary/5 transition-colors"
+                        >
+                          {isAssigning ? "취소" : "배정"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 차량 선택 드롭다운 (배정 모드) */}
+                  {isAssigning && !assignment && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <select
+                        value={selectedVehicleId}
+                        onChange={(e) => setSelectedVehicleId(e.target.value)}
+                        className="flex-1 h-9 px-2 rounded-sm border border-border-light bg-bg-warm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                      >
+                        <option value="">차량 선택</option>
+                        {vehicles
+                          .filter((v) => !assignments.find((a) => a.vehicleId === v.id))
+                          .map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.name} ({v.type} · {v.capacity}m³{v.licensePlate ? ` · ${v.licensePlate}` : ""})
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        onClick={() => handleCreateAssignment(driver.id, selectedVehicleId)}
+                        disabled={!selectedVehicleId}
+                        className="shrink-0 h-9 px-4 bg-primary text-white text-xs font-semibold rounded-sm hover:bg-primary-dark disabled:opacity-40 transition-colors"
+                      >
+                        확인
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── 슬롯 차단 관리 ── */}
