@@ -82,7 +82,7 @@ export default function VehiclesPage() {
     setLoading(true);
     try {
       const [vRes, pRes] = await Promise.all([
-        fetch(`/api/admin/vehicles?active=${showInactive ? "false" : "true"}`, {
+        fetch(`/api/admin/vehicles${showInactive ? "" : "?active=true"}`, {
           headers: { Authorization: `Bearer ${t}` },
         }),
         fetch("/api/admin/vehicles/unavailable", {

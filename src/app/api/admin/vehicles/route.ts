@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
     const activeParam = req.nextUrl.searchParams.get("active");
-    const activeOnly = activeParam !== "false";
+    const activeOnly = activeParam === "true";
     const vehicles = await getVehicles(activeOnly);
     return NextResponse.json({ vehicles });
   } catch (e) {

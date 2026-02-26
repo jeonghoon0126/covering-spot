@@ -56,7 +56,7 @@ export const BookingUpdateSchema = z.object({
     .optional(),
   finalPrice: z.number().min(0).max(100000000).optional(),
   adminMemo: z.string().max(2000).optional(),
-  confirmedTime: z.string().optional(),
+  confirmedTime: z.string().nullable().optional(),
   expectedUpdatedAt: z.string().optional(),
   driverId: z.string().nullable().optional(),
   driverName: z.string().max(50).nullable().optional(),
