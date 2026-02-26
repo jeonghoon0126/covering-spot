@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { calculateQuote } from "@/lib/quote-calculator";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
 
 const QuoteRequestSchema = z.object({
   area: z.string().min(1),
@@ -42,7 +43,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = calculateQuote(parsed.data);
+    const [spotItems, areas, ladderPrices] = await Promise.all([
+      getSpotItems(true),
+      getSpotAreas(true),
+      getSpotLadder(),
+    ]);
+    const result = calculateQuote(parsed.data, undefined, spotItems, areas, ladderPrices);
     return NextResponse.json(result);
   } catch (e) {
     console.error("[quote/POST]", e);

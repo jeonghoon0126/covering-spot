@@ -12,6 +12,7 @@ import {
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
 import { calculateQuote } from "@/lib/quote-calculator";
+import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
@@ -128,6 +129,11 @@ export async function PUT(
       data.crewSize !== existing.crewSize
     ) {
       try {
+        const [spotItems, areas, ladderPrices] = await Promise.all([
+          getSpotItems(true),
+          getSpotAreas(true),
+          getSpotLadder(),
+        ]);
         const recalculated = calculateQuote(
           {
             area: existing.area,
@@ -137,6 +143,9 @@ export async function PUT(
             ladderHours: existing.ladderHours,
           },
           data.crewSize,
+          spotItems,
+          areas,
+          ladderPrices,
         );
         allowedUpdates.totalPrice = recalculated.totalPrice;
         allowedUpdates.estimateMin = recalculated.estimateMin;

@@ -14,6 +14,7 @@ import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { enforceServerItems } from "@/lib/server-price";
 import { calculateQuote } from "@/lib/quote-calculator";
+import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
 import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -124,8 +125,15 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString();
 
+    // DB에서 단가표 로드 (서버 기준 가격 강제 적용 + 견적 재계산)
+    const [spotItems, areas, ladderPrices] = await Promise.all([
+      getSpotItems(true),
+      getSpotAreas(true),
+      getSpotLadder(),
+    ]);
+
     // 서버 단가표를 기준으로 품목 정보 덮어쓰기 (가격, 적재량 변조 방지)
-    const items = enforceServerItems(validData.items || []);
+    const items = enforceServerItems(validData.items || [], spotItems);
 
     // 서버 단가 기준 총 적재량 재계산
     const totalLoadingCube = items.reduce(
@@ -140,7 +148,7 @@ export async function POST(req: NextRequest) {
       needLadder: validData.needLadder,
       ladderType: validData.ladderType,
       ladderHours: validData.ladderHours,
-    });
+    }, undefined, spotItems, areas, ladderPrices);
 
     const booking: Booking = {
       id: uuidv4(),
