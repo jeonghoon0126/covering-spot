@@ -9,7 +9,13 @@ export function Splash({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<"check" | "splash" | "done">("check");
 
   useEffect(() => {
-    if (sessionStorage.getItem(STORAGE_KEY)) {
+    // sessionStorage는 Safari 개인정보보호 모드 등에서 throw 가능
+    try {
+      if (sessionStorage.getItem(STORAGE_KEY)) {
+        setPhase("done");
+        return;
+      }
+    } catch {
       setPhase("done");
       return;
     }
@@ -19,7 +25,7 @@ export function Splash({ children }: { children: React.ReactNode }) {
 
     // 0.8s fade-in + 0.3s fade-out = 1.1s 후 완료
     const timer = setTimeout(() => {
-      sessionStorage.setItem(STORAGE_KEY, "1");
+      try { sessionStorage.setItem(STORAGE_KEY, "1"); } catch { /* 무시 */ }
       setPhase("done");
     }, 1100);
 

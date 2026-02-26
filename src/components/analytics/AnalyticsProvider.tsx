@@ -60,13 +60,15 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
           src="https://static.airbridge.io/sdk/latest/airbridge.min.js"
           strategy="afterInteractive"
           onLoad={() => {
-            if (window.airbridge) {
-              // @ts-expect-error airbridge init
-              window.airbridge.init({
-                app: "coveringprod",
-                webToken: airbridgeToken,
-              });
-            }
+            try {
+              if (window.airbridge) {
+                // @ts-expect-error airbridge init
+                window.airbridge.init({
+                  app: "coveringprod",
+                  webToken: airbridgeToken,
+                });
+              }
+            } catch { /* Airbridge 초기화 실패 무시 */ }
           }}
         />
       )}
