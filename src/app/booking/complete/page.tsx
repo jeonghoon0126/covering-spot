@@ -9,7 +9,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { subscribeToPush } from "@/lib/push-subscription";
 import { KAKAO_CHAT_URL } from "@/lib/constants";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
-import { track } from "@/lib/analytics";
+import { track, identify } from "@/lib/analytics";
 import { formatPrice, formatManWon } from "@/lib/format";
 
 export default function BookingCompletePage() {
@@ -63,6 +63,8 @@ function BookingCompleteContent() {
   useEffect(() => {
     if (id) {
       track("[EVENT] SpotBookingComplete", { bookingId: id });
+      // bookingId로 identify (폰번호는 complete 페이지에서 알 수 없으므로 bookingId 사용)
+      identify(id);
     }
   }, [id]);
 

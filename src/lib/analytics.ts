@@ -21,7 +21,8 @@ type EventName =
   | "[VIEW] SpotHomeScreen_compareSection"
   // EVENT - 결과
   | "[EVENT] SpotBookingComplete"
-  | "[EVENT] SpotBookingCancel";
+  | "[EVENT] SpotBookingCancel"
+  | "[EVENT] SpotBookingSearchResult";
 
 interface EventProps {
   "[CLICK] SpotHomeScreen_cta": { location: "hero" | "price" | "floating" | "bottom" | "nav" };
@@ -38,11 +39,16 @@ interface EventProps {
   "[VIEW] SpotScrollDepth": { depth: 25 | 50 | 75 | 100 };
   "[EVENT] SpotBookingComplete": { bookingId: string };
   "[EVENT] SpotBookingCancel": { bookingId: string; reason?: string };
+  "[EVENT] SpotBookingSearchResult": { found: number };
 }
 
 declare global {
   interface Window {
-    mixpanel?: { track: (event: string, props?: object) => void };
+    mixpanel?: {
+      track: (event: string, props?: object) => void;
+      identify: (userId: string) => void;
+      people?: { set: (props: object) => void };
+    };
     airbridge?: {
       events: { send: (event: string, data?: object) => void };
     };
@@ -86,5 +92,18 @@ export function track<T extends EventName>(
   // GA4
   if (window.gtag) {
     window.gtag("event", event, props);
+  }
+}
+
+export function identify(userId: string, props?: { phone?: string; name?: string }) {
+  if (typeof window === "undefined") return;
+  if (window.mixpanel) {
+    window.mixpanel.identify(userId);
+    if (props) {
+      window.mixpanel.people?.set({
+        ...(props.phone && { $phone: props.phone }),
+        ...(props.name && { $name: props.name }),
+      });
+    }
   }
 }

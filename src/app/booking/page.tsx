@@ -291,7 +291,8 @@ function BookingPageContent() {
   useEffect(() => {
     fetch("/api/items")
       .then((r) => r.json())
-      .then((d) => setCategories(d.categories || []));
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {});
   }, []);
 
   // 날짜 변경 시 시간 선택 초기화 + 슬롯 카운트를 미로드 상태로 리셋
@@ -362,6 +363,7 @@ function BookingPageContent() {
 
   useEffect(() => {
     if ((step !== 2 && step !== 4) || selectedItems.length === 0 || !selectedArea) {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
       if (step !== 2 && step !== 4) setPreviewQuote(null);
       return;
     }

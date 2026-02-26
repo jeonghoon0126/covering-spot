@@ -26,11 +26,9 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
     const fired = new Set<number>();
 
     const handle = () => {
-      const pct = Math.round(
-        (window.scrollY /
-          (document.documentElement.scrollHeight - window.innerHeight)) *
-          100
-      );
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+      const pct = Math.round((window.scrollY / scrollableHeight) * 100);
       for (const t of thresholds) {
         if (pct >= t && !fired.has(t)) {
           fired.add(t);
@@ -41,7 +39,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("scroll", handle, { passive: true });
     return () => window.removeEventListener("scroll", handle);
-  }, []);
+  }, [pathname]);
 
   const mixpanelToken = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
   const airbridgeToken = process.env.NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN;

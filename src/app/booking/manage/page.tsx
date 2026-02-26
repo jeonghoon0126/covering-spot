@@ -120,7 +120,9 @@ export default function BookingManagePage() {
       const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
       const res = await fetch(`/api/bookings?phone=${encodeURIComponent(phone.trim())}${tokenParam}`);
       const data = await res.json();
-      setBookings(data.bookings || []);
+      const bookings = data.bookings || [];
+      setBookings(bookings);
+      track("[EVENT] SpotBookingSearchResult", { found: bookings.length });
     } catch {
       setBookings([]);
     } finally {
@@ -143,6 +145,7 @@ export default function BookingManagePage() {
             b.id === id ? { ...b, status: "cancelled" as const } : b,
           ),
         );
+        alert("신청이 취소되었습니다.");
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "취소 실패");
