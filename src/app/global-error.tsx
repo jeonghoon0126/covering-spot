@@ -21,7 +21,8 @@ export default function GlobalError({
             페이지를 불러오는 중 오류가 발생했습니다.
           </p>
           {/* 임시 디버그 */}
-          <p style={{ color: "#EF4444", fontSize: "12px", marginBottom: "8px", wordBreak: "break-all" }}>{error.message}</p>
+          <p style={{ color: "#EF4444", fontSize: "12px", marginBottom: "4px", wordBreak: "break-all" }}>[GlobalError] {(error as Error)?.message || "(no message)"}</p>
+          <pre style={{ color: "#F87171", fontSize: "10px", marginBottom: "8px", wordBreak: "break-all", whiteSpace: "pre-wrap", textAlign: "left", maxWidth: "280px", margin: "0 auto 8px" }}>{(error as Error)?.stack?.slice(0, 400)}</pre>
           {error.digest && (
             <p style={{ fontSize: "12px", color: "#9CA3AF", marginBottom: "24px" }}>
               오류 코드: {error.digest}
