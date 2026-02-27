@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { safeSessionGet } from "@/lib/storage";
+import { AdminLogo } from "@/components/ui/AdminLogo";
 
 /* ── 타입 ── */
 
@@ -207,13 +208,14 @@ export default function VehiclesPage() {
         <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
           <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <AdminLogo />
+              <h1 className="text-lg font-bold">차량 관리</h1>
               <button
                 onClick={() => router.push("/admin/driver")}
-                className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-3 py-1.5 hover:bg-bg-warm transition-colors"
+                className="text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-2.5 py-1 hover:bg-bg-warm transition-colors"
               >
-                ← 기사 관리
+                기사 관리
               </button>
-              <h1 className="text-lg font-bold">차량 관리</h1>
             </div>
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-1.5 text-xs text-text-sub cursor-pointer select-none">
