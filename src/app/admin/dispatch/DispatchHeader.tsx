@@ -3,6 +3,7 @@
 import type { Booking } from "@/types/booking";
 import type { DriverStats } from "./dispatch-utils";
 import { SLOT_ORDER, SLOT_LABELS, UNASSIGNED_COLOR, getToday } from "./dispatch-utils";
+import { AdminLogo } from "@/components/ui/AdminLogo";
 
 /* ── 타입 ── */
 
@@ -45,14 +46,7 @@ export default function DispatchHeader({
         {/* 1행: 제목(좌) + 날짜 선택(우) */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={onNavigateCalendar}
-              className="text-text-sub hover:text-text-primary transition-colors shrink-0"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            <AdminLogo />
             <h1 className="text-lg font-bold truncate">배차 관리</h1>
             <button
               onClick={onNavigateDriver}

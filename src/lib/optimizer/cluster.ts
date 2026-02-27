@@ -61,6 +61,9 @@ export function clusterBookings(
     }
   });
 
+  // 건수 제한 적용: maxJobCount 초과 시 초과분을 여유 있는 기사에 재배정
+  enforceJobCountLimits(clusters, driverAssignment, sortedDrivers);
+
   return { clusters, driverAssignment };
 }
 
@@ -144,4 +147,62 @@ function arraysEqual(a: number[], b: number[]): boolean {
     if (a[i] !== b[i]) return false;
   }
   return true;
+}
+
+/**
+ * 건수 제한 후처리: 각 기사의 maxJobCount를 초과하는 주문을 여유 있는 기사에 재배정
+ * - 초과분은 거리가 가장 먼 주문부터 빼서, 센트로이드가 가장 가까운 여유 기사에 넣음
+ */
+function enforceJobCountLimits(
+  clusters: Cluster[],
+  driverAssignment: Map<number, string>,
+  drivers: DispatchDriver[],
+): void {
+  const driverById = new Map(drivers.map((d) => [d.id, d]));
+
+  // 건수 제한이 있는 기사만 처리
+  for (const [clusterIdx, driverId] of driverAssignment) {
+    const driver = driverById.get(driverId);
+    if (!driver?.maxJobCount) continue;
+    const cluster = clusters[clusterIdx];
+    if (cluster.bookings.length <= driver.maxJobCount) continue;
+
+    // 초과분: 센트로이드에서 가장 먼 주문부터
+    const cx = cluster.centroidLat;
+    const cy = cluster.centroidLng;
+    const withDist = cluster.bookings.map((b) => ({
+      booking: b,
+      dist: haversine(cx, cy, b.lat, b.lng),
+    }));
+    withDist.sort((a, b) => b.dist - a.dist);
+    const overflow = withDist.slice(0, cluster.bookings.length - driver.maxJobCount);
+
+    // 초과 주문을 클러스터에서 제거
+    const overflowIds = new Set(overflow.map((o) => o.booking.id));
+    cluster.bookings = cluster.bookings.filter((b) => !overflowIds.has(b.id));
+    cluster.totalLoad = cluster.bookings.reduce((s, b) => s + b.totalLoadingCube, 0);
+
+    // 여유 있는 다른 클러스터에 재배정
+    for (const { booking } of overflow) {
+      let bestCluster = -1;
+      let bestDist = Infinity;
+      for (const [ci, did] of driverAssignment) {
+        if (ci === clusterIdx) continue;
+        const d = driverById.get(did);
+        const maxJobs = d?.maxJobCount ?? Infinity;
+        if (clusters[ci].bookings.length >= maxJobs) continue;
+        if (clusters[ci].totalLoad + booking.totalLoadingCube > (d?.vehicleCapacity ?? Infinity)) continue;
+        const dist = haversine(clusters[ci].centroidLat, clusters[ci].centroidLng, booking.lat, booking.lng);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestCluster = ci;
+        }
+      }
+      if (bestCluster >= 0) {
+        clusters[bestCluster].bookings.push(booking);
+        clusters[bestCluster].totalLoad += booking.totalLoadingCube;
+      }
+      // 재배정 불가 시 → unassigned로 처리됨 (클러스터에 포함되지 않음)
+    }
+  }
 }

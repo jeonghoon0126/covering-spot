@@ -14,7 +14,7 @@ import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { enforceServerItems } from "@/lib/server-price";
 import { calculateQuote } from "@/lib/quote-calculator";
-import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
+import { getSpotItems, getSpotAreas, getSpotLadder, createAdminNotification } from "@/lib/db";
 import type { Booking, BookingItem } from "@/types/booking";
 
 export async function GET(req: NextRequest) {
@@ -60,14 +60,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 토큰 검증: phone 기반 토큰이 일치해야 조회 가능
-    if (!validateBookingToken(req, phone)) {
-      return NextResponse.json(
-        { error: "인증이 필요합니다" },
-        { status: 401 },
-      );
-    }
-
+    // 조회는 토큰 없이 허용 (phone + IP·phone별 rate limit으로 열거 공격 방어)
+    // 수정(PUT)/삭제(DELETE)는 booking-token 검증 유지
     const bookings = await getBookingsByPhone(phone);
     return NextResponse.json({ bookings });
   } catch (e) {
@@ -198,6 +192,14 @@ export async function POST(req: NextRequest) {
 
     // 수거 신청 접수 SMS (fire-and-forget)
     sendStatusSms(booking.phone, "received", booking.id).catch(() => { });
+
+    // 백오피스 알림 (신규 접수)
+    createAdminNotification({
+      bookingId: booking.id,
+      type: "new_booking",
+      title: `[신규접수] ${booking.customerName}`,
+      body: `${booking.date} ${booking.timeSlot} | ${booking.area} | ${booking.address}`,
+    }).catch(() => {});
 
     // Slack 알림만 fire-and-forget (지연 무관)
     sendBookingCreated(booking).then((threadTs) => {

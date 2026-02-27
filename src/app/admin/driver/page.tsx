@@ -9,6 +9,7 @@ import type { Booking } from "@/types/booking";
 import type { Driver, Vehicle, Assignment, BlockedSlot, FilterTab } from "./types";
 import { getToday, nextHour } from "./constants";
 
+import { AdminLogo } from "@/components/ui/AdminLogo";
 import DriverListTab from "./DriverListTab";
 import DispatchTab from "./DispatchTab";
 import AddressPostcodeModal from "./AddressPostcodeModal";
@@ -485,6 +486,7 @@ export default function AdminDriverManagePage() {
         {/* 헤더 */}
         <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
           <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
+            <AdminLogo />
             <h1 className="text-lg font-bold">기사 관리</h1>
             <div className="flex items-center gap-2">
               <div className="flex rounded-md border border-border-light overflow-hidden">

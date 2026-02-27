@@ -19,6 +19,8 @@ export interface DispatchDriver {
   name: string;
   vehicleCapacity: number; // m³
   vehicleType: string;
+  /** 1일 최대 수행 건수 (1톤:8건, 2.5톤:6건). 미설정 시 무제한 */
+  maxJobCount?: number;
   /** 배차 시작 시 이미 적재된 물량 (m³) — 전날 미하차 분. 기본 0 */
   initialLoadCube?: number;
   /** 출발지 좌표 — 이 지점에서 가장 가까운 수거지를 첫 경유지로 선택 */

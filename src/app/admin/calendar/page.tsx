@@ -6,6 +6,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import { STATUS_LABELS_SHORT as STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
+import { AdminLogo } from "@/components/ui/AdminLogo";
 
 // 일간 타임라인: 10:00~17:00 (30분 단위, 15개)
 const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
@@ -217,6 +218,7 @@ export default function AdminCalendarPage() {
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <AdminLogo />
             <h1 className="text-lg font-bold">{headerTitle}</h1>
             <div className="flex rounded-md border border-border-light overflow-hidden">
               <button

@@ -12,7 +12,7 @@ import {
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
 import { calculateQuote } from "@/lib/quote-calculator";
-import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
+import { getSpotItems, getSpotAreas, getSpotLadder, createAdminNotification } from "@/lib/db";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
@@ -198,7 +198,7 @@ export async function PUT(
       );
     }
 
-    // Slack 알림 발송 (상태가 변경된 경우에만)
+    // Slack + 백오피스 알림 발송 (상태가 변경된 경우에만)
     const newStatus = data.status;
     if (newStatus && newStatus !== previousStatus) {
       if (newStatus === "quote_confirmed") {
@@ -206,6 +206,19 @@ export async function PUT(
       } else {
         sendStatusChanged(updated, newStatus).catch(() => {});
       }
+      // 백오피스 알림 생성
+      const STATUS_LABEL: Record<string, string> = {
+        pending: "접수", quote_confirmed: "견적확정", user_confirmed: "견적확인완료",
+        change_requested: "일정변경요청", in_progress: "수거진행", completed: "수거완료",
+        payment_requested: "정산요청", payment_completed: "정산완료",
+        cancelled: "취소", rejected: "수거불가",
+      };
+      createAdminNotification({
+        bookingId: id,
+        type: "status_change",
+        title: `[${STATUS_LABEL[newStatus] || newStatus}] ${updated.customerName || "고객"}`,
+        body: `${updated.date} ${updated.timeSlot} | ${updated.address || ""}`,
+      }).catch(() => {});
       // 결제 링크 생성 + SMS 알림 (fire-and-forget)
       if (updated.phone) {
         if (newStatus === "payment_requested") {

@@ -690,7 +690,7 @@ export default function AdminBookingDetailPage() {
                     type="button"
                     onClick={() =>
                       setFinalPriceInput(
-                        String(Math.round((booking.estimateMin! + booking.estimateMax!) / 2))
+                        String(Math.round((booking.estimateMin! + booking.estimateMax!) / 2 / 10000) * 10000)
                       )
                     }
                     className="text-xs text-primary font-medium hover:underline"
@@ -708,6 +708,12 @@ export default function AdminBookingDetailPage() {
           <h3 className="text-sm font-semibold text-text-sub mb-3">
             수거 시간 확정
           </h3>
+          {/* 고객 희망 시간대 표시 */}
+          {booking.timeSlot && (
+            <p className="text-xs text-text-muted mb-2">
+              고객 희망: <span className="font-semibold text-text-primary">{booking.timeSlot}</span>
+            </p>
+          )}
           {booking.confirmedTime && (
             <p className="text-sm text-primary font-semibold mb-3">
               확정: {booking.confirmedTime}
@@ -719,10 +725,7 @@ export default function AdminBookingDetailPage() {
             </p>
           ) : (
             <div className="grid grid-cols-4 max-sm:grid-cols-3 gap-2">
-              {Array.from({ length: 19 }, (_, i) => {
-                const hour = Math.floor(i / 2) + 9;
-                const min = i % 2 === 0 ? "00" : "30";
-                const slot = `${String(hour).padStart(2, "0")}:${min}`;
+              {["10:00", "12:00", "14:00", "16:00"].map((slot) => {
                 const info = slotAvailability[slot];
                 const isFull = info && !info.available;
                 return (

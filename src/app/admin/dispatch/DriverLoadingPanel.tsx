@@ -38,7 +38,7 @@ export default function DriverLoadingPanel({
   return (
     <div className="hidden lg:block absolute top-4 right-4 z-10">
       {isOpen ? (
-        <div className="w-[220px] bg-bg/95 backdrop-blur-sm rounded-lg border border-border-light shadow-md overflow-hidden">
+        <div className="w-[280px] bg-bg/95 backdrop-blur-sm rounded-lg border border-border-light shadow-md overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border-light">
             <span className="text-xs font-semibold text-text-sub">기사 적재 현황</span>
             <button
@@ -50,7 +50,7 @@ export default function DriverLoadingPanel({
               </svg>
             </button>
           </div>
-          <div className="p-2 space-y-1.5 max-h-[300px] overflow-y-auto">
+          <div className="p-2 space-y-1.5 max-h-[420px] overflow-y-auto">
             {driverStats.map((stat) => {
               const pct = getLoadingPercent(stat.totalLoadingCube, stat.vehicleCapacity);
               const isOver = stat.totalLoadingCube > stat.vehicleCapacity;

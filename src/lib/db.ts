@@ -18,3 +18,6 @@ export * from "./db-dispatch";
 
 // 단가 테이블 (SpotItems/Areas/Ladder) + 차단 슬롯 (BlockedSlots)
 export * from "./db-misc";
+
+// 관리자 알림 (Admin Notifications)
+export * from "./db-notifications";

@@ -240,18 +240,28 @@ export async function getAllBookings(): Promise<Booking[]> {
  * getAllBookings() 대비 전체 행 로드 없이 집계만 수행
  */
 export async function getBookingStatusCounts(): Promise<Record<string, number>> {
-  // limit 10000: Supabase 기본 1000행 제한 우회 (대시보드 탭 배지 정확도 보장)
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("status")
-    .limit(10000);
+  // Supabase RPC로 SQL GROUP BY 집계 (전체 행 로드 대신 집계만 수행)
+  const { data, error } = await supabase.rpc("get_booking_status_counts");
 
-  if (error) throw error;
+  if (error) {
+    console.error("[getBookingStatusCounts] RPC 실패, 폴백:", error.message);
+    // 폴백: 기존 방식 (RPC 함수가 아직 배포 안 된 환경)
+    const { data: fallback, error: fbErr } = await supabase
+      .from("bookings")
+      .select("status")
+      .limit(10000);
+    if (fbErr) throw fbErr;
+    const counts: Record<string, number> = {};
+    for (const row of fallback || []) {
+      const s = row.status as string;
+      counts[s] = (counts[s] || 0) + 1;
+    }
+    return counts;
+  }
 
   const counts: Record<string, number> = {};
-  for (const row of data || []) {
-    const s = row.status as string;
-    counts[s] = (counts[s] || 0) + 1;
+  for (const row of (data || []) as { status: string; count: number }[]) {
+    counts[row.status] = Number(row.count);
   }
   return counts;
 }

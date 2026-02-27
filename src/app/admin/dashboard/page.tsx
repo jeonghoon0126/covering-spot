@@ -8,6 +8,7 @@ import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
 import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
+import { AdminLogo } from "@/components/ui/AdminLogo";
 
 const PAGE_SIZE = 50;
 
@@ -54,7 +55,7 @@ export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [total, setTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState("quote_confirmed");
+  const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState("");
@@ -82,6 +83,9 @@ export default function AdminDashboardPage() {
   // 경쟁 조건 방지: 탭 전환 시 이전 요청 취소
   const abortRef = useRef<AbortController | null>(null);
 
+  // 알림 배지
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // 시트 임포트 모달
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [sheetURL, setSheetURL] = useState("");
@@ -104,6 +108,21 @@ export default function AdminDashboardPage() {
     }
     setToken(t);
   }, [router]);
+
+  // 알림 배지 카운트 (30초 간격 폴링)
+  useEffect(() => {
+    if (!token) return;
+    const fetchCount = () =>
+      fetch("/api/admin/notifications?unreadOnly=true", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d) => setUnreadCount(d.unreadCount ?? 0))
+        .catch(() => {});
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   // 검색어 디바운스 (400ms)
   useEffect(() => {
@@ -376,6 +395,7 @@ export default function AdminDashboardPage() {
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <AdminLogo />
             <h1 className="text-lg font-bold">커버링 방문수거 관리</h1>
             {experimentName && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-semantic-orange-tint text-semantic-orange">
@@ -384,6 +404,20 @@ export default function AdminDashboardPage() {
             )}
           </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push("/admin/notifications")}
+              className="relative text-sm text-text-sub hover:text-text-primary transition-colors duration-200 px-2 py-2"
+              aria-label="알림"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 13.5C6.33 14.09 6.97 14.5 7.7 14.5C8.43 14.5 9.07 14.09 9.4 13.5M12.3 5.5C12.3 3 10.27 1 7.7 1C5.13 1 3.1 3 3.1 5.5C3.1 10 1 11.5 1 11.5H14.4C14.4 11.5 12.3 10 12.3 5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white bg-semantic-red rounded-full px-1">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => setShowSheetImport(true)}
               className="text-sm text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1 px-2 py-2 font-medium"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
@@ -41,7 +41,9 @@ interface EditForm {
 
 export default function BookingManagePage() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => {
+    try { return sessionStorage.getItem("covering_manage_phone") || ""; } catch { return ""; }
+  });
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,24 @@ export default function BookingManagePage() {
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const initialSearchDone = useRef(false);
+
+  // 새로고침 시 저장된 전화번호로 자동 조회
+  useEffect(() => {
+    if (initialSearchDone.current) return;
+    const saved = phone.trim();
+    if (!saved) return;
+    initialSearchDone.current = true;
+    setLoading(true);
+    setSearched(true);
+    const token = getBookingToken();
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
+    fetch(`/api/bookings?phone=${encodeURIComponent(saved)}${tokenParam}`)
+      .then((res) => res.json())
+      .then((data) => setBookings(data.bookings || []))
+      .catch(() => setBookings([]))
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 /** localStorage에서 bookingToken 가져오기 */
   function getBookingToken(): string | null {
@@ -77,6 +97,7 @@ export default function BookingManagePage() {
       const data = await res.json();
       const bookings = data.bookings || [];
       setBookings(bookings);
+      try { sessionStorage.setItem("covering_manage_phone", phone.trim()); } catch { /* ignore */ }
       track("[EVENT] SpotBookingSearchResult", { found: bookings.length });
     } catch {
       setBookings([]);

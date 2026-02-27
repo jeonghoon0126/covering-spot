@@ -118,12 +118,15 @@ export async function POST(req: NextRequest) {
       customerName: b.customerName,
     }));
 
+    // 차량 타입별 1일 최대 수행 건수 (1톤:8건, 2.5톤:6건)
+    const JOB_LIMITS: Record<string, number> = { "1톤": 8, "2.5톤": 6 };
     const dispatchDrivers: DispatchDriver[] = drivers.map((d) => ({
       id: d.id,
       name: d.name,
       // resolvedCapacity: 차량 배정이 있으면 vehicle.capacity, 없으면 driver.vehicleCapacity 폴백
       vehicleCapacity: d.resolvedCapacity,
       vehicleType: d.vehicleType,
+      maxJobCount: JOB_LIMITS[d.vehicleType] ?? undefined,
       initialLoadCube: d.initialLoadCube ?? 0,
       startLat: d.startLatitude ?? undefined,
       startLng: d.startLongitude ?? undefined,

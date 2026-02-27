@@ -5,6 +5,7 @@ import {
   updateBooking,
   deleteBooking,
   getSpotItems,
+  createAdminNotification,
 } from "@/lib/db";
 import {
   sendBookingUpdated,
@@ -178,7 +179,16 @@ export async function PUT(
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
       }
-      sendRescheduleNotify(updated, existing.date, existing.timeSlot).catch(() => {});
+      sendRescheduleNotify(updated, existing.date, existing.timeSlot).catch((err) =>
+        console.error("[reschedule-notify] Slack 알림 실패:", err?.message),
+      );
+      // 백오피스 알림 생성 (일정 변경 요청)
+      createAdminNotification({
+        bookingId: id,
+        type: "reschedule",
+        title: `[일정변경요청] ${updated.customerName || "고객"}`,
+        body: `변경 전: ${existing.date} ${existing.timeSlot} → 변경 후: ${updated.date} ${updated.timeSlot}`,
+      }).catch(() => {});
       return NextResponse.json({ booking: updated });
     }
 

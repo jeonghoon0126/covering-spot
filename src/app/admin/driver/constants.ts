@@ -1,10 +1,7 @@
 /* ── 기사 관리 페이지 공유 상수 & 유틸리티 ── */
 
-// 슬롯 차단 관리: 시간대 (10:00 ~ 17:00, 1시간 단위)
-export const SLOT_MGMT_HOURS = Array.from({ length: 8 }, (_, i) => {
-  const hour = i + 10;
-  return `${String(hour).padStart(2, "0")}:00`;
-});
+// 슬롯 차단 관리: 시간대 (10:00 ~ 16:00, 2시간 단위 — 고객 예약 슬롯과 동일)
+export const SLOT_MGMT_HOURS = ["10:00", "12:00", "14:00", "16:00"];
 
 export function getToday(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -26,7 +23,7 @@ export function formatDate(dateStr: string): string {
 }
 
 export function nextHour(time: string): string {
-  const hour = parseInt(time.split(":")[0], 10) + 1;
+  const hour = parseInt(time.split(":")[0], 10) + 2;
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
