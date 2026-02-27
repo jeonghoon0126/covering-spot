@@ -21,7 +21,9 @@ export function Nav() {
   const [hasBooking, setHasBooking] = useState(false);
 
   useEffect(() => {
-    setHasBooking(!!localStorage.getItem("covering_spot_booking_token"));
+    try {
+      setHasBooking(!!localStorage.getItem("covering_spot_booking_token"));
+    } catch { /* localStorage 접근 불가 (Safari 개인정보보호 모드 등) */ }
   }, []);
 
   // 스크롤 시 메뉴 닫기
