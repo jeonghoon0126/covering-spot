@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/booking";
 import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { TIME_SLOTS, TIME_SLOT_LABELS } from "@/lib/constants";
 
+// 기사 전용 뷰: 3개 상태만 표시 (어드민과 다른 라벨)
 const STATUS_LABELS: Record<string, string> = {
   quote_confirmed: "수거 예정",
   in_progress: "진행중",
@@ -16,14 +18,6 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: "bg-semantic-orange-tint text-semantic-orange",
   completed: "bg-semantic-green-tint text-semantic-green",
 };
-
-const SLOT_LABELS: Record<string, string> = {
-  "10:00": "10~12시",
-  "12:00": "12~14시",
-  "14:00": "14~16시",
-  "16:00": "16~18시",
-};
-const SLOT_ORDER = ["10:00", "12:00", "14:00", "16:00"];
 
 // 드라이버가 직접 변경 가능한 퀵 액션
 const QUICK_ACTIONS: Record<string, { status: string; label: string }> = {
@@ -228,8 +222,8 @@ export default function DriverDashboard() {
       groups.get(slot)!.push(b);
     }
     return Array.from(groups.entries()).sort(([a], [b]) => {
-      const ia = SLOT_ORDER.indexOf(a);
-      const ib = SLOT_ORDER.indexOf(b);
+      const ia = TIME_SLOTS.indexOf(a);
+      const ib = TIME_SLOTS.indexOf(b);
       if (ia !== -1 && ib !== -1) return ia - ib;
       if (ia !== -1) return -1;
       if (ib !== -1) return 1;
@@ -401,7 +395,7 @@ export default function DriverDashboard() {
             {groupedBySlot.map(([slot, slotBookings]) => (
               <div key={slot}>
                 <div className="text-xs font-semibold text-text-muted mb-2.5 px-1">
-                  {SLOT_LABELS[slot] || slot} · {slotBookings.length}건
+                  {TIME_SLOT_LABELS[slot] || slot} · {slotBookings.length}건
                 </div>
                 <div className="space-y-3">
                 {slotBookings.map((b) => {

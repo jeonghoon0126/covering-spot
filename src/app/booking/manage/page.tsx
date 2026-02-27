@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { formatPhoneNumber, formatPrice, formatManWon } from "@/lib/format";
 import { isBeforeDeadline } from "@/lib/booking-utils";
 import { track } from "@/lib/analytics";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_MESSAGES, TIME_SLOTS, TIME_SLOT_LABELS } from "@/lib/constants";
 
 /** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
 function canEdit(b: Booking): boolean {
@@ -27,52 +28,6 @@ function canCancel(b: Booking): boolean {
   return (b.status === "pending" || b.status === "quote_confirmed" || b.status === "user_confirmed" || b.status === "change_requested") && isBeforeDeadline(b.date);
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "견적 산정 중",
-  quote_confirmed: "견적 확정",
-  user_confirmed: "견적 확인 완료",
-  change_requested: "일정 변경 요청",
-  in_progress: "수거 진행중",
-  completed: "수거 완료",
-  payment_requested: "정산 요청",
-  payment_completed: "정산 완료",
-  cancelled: "취소",
-  rejected: "수거 불가",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-semantic-orange-tint text-semantic-orange",
-  quote_confirmed: "bg-primary-tint text-primary",
-  user_confirmed: "bg-semantic-green-tint text-semantic-green",
-  change_requested: "bg-semantic-orange-tint text-semantic-orange",
-  in_progress: "bg-primary-tint text-primary-dark",
-  completed: "bg-semantic-green-tint text-semantic-green",
-  payment_requested: "bg-semantic-orange-tint text-semantic-orange",
-  payment_completed: "bg-semantic-green-tint text-semantic-green",
-  cancelled: "bg-semantic-red-tint text-semantic-red",
-  rejected: "bg-fill-tint text-text-muted",
-};
-
-const STATUS_MESSAGES: Record<string, string> = {
-  pending: "담당자가 견적을 확인 중입니다",
-  quote_confirmed: "최종 견적이 확정되었습니다",
-  user_confirmed: "견적을 확인하셨습니다. 수거 일정이 확정됩니다",
-  change_requested: "일정 변경을 요청하셨습니다. 담당자가 확인 중입니다",
-  in_progress: "수거 팀이 방문 중입니다",
-  completed: "수거가 완료되었습니다",
-  payment_requested: "정산 요청이 발송되었습니다",
-  payment_completed: "정산이 완료되었습니다",
-  cancelled: "신청이 취소되었습니다",
-  rejected: "수거가 불가한 건입니다",
-};
-
-const TIME_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
-const TIME_SLOT_LABELS: Record<string, string> = {
-  "10:00": "오전 10~12시",
-  "12:00": "오후 12~14시",
-  "14:00": "오후 14~16시",
-  "16:00": "오후 16~18시",
-};
 
 interface EditForm {
   date: string;
@@ -230,19 +185,25 @@ export default function BookingManagePage() {
   }
 
   async function handleUserConfirm(id: string) {
-    const token = getBookingToken();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers["x-booking-token"] = token;
-    const res = await fetch(`/api/bookings/${id}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({ action: "user_confirm" })
-    });
-    if (res.ok) {
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "user_confirmed" as const } : b));
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "확인 처리 실패");
+    if (saving) return;
+    setSaving(true);
+    try {
+      const token = getBookingToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["x-booking-token"] = token;
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ action: "user_confirm" })
+      });
+      if (res.ok) {
+        setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "user_confirmed" as const } : b));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "확인 처리 실패");
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -616,7 +577,7 @@ export default function BookingManagePage() {
                         {/* 견적 확인 완료 버튼 (quote_confirmed 상태일 때만) */}
                         {b.status === "quote_confirmed" && (
                           <div className="mt-3">
-                            <Button variant="primary" size="md" fullWidth onClick={() => handleUserConfirm(b.id)}>
+                            <Button variant="primary" size="md" fullWidth onClick={() => handleUserConfirm(b.id)} disabled={saving}>
                               견적 확인 완료
                             </Button>
                           </div>

@@ -19,6 +19,14 @@ function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
 }
 
+/**
+ * Booking.status → SMS 템플릿 키 매핑
+ * - "pending"은 DB status, "received"는 SMS 템플릿 키 (접수 안내 문구)
+ */
+const STATUS_ALIAS: Record<string, string> = {
+  pending: "received",
+};
+
 const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null) => string> = {
   received: () =>
     `[커버링 방문수거] 수거 신청이 접수되었어요!\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
@@ -32,6 +40,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     "[커버링 방문수거] 정산 안내드려요." +
     (paymentUrl ? `\n\n아래 링크에서 결제를 진행해 주세요.\n결제 링크: ${paymentUrl}` : "") +
     "\n\n결제 완료 후 정산이 확정돼요.\n문의사항은 카카오톡 채널로 연락 주세요!",
+  // "dispatched"는 DB status가 아닌 배차 이벤트 전용 키 (dispatch-auto/route.ts, dispatch/route.ts에서 호출)
   dispatched: () =>
     "[커버링 방문수거] 안녕하세요! 수거 담당 기사가 배정되었어요.\n\n수거 당일 기사 출발 시 다시 안내드릴게요. 감사합니다!",
   cancelled: () =>
@@ -78,7 +87,8 @@ export async function sendStatusSms(
       return;
     }
 
-    const templateFn = STATUS_TEMPLATES[status];
+    const resolvedStatus = STATUS_ALIAS[status] ?? status;
+    const templateFn = STATUS_TEMPLATES[resolvedStatus];
     if (!templateFn) return;
 
     const text = templateFn(finalPrice, paymentUrl) + STATUS_LINK;

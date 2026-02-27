@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    const rl = checkRateLimit(getRateLimitKey(req), 10, 60_000); // 10 uploads per minute
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "요청이 너무 많습니다" }, { status: 429 });
+    }
+
     const formData = await req.formData();
     const files = formData.getAll("photos") as File[];
 

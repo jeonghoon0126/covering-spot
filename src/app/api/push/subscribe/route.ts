@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { getBookingById } from "@/lib/db";
+import { validateBookingToken } from "@/lib/booking-token";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -34,6 +35,11 @@ export async function POST(req: NextRequest) {
     const booking = await getBookingById(bookingId);
     if (!booking) {
       return NextResponse.json({ error: "존재하지 않는 예약입니다" }, { status: 404 });
+    }
+
+    // 토큰 검증: phone 기반 토큰이 일치해야 구독 가능
+    if (!validateBookingToken(req, booking.phone)) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
     // upsert: 같은 booking + endpoint면 업데이트

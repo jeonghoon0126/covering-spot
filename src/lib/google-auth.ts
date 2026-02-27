@@ -17,6 +17,7 @@ export async function verifyGoogleToken(
     const payload = await res.json();
 
     if (!payload.email_verified || payload.email_verified === "false") return null;
+    if (payload.aud !== process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return null;
     if (!payload.email?.endsWith("@covering.app")) return null;
 
     return { email: payload.email, name: payload.name || payload.email.split("@")[0] };

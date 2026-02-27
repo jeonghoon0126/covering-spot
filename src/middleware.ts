@@ -18,11 +18,13 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   "/api/admin/drivers": { limit: 30, windowMs: 60_000 },
   "/api/driver/auth": { limit: 5, windowMs: 60_000 },          // 전화번호 brute-force 방지
   "/api/driver/bookings": { limit: 60, windowMs: 60_000 },
+  "/api/upload": { limit: 10, windowMs: 60_000 },
+  "/api/items/popular": { limit: 30, windowMs: 60_000 },
 };
 
-function findRateLimit(pathname: string): { limit: number; windowMs: number } | null {
+function findRateLimit(pathname: string): { prefix: string; limit: number; windowMs: number } | null {
   for (const [prefix, config] of Object.entries(RATE_LIMITS)) {
-    if (pathname.startsWith(prefix)) return config;
+    if (pathname.startsWith(prefix)) return { prefix, ...config };
   }
   return null;
 }
@@ -35,7 +37,7 @@ export function middleware(request: NextRequest) {
     const config = findRateLimit(pathname);
     if (config) {
       const ip = getRateLimitKey(request);
-      const key = `${ip}:${pathname}`;
+      const key = `${ip}:${config.prefix}`;
       const result = rateLimit(key, config.limit, config.windowMs);
       if (!result.allowed) {
         return NextResponse.json(

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 
-const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
+import { VEHICLE_TYPES } from "@/lib/constants";
 
 const createVehicleSchema = z.object({
   name: z.string().min(1, "name 필드가 필요합니다").max(50),

@@ -5,13 +5,7 @@ import type { AdminRole } from "@/lib/admin-roles";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
-function getSecret(): string {
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) {
-    throw new Error("ADMIN_PASSWORD 환경변수가 설정되지 않았습니다");
-  }
-  return secret;
-}
+const SECRET = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
 
 /**
  * HMAC 기반 토큰 생성 (서버리스 호환 - 상태 없음)
@@ -24,7 +18,7 @@ function createToken(adminId?: string, email?: string, role: AdminRole = "admin"
     ? `${exp}:${adminId}:${email}:${role}`
     : `${exp}:${role}`;
   const signature = crypto
-    .createHmac("sha256", getSecret())
+    .createHmac("sha256", SECRET)
     .update(payload)
     .digest("hex");
   return {
@@ -59,11 +53,18 @@ export function validateToken(req: NextRequest): boolean {
   if (!Number.isFinite(exp) || exp < Date.now()) return false;
 
   const expected = crypto
-    .createHmac("sha256", getSecret())
+    .createHmac("sha256", SECRET)
     .update(payload)
     .digest("hex");
 
-  return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  try {
+    const sigBuf = Buffer.from(sig);
+    const expectedBuf = Buffer.from(expected);
+    if (sigBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -73,10 +74,10 @@ export function validateToken(req: NextRequest): boolean {
  */
 export function getAdminFromToken(req: NextRequest): { adminId: string | null; adminEmail: string; role: AdminRole } {
   const raw = extractRawToken(req);
-  if (!raw) return { adminId: null, adminEmail: "legacy", role: "admin" };
+  if (!raw) return { adminId: null, adminEmail: "legacy", role: "operator" };
 
   const idx = raw.lastIndexOf(":");
-  if (idx === -1) return { adminId: null, adminEmail: "legacy", role: "admin" };
+  if (idx === -1) return { adminId: null, adminEmail: "legacy", role: "operator" };
 
   const payload = raw.slice(0, idx);
   const parts = payload.split(":");
@@ -93,7 +94,7 @@ export function getAdminFromToken(req: NextRequest): { adminId: string | null; a
     return { adminId: null, adminEmail: "legacy", role };
   }
 
-  return { adminId: null, adminEmail: "legacy", role: "admin" };
+  return { adminId: null, adminEmail: "legacy", role: "operator" };
 }
 
 export async function POST(req: NextRequest) {

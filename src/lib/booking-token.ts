@@ -1,12 +1,6 @@
 import crypto from "crypto";
 
-function getSecret(): string {
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) {
-    throw new Error("ADMIN_PASSWORD 환경변수가 설정되지 않았습니다");
-  }
-  return secret;
-}
+const SECRET = process.env.BOOKING_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
 
 /**
  * 30일 단위 윈도우 인덱스
@@ -18,7 +12,7 @@ function getWindowIndex(offset = 0): number {
 
 function computeToken(payload: string): string {
   return crypto
-    .createHmac("sha256", getSecret())
+    .createHmac("sha256", SECRET)
     .update(payload)
     .digest("hex")
     .slice(0, 32);

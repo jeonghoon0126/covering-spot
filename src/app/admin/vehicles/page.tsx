@@ -26,12 +26,7 @@ interface UnavailablePeriod {
   createdAt: string;
 }
 
-/* ── 상수 ── */
-
-const VEHICLE_TYPES = ["1톤", "1.4톤", "2.5톤", "5톤"] as const;
-const VEHICLE_CAPACITY: Record<string, number> = {
-  "1톤": 4.8, "1.4톤": 6.5, "2.5톤": 10.5, "5톤": 20.0,
-};
+import { VEHICLE_TYPES, VEHICLE_CAPACITY } from "@/lib/constants";
 
 function getToday(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });

@@ -4,6 +4,7 @@ import {
   getBookingById,
   updateBooking,
   deleteBooking,
+  getSpotItems,
 } from "@/lib/db";
 import {
   sendBookingUpdated,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/slack-notify";
 import { validateBookingToken } from "@/lib/booking-token";
 import { getCustomerDeadline } from "@/lib/booking-utils";
+import { enforceServerItems } from "@/lib/server-price";
 import type { Booking } from "@/types/booking";
 
 /** 고객이 수정 가능한 필드만 허용 (admin 전용 필드 차단) */
@@ -187,7 +189,15 @@ export async function PUT(
         { status: 400 },
       );
     }
-    const updated = await updateBooking(id, parsed.data);
+
+    // 서버 단가표 기준 가격 강제 적용 (가격 변조 방지)
+    const updateData = { ...parsed.data };
+    if (updateData.items && updateData.items.length > 0) {
+      const spotItems = await getSpotItems(true);
+      updateData.items = enforceServerItems(updateData.items, spotItems);
+    }
+
+    const updated = await updateBooking(id, updateData);
     if (!updated) {
       return NextResponse.json(
         { error: "수정 실패" },

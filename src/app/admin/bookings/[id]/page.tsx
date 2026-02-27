@@ -9,6 +9,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
 import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
 
 interface AuditLog {
   id: string;
@@ -24,31 +25,6 @@ const ACTION_LABELS: Record<string, string> = {
   items_update: "품목 수정",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "견적 산정 중",
-  quote_confirmed: "견적 확정",
-  user_confirmed: "견적 확인 완료",
-  change_requested: "일정 변경 요청",
-  in_progress: "수거 진행중",
-  completed: "수거 완료",
-  payment_requested: "정산 요청",
-  payment_completed: "정산 완료",
-  cancelled: "취소",
-  rejected: "수거 불가",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-semantic-orange-tint text-semantic-orange",
-  quote_confirmed: "bg-primary-tint text-primary",
-  user_confirmed: "bg-semantic-green-tint text-semantic-green",
-  change_requested: "bg-semantic-orange-tint text-semantic-orange",
-  in_progress: "bg-primary-tint text-primary-dark",
-  completed: "bg-semantic-green-tint text-semantic-green",
-  payment_requested: "bg-semantic-orange-tint text-semantic-orange",
-  payment_completed: "bg-semantic-green-tint text-semantic-green",
-  cancelled: "bg-semantic-red-tint text-semantic-red",
-  rejected: "bg-fill-tint text-text-muted",
-};
 
 // 다음 상태 전이 맵
 const NEXT_STATUS: Record<string, { status: string; label: string }[]> = {

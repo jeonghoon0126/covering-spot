@@ -4,12 +4,7 @@ import { NextRequest } from "next/server";
 // 12시간 (하루 작업 기준)
 const DRIVER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
-// admin 토큰과 동일한 시크릿을 쓰되, 페이로드 구조가 완전히 달라 혼용 불가
-function getSecret(): string {
-  const s = process.env.ADMIN_PASSWORD;
-  if (!s) throw new Error("ADMIN_PASSWORD 환경변수 미설정");
-  return s;
-}
+const SECRET = process.env.DRIVER_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
 
 interface DriverTokenPayload {
   type: "driver";
@@ -33,7 +28,7 @@ export function createDriverToken(driverId: string, driverName: string): string 
   };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const sig = crypto
-    .createHmac("sha256", getSecret())
+    .createHmac("sha256", SECRET)
     .update(payloadB64)
     .digest("hex");
   return `${payloadB64}.${sig}`;
@@ -64,7 +59,7 @@ export function validateDriverToken(req: NextRequest): DriverAuth | null {
 
   // HMAC 검증 (timing-safe)
   const expected = crypto
-    .createHmac("sha256", getSecret())
+    .createHmac("sha256", SECRET)
     .update(payloadB64)
     .digest("hex");
 

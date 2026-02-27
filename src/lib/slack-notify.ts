@@ -1,4 +1,5 @@
 import type { Booking } from "@/types/booking";
+import { STATUS_LABELS } from "@/lib/constants";
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -17,16 +18,12 @@ function actionsBlock(buttons: { text: string; url: string; primary?: boolean }[
   };
 }
 
-const STATUS_LABELS: Record<string, string> = {
+/** Slack 알림 전용 라벨 (constants 기본값 + Slack 워딩 오버라이드) */
+const SLACK_STATUS_LABELS: Record<string, string> = {
+  ...STATUS_LABELS,
   pending: "접수 대기",
-  quote_confirmed: "견적 확정",
-  user_confirmed: "유저 견적 확인 완료",
-  change_requested: "일정 변경 요청",
-  in_progress: "수거 진행중",
-  completed: "수거 완료",
   payment_requested: "결제 요청",
   payment_completed: "결제 완료",
-  cancelled: "취소",
   rejected: "거절",
 };
 
@@ -361,7 +358,7 @@ export async function sendStatusChanged(
   b: Booking,
   newStatus: string,
 ): Promise<void> {
-  const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+  const statusLabel = SLACK_STATUS_LABELS[newStatus] || newStatus;
 
   // 스레드가 있으면 스레드 답글로
   if (b.slackThreadTs) {
