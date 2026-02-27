@@ -80,30 +80,38 @@ export function track<T extends EventName>(
   };
 
   // Mixpanel
-  if (window.mixpanel) {
-    window.mixpanel.track(event, props);
-  }
+  try {
+    if (window.mixpanel) {
+      window.mixpanel.track(event, props);
+    }
+  } catch { /* Mixpanel 초기화 경쟁 조건 등 오류 무시 */ }
 
   // Airbridge
-  if (window.airbridge) {
-    window.airbridge.events.send(event, { customAttributes: props });
-  }
+  try {
+    if (window.airbridge) {
+      window.airbridge.events.send(event, { customAttributes: props });
+    }
+  } catch { /* Airbridge 오류 무시 */ }
 
   // GA4
-  if (window.gtag) {
-    window.gtag("event", event, props);
-  }
+  try {
+    if (window.gtag) {
+      window.gtag("event", event, props);
+    }
+  } catch { /* GA4 오류 무시 */ }
 }
 
 export function identify(userId: string, props?: { phone?: string; name?: string }) {
   if (typeof window === "undefined") return;
-  if (window.mixpanel) {
-    window.mixpanel.identify(userId);
-    if (props) {
-      window.mixpanel.people?.set({
-        ...(props.phone && { $phone: props.phone }),
-        ...(props.name && { $name: props.name }),
-      });
+  try {
+    if (window.mixpanel) {
+      window.mixpanel.identify(userId);
+      if (props) {
+        window.mixpanel.people?.set({
+          ...(props.phone && { $phone: props.phone }),
+          ...(props.name && { $name: props.name }),
+        });
+      }
     }
-  }
+  } catch { /* Mixpanel 오류 무시 */ }
 }

@@ -17,9 +17,6 @@ export default function RootError({
   return (
     <div className="text-center py-20 px-4">
       <p className="text-text-muted mb-2">페이지를 불러오는 중 오류가 발생했습니다.</p>
-      {/* 임시 디버그 */}
-      <p className="text-xs text-red-500 mb-1 break-all">[RootError] {(error as Error)?.message || "(no message)"}</p>
-      <pre className="text-xs text-red-400 mb-2 break-all text-left max-w-xs mx-auto overflow-auto">{(error as Error)?.stack?.slice(0, 400)}</pre>
       {error.digest && (
         <p className="text-xs text-text-muted mb-8">오류 코드: {error.digest}</p>
       )}
