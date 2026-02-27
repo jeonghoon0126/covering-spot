@@ -20,6 +20,8 @@ export default function GlobalError({
           <p style={{ color: "#6B7280", marginBottom: "8px" }}>
             페이지를 불러오는 중 오류가 발생했습니다.
           </p>
+          {/* 임시 디버그 */}
+          <p style={{ color: "#EF4444", fontSize: "12px", marginBottom: "8px", wordBreak: "break-all" }}>{error.message}</p>
           {error.digest && (
             <p style={{ fontSize: "12px", color: "#9CA3AF", marginBottom: "24px" }}>
               오류 코드: {error.digest}
