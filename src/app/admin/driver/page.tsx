@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import DaumPostcodeEmbed from "react-daum-postcode";
 import type { Booking } from "@/types/booking";
 
@@ -702,9 +703,9 @@ export default function AdminDriverManagePage() {
   /* ── 인증 ── */
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
-      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
       return;
     }
@@ -721,7 +722,7 @@ export default function AdminDriverManagePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }
@@ -890,7 +891,7 @@ export default function AdminDriverManagePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }

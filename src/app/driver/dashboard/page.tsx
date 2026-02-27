@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/booking";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 
 const STATUS_LABELS: Record<string, string> = {
   quote_confirmed: "수거 예정",
@@ -94,8 +95,8 @@ export default function DriverDashboard() {
   }, []);
 
   useEffect(() => {
-    const t = sessionStorage.getItem("driver_token");
-    const name = sessionStorage.getItem("driver_name");
+    const t = safeSessionGet("driver_token");
+    const name = safeSessionGet("driver_name");
     if (!t) {
       router.replace("/driver");
       return;
@@ -112,8 +113,8 @@ export default function DriverDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        sessionStorage.removeItem("driver_token");
-        sessionStorage.removeItem("driver_name");
+        safeSessionRemove("driver_token");
+        safeSessionRemove("driver_name");
         router.replace("/driver");
         return;
       }
@@ -131,8 +132,8 @@ export default function DriverDashboard() {
   }, [fetchBookings]);
 
   function handleLogout() {
-    sessionStorage.removeItem("driver_token");
-    sessionStorage.removeItem("driver_name");
+    safeSessionRemove("driver_token");
+    safeSessionRemove("driver_name");
     router.replace("/driver");
   }
 

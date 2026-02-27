@@ -8,6 +8,7 @@ import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 
 interface AuditLog {
   id: string;
@@ -97,9 +98,9 @@ export default function AdminBookingDetailPage() {
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
-      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
       return;
     }
@@ -128,8 +129,8 @@ export default function AdminBookingDetailPage() {
     })
       .then((r) => {
         if (r.status === 401) {
-          sessionStorage.removeItem("admin_token");
-          sessionStorage.setItem("admin_return_url", window.location.pathname);
+          safeSessionRemove("admin_token");
+          safeSessionSet("admin_return_url", window.location.pathname);
           router.push("/admin");
           return null;
         }

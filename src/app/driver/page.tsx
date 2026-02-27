@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { safeSessionGet, safeSessionSet } from "@/lib/storage";
 
 export default function DriverLoginPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function DriverLoginPage() {
 
   // 이미 로그인된 상태면 대시보드로
   useEffect(() => {
-    if (sessionStorage.getItem("driver_token")) {
+    if (safeSessionGet("driver_token")) {
       router.replace("/driver/dashboard");
     }
   }, [router]);
@@ -50,8 +51,8 @@ export default function DriverLoginPage() {
       const data = await res.json();
 
       if (res.ok && data.token) {
-        sessionStorage.setItem("driver_token", data.token);
-        sessionStorage.setItem("driver_name", data.driverName || "");
+        safeSessionSet("driver_token", data.token);
+        safeSessionSet("driver_name", data.driverName || "");
         router.push("/driver/dashboard");
       } else {
         setError(data.error || "인증 실패");

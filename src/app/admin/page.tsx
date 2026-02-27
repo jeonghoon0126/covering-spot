@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -26,12 +27,12 @@ export default function AdminLoginPage() {
         });
         const data = await res.json();
         if (res.ok && data.token) {
-          sessionStorage.setItem("admin_token", data.token);
+          safeSessionSet("admin_token", data.token);
           if (data.admin?.name) {
-            sessionStorage.setItem("admin_name", data.admin.name);
+            safeSessionSet("admin_name", data.admin.name);
           }
-          const returnUrl = sessionStorage.getItem("admin_return_url");
-          sessionStorage.removeItem("admin_return_url");
+          const returnUrl = safeSessionGet("admin_return_url");
+          safeSessionRemove("admin_return_url");
           router.push(returnUrl || "/admin/dashboard");
         } else {
           setError(data.error || "인증 실패");
@@ -104,9 +105,9 @@ export default function AdminLoginPage() {
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        sessionStorage.setItem("admin_token", data.token);
-        const returnUrl = sessionStorage.getItem("admin_return_url");
-        sessionStorage.removeItem("admin_return_url");
+        safeSessionSet("admin_token", data.token);
+        const returnUrl = safeSessionGet("admin_return_url");
+        safeSessionRemove("admin_return_url");
         router.push(returnUrl || "/admin/dashboard");
       } else {
         setError(data.error || "인증 실패");

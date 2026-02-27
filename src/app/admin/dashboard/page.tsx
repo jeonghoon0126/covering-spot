@@ -6,6 +6,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
+import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
 
 const PAGE_SIZE = 50;
 
@@ -120,7 +121,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
       router.push("/admin");
       return;
@@ -163,7 +164,7 @@ export default function AdminDashboardPage() {
       if (signal.aborted) return;
 
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }
@@ -478,7 +479,7 @@ export default function AdminDashboardPage() {
             </button>
             <button
               onClick={() => {
-                sessionStorage.removeItem("admin_token");
+                safeSessionRemove("admin_token");
                 router.push("/admin");
               }}
               className="text-sm text-semantic-red px-2 py-2"

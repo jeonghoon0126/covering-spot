@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { safeSessionGet } from "@/lib/storage";
 
 /* ── 타입 ── */
 
@@ -73,7 +74,7 @@ export default function VehiclesPage() {
   const [unavailableLoading, setUnavailableLoading] = useState(false);
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) { router.replace("/admin"); return; }
     setToken(t);
   }, [router]);

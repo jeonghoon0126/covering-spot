@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 
 /* ── 상수 ── */
 
@@ -102,9 +103,9 @@ export default function AdminCalendarPage() {
   /* ── 인증 ── */
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
-      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
       return;
     }
@@ -121,7 +122,7 @@ export default function AdminCalendarPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }

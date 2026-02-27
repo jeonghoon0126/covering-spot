@@ -9,6 +9,7 @@ import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import type { BookingItem } from "@/types/booking";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 
 const SOURCE_OPTIONS = ["런치", "카카오톡 상담", "전화 상담", "기타"];
 const TIME_SLOTS = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
@@ -100,9 +101,9 @@ export default function AdminBookingNewPage() {
   const totalLoadingCube = selectedItems.reduce((s, i) => s + i.loadingCube * i.quantity, 0);
 
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
-      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
       return;
     }
@@ -230,7 +231,7 @@ export default function AdminBookingNewPage() {
       });
 
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }

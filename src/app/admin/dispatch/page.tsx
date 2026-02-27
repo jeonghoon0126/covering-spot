@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, forwardRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import {
   DndContext,
   closestCenter,
@@ -239,9 +240,9 @@ export default function AdminDispatchPage() {
 
   // 인증
   useEffect(() => {
-    const t = sessionStorage.getItem("admin_token");
+    const t = safeSessionGet("admin_token");
     if (!t) {
-      sessionStorage.setItem("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
       return;
     }
@@ -275,7 +276,7 @@ export default function AdminDispatchPage() {
       });
       if (controller.signal.aborted) return;
       if (res.status === 401) {
-        sessionStorage.removeItem("admin_token");
+        safeSessionRemove("admin_token");
         router.push("/admin");
         return;
       }
