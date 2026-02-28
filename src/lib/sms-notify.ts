@@ -83,6 +83,7 @@ export async function sendStatusSms(
     const projectId = process.env.FLARELANE_PROJECT_ID;
 
     if (!apiKey || !projectId) {
+      console.log("[sms-notify] FlareLane 환경변수 미설정 - SMS 발송 스킵");
       return;
     }
 
@@ -136,6 +137,7 @@ export async function sendAlimtalk(
     const projectId = process.env.FLARELANE_PROJECT_ID;
 
     if (!apiKey || !projectId) {
+      console.log("[alimtalk] FlareLane 환경변수 미설정 - 알림톡 발송 스킵");
       return;
     }
 
