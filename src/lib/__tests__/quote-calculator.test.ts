@@ -1,6 +1,28 @@
 import { describe, it, expect } from "vitest";
 import { calculateQuote } from "@/lib/quote-calculator";
 import type { QuoteInput } from "@/types/booking";
+import type { SpotItem, SpotArea, SpotLadder } from "@/lib/db";
+
+// ── 테스트용 mock 마스터 데이터 ──
+const MOCK_SPOT_ITEMS: SpotItem[] = [
+  { id: "1", category: "가전",  name: "중형 냉장고",   displayName: "중형 냉장고",  price: 38500,   loadingCube: 0.6, active: true },
+  { id: "2", category: "가전",  name: "양문형 냉장고", displayName: "양문형 냉장고", price: 150000,  loadingCube: 1.2, active: true },
+  { id: "3", category: "악기",  name: "그랜드 피아노", displayName: "그랜드 피아노", price: 150000,  loadingCube: 2.0, active: true },
+  { id: "4", category: "소파",  name: "L자형(대)",     displayName: "L자형(대)",     price: 405000,  loadingCube: 3.0, active: true },
+  { id: "5", category: "장롱",  name: "3자",           displayName: "3자",           price: 54000,   loadingCube: 0.7, active: true },
+];
+
+const MOCK_AREAS: SpotArea[] = [
+  { id: "a1", name: "강남구", price1: 50000, price2: 75000,  price3: 113000, active: true },
+  { id: "a2", name: "구리",   price1: 46000, price2: 70000,  price3: 105000, active: true },
+];
+
+const MOCK_LADDER_PRICES: SpotLadder[] = [
+  { id: "l1", type: "10층 미만", duration: "기본",  price: 130000, sortOrder: 0 },
+  { id: "l2", type: "10층 이상", duration: "기본",  price: 150000, sortOrder: 0 },
+  { id: "l3", type: "10층 이상", duration: "1시간", price: 200000, sortOrder: 1 },
+  { id: "l4", type: "10층 이상", duration: "2시간", price: 250000, sortOrder: 2 },
+];
 
 describe("calculateQuote", () => {
   // 기본 단일 품목 견적 (실제 단가를 사용해야 함)
@@ -12,7 +34,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     // 중형 냉장고 1개 실제 가격: 38500
     expect(result.itemsTotal).toBe(38500);
@@ -34,7 +56,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     expect(result.itemsTotal).toBe(600000);
     expect(result.crewSize).toBe(2);
@@ -52,7 +74,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     expect(result.itemsTotal).toBe(1215000);
     expect(result.crewSize).toBe(3);
@@ -70,7 +92,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     // itemsTotal = 108000
     // itemsTotalMax = 108000 * 1.15 + 108000 * 0.1 = 124200 + 10800 = 135000
@@ -89,7 +111,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     // itemsTotal = 92500
     // itemsTotalMax = 92500 * 1.15 + 54000(장롱만) * 0.1 = 106375 + 5400 = 111775
@@ -108,7 +130,7 @@ describe("calculateQuote", () => {
       ladderType: "10층 미만",
       ladderHours: 0, // 기본요금 130000
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     expect(result.ladderPrice).toBe(130000);
     expect(result.totalPrice).toBe(38500 + 50000 + 130000); // 품목 + 인력 + 사다리
@@ -123,7 +145,7 @@ describe("calculateQuote", () => {
       ],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     // 구리 1인 단가 = 46000
     expect(result.crewPrice).toBe(46000);
@@ -141,7 +163,7 @@ describe("calculateQuote", () => {
       ladderType: "10층 이상",
       ladderHours: 2,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     expect(result.estimateMin).toBeLessThanOrEqual(result.estimateMax);
   });
@@ -153,7 +175,7 @@ describe("calculateQuote", () => {
       items: [],
       needLadder: false,
     };
-    const result = calculateQuote(input);
+    const result = calculateQuote(input, undefined, MOCK_SPOT_ITEMS, MOCK_AREAS, MOCK_LADDER_PRICES);
 
     expect(result.itemsTotal).toBe(0);
     expect(result.crewSize).toBe(1);

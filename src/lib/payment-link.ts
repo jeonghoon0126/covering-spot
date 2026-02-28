@@ -8,6 +8,6 @@ export async function createPaymentLink(
   customerName: string,
 ): Promise<string | null> {
   // 결제 API 정보 미정 — placeholder
-  console.log(`[payment-link] placeholder: bookingId=${bookingId}, amount=${amount}, customer=${customerName}`);
+  console.warn(`[payment-link] placeholder: bookingId=${bookingId}, amount=${amount}, customer=${customerName}`);
   return null;
 }
