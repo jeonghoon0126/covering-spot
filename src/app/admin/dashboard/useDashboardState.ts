@@ -151,7 +151,9 @@ export function useDashboardState() {
       setBookings(newBookings);
       if (data.counts) setCounts(newCounts);
       setTotal(newTotal);
-      cacheRef.current.set(cacheKey, { bookings: newBookings, counts: newCounts, total: newTotal, ts: Date.now() });
+      const now = Date.now();
+      cacheRef.current.forEach((v, k) => { if (now - v.ts >= CACHE_TTL) cacheRef.current.delete(k); });
+      cacheRef.current.set(cacheKey, { bookings: newBookings, counts: newCounts, total: newTotal, ts: now });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setBookings([]);
