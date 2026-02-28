@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DaumPostcodeEmbed from "react-daum-postcode";
-import { detectAreaFromAddress } from "@/data/spot-areas";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { TextArea } from "@/components/ui/TextArea";
 import { ModalHeader } from "@/components/ui/ModalHeader";
-import type { BookingItem } from "@/types/booking";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { useBookingForm, formatPhone } from "./useBookingForm";
+import { useItemSelection, formatPrice } from "./useItemSelection";
 
 const SOURCE_OPTIONS = ["런치", "카카오톡 상담", "전화 상담", "기타"];
 const TIME_SLOTS = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
@@ -25,230 +23,40 @@ const POPULAR_ITEMS = [
   { cat: "서랍장", name: "3단이하", displayName: "서랍장 3단" },
 ];
 
-interface SpotItem {
-  category: string;
-  name: string;
-  displayName: string;
-  price: number;
-  loadingCube: number;
-}
-
-interface SpotCategory {
-  name: string;
-  items: SpotItem[];
-}
-
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-}
-
-function formatPrice(n: number): string {
-  return n.toLocaleString("ko-KR");
-}
-
-interface FormData {
-  customerName: string;
-  phone: string;
-  address: string;
-  addressDetail: string;
-  area: string;
-  date: string;
-  timeSlot: string;
-  memo: string;
-  source: string;
-  hasGroundAccess: boolean;
-}
-
-interface FormErrors {
-  customerName?: string;
-  phone?: string;
-  address?: string;
-}
-
 export default function AdminBookingNewPage() {
   const router = useRouter();
-  const [token, setToken] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
 
-  const [form, setForm] = useState<FormData>({
-    customerName: "",
-    phone: "",
-    address: "",
-    addressDetail: "",
-    area: "",
-    date: "",
-    timeSlot: "",
-    memo: "",
-    source: "카카오톡 상담",
-    hasGroundAccess: false,
-  });
-  const [showPostcode, setShowPostcode] = useState(false);
+  const {
+    submitting,
+    errors,
+    form,
+    showPostcode,
+    setShowPostcode,
+    updateField,
+    setForm,
+    handleSubmit,
+    handlePostcodeComplete,
+  } = useBookingForm();
 
-  // 품목 선택 상태
-  const [categories, setCategories] = useState<SpotCategory[]>([]);
-  const [selectedItems, setSelectedItems] = useState<BookingItem[]>([]);
-  const [itemSearch, setItemSearch] = useState("");
-  const [openCat, setOpenCat] = useState<string | null>(null);
-  const [customItemName, setCustomItemName] = useState("");
-  const [priceOverride, setPriceOverride] = useState("");
-
-  // 품목에서 계산
-  const itemsTotal = selectedItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const totalLoadingCube = selectedItems.reduce((s, i) => s + i.loadingCube * i.quantity, 0);
-
-  useEffect(() => {
-    const t = safeSessionGet("admin_token");
-    if (!t) {
-      safeSessionSet("admin_return_url", window.location.pathname);
-      router.push("/admin");
-      return;
-    }
-    setToken(t);
-  }, [router]);
-
-  useEffect(() => {
-    fetch("/api/items")
-      .then((r) => r.json())
-      .then((d) => setCategories(d.categories || []));
-  }, []);
-
-  function updateField(field: keyof FormData, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field as keyof FormErrors]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
-  }
-
-  function getItemQty(cat: string, name: string): number {
-    return selectedItems.find((i) => i.category === cat && i.name === name)?.quantity ?? 0;
-  }
-
-  function updateItemQty(
-    cat: string,
-    name: string,
-    displayName: string,
-    price: number,
-    loadingCube: number,
-    delta: number,
-  ) {
-    setSelectedItems((prev) => {
-      const idx = prev.findIndex((i) => i.category === cat && i.name === name);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + delta };
-        if (next[idx].quantity <= 0) next.splice(idx, 1);
-        return next;
-      }
-      if (delta > 0) {
-        return [...prev, { category: cat, name, displayName, price, quantity: 1, loadingCube }];
-      }
-      return prev;
-    });
-  }
-
-  function addCustomItem() {
-    const trimmed = customItemName.trim();
-    if (!trimmed) return;
-    updateItemQty("직접입력", trimmed, trimmed, 0, 0, 1);
-    setCustomItemName("");
-  }
-
-  const filteredItems: SpotItem[] =
-    itemSearch.trim().length >= 1
-      ? categories
-          .flatMap((cat) =>
-            cat.items
-              .filter(
-                (item) =>
-                  item.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                  cat.name.toLowerCase().includes(itemSearch.toLowerCase()),
-              )
-              .map((item) => ({ ...item, category: cat.name })),
-          )
-          .slice(0, 40)
-      : [];
-
-  function validate(): boolean {
-    const next: FormErrors = {};
-
-    if (!form.customerName.trim()) {
-      next.customerName = "고객 이름을 입력해주세요";
-    }
-
-    const phoneDigits = form.phone.replace(/\D/g, "");
-    if (!phoneDigits) {
-      next.phone = "전화번호를 입력해주세요";
-    } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      next.phone = "올바른 전화번호를 입력해주세요";
-    }
-
-    if (!form.address.trim()) {
-      next.address = "주소를 입력해주세요";
-    } else if (!form.area) {
-      if (!confirm("서비스 지역을 감지하지 못했습니다.\n지역 없이 예약을 생성하시겠습니까?")) {
-        return false;
-      }
-    }
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setSubmitting(true);
-    try {
-      const priceNum = priceOverride
-        ? Number(priceOverride.replace(/\D/g, ""))
-        : itemsTotal;
-
-      const res = await fetch("/api/admin/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          customerName: form.customerName.trim(),
-          phone: formatPhone(form.phone),
-          address: form.address.trim(),
-          addressDetail: form.addressDetail.trim(),
-          area: form.area,
-          items: selectedItems,
-          estimatedPrice: priceNum,
-          date: form.date,
-          timeSlot: form.timeSlot,
-          memo: form.memo.trim(),
-          source: form.source,
-          hasGroundAccess: form.hasGroundAccess,
-        }),
-      });
-
-      if (res.status === 401) {
-        safeSessionRemove("admin_token");
-        router.push("/admin");
-        return;
-      }
-
-      const data = await res.json();
-
-      if (res.ok && data.booking) {
-        router.push(`/admin/bookings/${data.booking.id}`);
-      } else {
-        alert(data.error || "예약 생성에 실패했습니다");
-      }
-    } catch {
-      alert("네트워크 오류가 발생했습니다");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const {
+    categories,
+    selectedItems,
+    setSelectedItems,
+    itemSearch,
+    setItemSearch,
+    openCat,
+    setOpenCat,
+    customItemName,
+    setCustomItemName,
+    priceOverride,
+    setPriceOverride,
+    itemsTotal,
+    totalLoadingCube,
+    filteredItems,
+    getItemQty,
+    updateItemQty,
+    addCustomItem,
+  } = useItemSelection();
 
   return (
     <div className="min-h-screen bg-bg-warm">
@@ -267,7 +75,10 @@ export default function AdminBookingNewPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-[42rem] mx-auto px-4 py-4 space-y-4">
+      <form
+        onSubmit={(e) => handleSubmit(e, selectedItems, itemsTotal, priceOverride)}
+        className="max-w-[42rem] mx-auto px-4 py-4 space-y-4"
+      >
         {/* 고객 정보 */}
         <div className="bg-bg rounded-lg p-5 border border-border-light">
           <h3 className="text-sm font-semibold text-text-sub mb-4">고객 정보</h3>
@@ -404,14 +215,7 @@ export default function AdminBookingNewPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          updateItemQty(
-                            item.category,
-                            item.name,
-                            item.displayName,
-                            item.price,
-                            item.loadingCube,
-                            -1,
-                          )
+                          updateItemQty(item.category, item.name, item.displayName, item.price, item.loadingCube, -1)
                         }
                         disabled={qty === 0}
                         className="w-6 h-6 rounded-full bg-bg-warm text-text-sub hover:bg-border-light disabled:opacity-30 text-sm font-bold flex items-center justify-center"
@@ -428,14 +232,7 @@ export default function AdminBookingNewPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          updateItemQty(
-                            item.category,
-                            item.name,
-                            item.displayName,
-                            item.price,
-                            item.loadingCube,
-                            1,
-                          )
+                          updateItemQty(item.category, item.name, item.displayName, item.price, item.loadingCube, 1)
                         }
                         className="w-6 h-6 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center hover:bg-primary-dark"
                       >
@@ -499,14 +296,7 @@ export default function AdminBookingNewPage() {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      updateItemQty(
-                                        cat.name,
-                                        item.name,
-                                        item.displayName,
-                                        item.price,
-                                        item.loadingCube,
-                                        -1,
-                                      )
+                                      updateItemQty(cat.name, item.name, item.displayName, item.price, item.loadingCube, -1)
                                     }
                                     disabled={qty === 0}
                                     className="w-6 h-6 rounded-full bg-bg text-text-sub hover:bg-border-light disabled:opacity-30 text-sm font-bold flex items-center justify-center"
@@ -523,14 +313,7 @@ export default function AdminBookingNewPage() {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      updateItemQty(
-                                        cat.name,
-                                        item.name,
-                                        item.displayName,
-                                        item.price,
-                                        item.loadingCube,
-                                        1,
-                                      )
+                                      updateItemQty(cat.name, item.name, item.displayName, item.price, item.loadingCube, 1)
                                     }
                                     className="w-6 h-6 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center hover:bg-primary-dark"
                                   >
@@ -657,7 +440,7 @@ export default function AdminBookingNewPage() {
             </div>
           </div>
 
-          {/* 견적 금액: 품목 합계 자동 계산, 필요시 override */}
+          {/* 견적 금액 */}
           <div className="mt-4">
             <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary block">
               견적 금액 (원)
@@ -775,13 +558,7 @@ export default function AdminBookingNewPage() {
               onClose={() => setShowPostcode(false)}
             />
             <DaumPostcodeEmbed
-              onComplete={(data) => {
-                const addr = data.roadAddress || data.jibunAddress;
-                updateField("address", addr);
-                setShowPostcode(false);
-                const detected = detectAreaFromAddress(data.sigungu, data.sido);
-                updateField("area", detected ? detected.name : "");
-              }}
+              onComplete={handlePostcodeComplete}
               style={{ height: 400 }}
             />
           </div>

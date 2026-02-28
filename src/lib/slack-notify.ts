@@ -1,22 +1,16 @@
 import type { Booking } from "@/types/booking";
 import { STATUS_LABELS } from "@/lib/constants";
-
-const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+import {
+  headerBlock,
+  sectionBlock,
+  fieldsBlock,
+  dividerBlock,
+  actionButtonBlock,
+  bookingContextBlock,
+} from "@/lib/slack-blocks";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://coveringspot.vercel.app";
-
-function actionsBlock(buttons: { text: string; url: string; primary?: boolean }[]) {
-  return {
-    type: "actions",
-    elements: buttons.map((btn) => ({
-      type: "button",
-      text: { type: "plain_text", text: btn.text },
-      url: btn.url,
-      ...(btn.primary ? { style: "primary" } : {}),
-    })),
-  };
-}
 
 /** Slack 알림 전용 라벨 (constants 기본값 + Slack 워딩 오버라이드) */
 const SLACK_STATUS_LABELS: Record<string, string> = {
@@ -37,6 +31,7 @@ function formatManWon(n: number): string {
 
 function getDayName(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00+09:00");
+  const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
   return DAYS[d.getDay()];
 }
 
@@ -105,90 +100,35 @@ export async function sendBookingCreated(b: Booking): Promise<string | null> {
     )
     .join("\n");
 
-  const envInfo: string[] = [];
-  envInfo.push(`엘리베이터: ${b.hasElevator ? "있음" : "없음"}`);
-  envInfo.push(`주차: ${b.hasParking ? "가능" : "불가"}`);
-  const envText = envInfo.join(" | ");
+  const envText = [
+    `엘리베이터: ${b.hasElevator ? "있음" : "없음"}`,
+    `주차: ${b.hasParking ? "가능" : "불가"}`,
+  ].join(" | ");
+
+  const itemTotal = b.items.reduce((s, i) => s + i.price * i.quantity, 0);
 
   const blocks: unknown[] = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: "📋 새 수거 예약 접수" },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
-        },
-        { type: "mrkdwn", text: `*지역*\n${b.area}` },
-        {
-          type: "mrkdwn",
-          text: `*고객*\n${b.customerName} (${b.phone})`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*주소*\n${b.address} ${b.addressDetail}`,
-        },
-      ],
-    },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: `*작업환경*\n${envText}` },
-    },
-    { type: "divider" },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: `*품목*\n${itemLines}` },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*품목 합계*\n${formatPrice(b.items.reduce((s, i) => s + i.price * i.quantity, 0))}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*인력비 (${b.crewSize}명)*\n${formatPrice(b.totalPrice - b.items.reduce((s, i) => s + i.price * i.quantity, 0) - b.ladderPrice)}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*사다리차*\n${b.needLadder ? formatPrice(b.ladderPrice) : "없음"}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*총 견적*\n*${formatPrice(b.totalPrice)}*`,
-        },
-      ],
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*예상 견적 범위*\n${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*사진*\n${b.photos.length > 0 ? `${b.photos.length}장 첨부` : "없음"}`,
-        },
-      ],
-    },
-    ...(b.memo
-      ? [
-          {
-            type: "section",
-            text: { type: "mrkdwn", text: `*요청사항*\n${b.memo}` },
-          },
-        ]
-      : []),
+    headerBlock("📋 새 수거 예약 접수"),
+    bookingContextBlock(b),
+    sectionBlock(`*작업환경*\n${envText}`),
+    dividerBlock(),
+    sectionBlock(`*품목*\n${itemLines}`),
+    fieldsBlock([
+      { label: "품목 합계", value: formatPrice(itemTotal) },
+      { label: `인력비 (${b.crewSize}명)`, value: formatPrice(b.totalPrice - itemTotal - b.ladderPrice) },
+      { label: "사다리차", value: b.needLadder ? formatPrice(b.ladderPrice) : "없음" },
+      { label: "총 견적", value: `*${formatPrice(b.totalPrice)}*` },
+    ]),
+    fieldsBlock([
+      { label: "예상 견적 범위", value: `${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}` },
+      { label: "사진", value: b.photos.length > 0 ? `${b.photos.length}장 첨부` : "없음" },
+    ]),
+    ...(b.memo ? [sectionBlock(`*요청사항*\n${b.memo}`)] : []),
   ];
 
   // 사진 이미지 블록 추가 (최대 5장)
   if (b.photos.length > 0) {
-    blocks.push({ type: "divider" });
+    blocks.push(dividerBlock());
     for (const [idx, url] of b.photos.slice(0, 5).entries()) {
       blocks.push({
         type: "image",
@@ -199,7 +139,7 @@ export async function sendBookingCreated(b: Booking): Promise<string | null> {
   }
 
   blocks.push(
-    actionsBlock([
+    actionButtonBlock([
       { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
     ]),
   );
@@ -218,29 +158,14 @@ export async function sendBookingUpdated(b: Booking): Promise<void> {
   }
 
   const blocks = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: "✏️ 수거 예약 수정" },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
-        },
-        { type: "mrkdwn", text: `*지역*\n${b.area}` },
-        {
-          type: "mrkdwn",
-          text: `*고객*\n${b.customerName} (${b.phone})`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*총 견적*\n*${formatPrice(b.totalPrice)}*`,
-        },
-      ],
-    },
-    actionsBlock([
+    headerBlock("✏️ 수거 예약 수정"),
+    fieldsBlock([
+      { label: "날짜", value: `${b.date} (${getDayName(b.date)}) ${b.timeSlot}` },
+      { label: "지역", value: b.area },
+      { label: "고객", value: `${b.customerName} (${b.phone})` },
+      { label: "총 견적", value: `*${formatPrice(b.totalPrice)}*` },
+    ]),
+    actionButtonBlock([
       { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
     ]),
   ];
@@ -256,28 +181,13 @@ export async function sendBookingDeleted(b: Booking): Promise<void> {
   }
 
   const blocks = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: "❌ 수거 예약 취소" },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*고객*\n${b.customerName} (${b.phone})`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*총 견적*\n${formatPrice(b.totalPrice)}`,
-        },
-      ],
-    },
-    actionsBlock([
+    headerBlock("❌ 수거 예약 취소"),
+    fieldsBlock([
+      { label: "날짜", value: `${b.date} (${getDayName(b.date)}) ${b.timeSlot}` },
+      { label: "고객", value: `${b.customerName} (${b.phone})` },
+      { label: "총 견적", value: formatPrice(b.totalPrice) },
+    ]),
+    actionButtonBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
     ]),
   ];
@@ -299,54 +209,15 @@ export async function sendQuoteConfirmed(b: Booking): Promise<void> {
   }
 
   const blocks = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: "💰 견적 확정" },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
-        },
-        { type: "mrkdwn", text: `*지역*\n${b.area}` },
-        {
-          type: "mrkdwn",
-          text: `*고객*\n${b.customerName} (${b.phone})`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*주소*\n${b.address} ${b.addressDetail}`,
-        },
-      ],
-    },
-    { type: "divider" },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*예상 견적 범위*\n${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*최종 확정 금액*\n*${b.finalPrice != null ? formatPrice(b.finalPrice) : "미정"}*`,
-        },
-      ],
-    },
-    ...(b.adminMemo
-      ? [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*관리자 메모*\n${b.adminMemo}`,
-            },
-          },
-        ]
-      : []),
-    actionsBlock([
+    headerBlock("💰 견적 확정"),
+    bookingContextBlock(b),
+    dividerBlock(),
+    fieldsBlock([
+      { label: "예상 견적 범위", value: `${formatManWon(b.estimateMin)} ~ ${formatManWon(b.estimateMax)}` },
+      { label: "최종 확정 금액", value: `*${b.finalPrice != null ? formatPrice(b.finalPrice) : "미정"}*` },
+    ]),
+    ...(b.adminMemo ? [sectionBlock(`*관리자 메모*\n${b.adminMemo}`)] : []),
+    actionButtonBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
     ]),
   ];
@@ -370,54 +241,16 @@ export async function sendStatusChanged(
   }
 
   const blocks = [
-    {
-      type: "header",
-      text: {
-        type: "plain_text",
-        text: `🔄 예약 상태 변경: ${statusLabel}`,
-      },
-    },
-    {
-      type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: `*날짜*\n${b.date} (${getDayName(b.date)}) ${b.timeSlot}`,
-        },
-        { type: "mrkdwn", text: `*지역*\n${b.area}` },
-        {
-          type: "mrkdwn",
-          text: `*고객*\n${b.customerName} (${b.phone})`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*상태*\n*${statusLabel}*`,
-        },
-      ],
-    },
-    ...(b.finalPrice != null
-      ? [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*최종 금액*\n${formatPrice(b.finalPrice)}`,
-            },
-          },
-        ]
-      : []),
-    ...(b.adminMemo
-      ? [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*관리자 메모*\n${b.adminMemo}`,
-            },
-          },
-        ]
-      : []),
-    actionsBlock([
+    headerBlock(`🔄 예약 상태 변경: ${statusLabel}`),
+    fieldsBlock([
+      { label: "날짜", value: `${b.date} (${getDayName(b.date)}) ${b.timeSlot}` },
+      { label: "지역", value: b.area },
+      { label: "고객", value: `${b.customerName} (${b.phone})` },
+      { label: "상태", value: `*${statusLabel}*` },
+    ]),
+    ...(b.finalPrice != null ? [sectionBlock(`*최종 금액*\n${formatPrice(b.finalPrice)}`)] : []),
+    ...(b.adminMemo ? [sectionBlock(`*관리자 메모*\n${b.adminMemo}`)] : []),
+    actionButtonBlock([
       { text: "관리자 페이지", url: `${BASE_URL}/admin`, primary: true },
     ]),
   ];
@@ -441,11 +274,8 @@ export async function sendRescheduleNotify(
     return;
   }
   await postSlack([
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: lines.join("\n") },
-    },
-    actionsBlock([
+    sectionBlock(lines.join("\n")),
+    actionButtonBlock([
       { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
     ]),
   ]);

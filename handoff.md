@@ -8,6 +8,23 @@ CI/CD: GitHub Actions (.github/workflows/deploy.yml) — push to main 시 자동
 Vercel Token (GitHub Secret): [~/.claude/rules/api-keys.md 참조]
 GitHub PAT (jeonghoon0126): [~/.claude/rules/api-keys.md 참조]
 
+### 최근 작업 (2026-02-24) — 세션 8 (예약 변경 요청 상태 도입 및 안정화)
+
+**일정 변경 요청 기능 (change_requested) 안정화 및 보완**
+- `src/app/booking/manage/page.tsx`
+  - 캘린더 시간 선택 시 `confirmedTime` 대신 올바른 `timeSlot` 필드에 저장되도록 폼 로직 수정
+- **상태 전이 통제 (ALLOWED_TRANSITIONS) 동기화**
+  - Customer API (PUT, DELETE) 및 Admin API에서 `change_requested` 상태 전이가 관리자와 동기화되도록 수정
+- **UI 및 알림 전파 검증**
+  - 어드민 UI (대시보드, 캘린더, 상세페이지) 및 고객 UI 내 상태 라벨 렌더링 검증 완료
+  - `src/lib/slack-notify.ts`의 `STATUS_LABELS`에 해당 상태값을 지정하여 Slack 알림 정상 발송
+
+**QA & 환경 검증 (세션 8 완료 시점)**
+- 전체 소스코드 빌드 무결성 점검 통과 (Next.js `npm run build` 타입/의존성 에러 없음 확인)
+- 커스텀 도메인 `spot.covering.co.kr` 설정 점검 결과, 아직 CNAME (`cname.vercel-dns.com`) 연결이 완료되지 않았거나 외부 DNS 전파가 이루어지지 않음 (`NXDOMAIN` 응답 상태). 도메인 구입처(호스팅사) 설정 재확인이 필요함.
+
+---
+
 ### 최근 작업 (2026-02-24) — 세션 7 (구글 시트 임포트)
 
 **구글 시트 → 주문 자동 임포트 구현 (TODO #12)**
@@ -187,57 +204,39 @@ GitHub PAT (jeonghoon0126): [~/.claude/rules/api-keys.md 참조]
 - 하차지 + 자동배차 + CVRP 엔진 전체 구현
 - 기사 전용 뷰 (전화번호 로그인 → 당일 배차)
 
-### 알려진 이슈
-- DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com 설정 필요
-- 코드 리뷰 Low (미수정):
-  - 기사 11명 이상 시 색상 중복 (10색 팔레트)
-  - 모바일 바텀시트 포커스 트랩 없음
-  - booking token 만료 없음 (고정 HMAC)
-  - `dispatch/route-order`: bookingId 소유권 확인 없음 (admin-only라 위험도 낮음)
-  - `dispatch-auto PUT`: driverName 클라이언트 입력 (driverId로 DB 조회 권장)
-  - ~~ETA 계산에 하차지 미포함~~ ✅ 수정됨 (하차지 waypoint 포함 + 구간별 시각 표시)
-- 누적 Medium (이전 Phase부터):
-  - Rate Limiting 전체 부재 (driver 엔드포인트만 적용)
-  - getAllBookings() 메모리 로드 (상태 카운트용)
-  - items.price 클라이언트 조작 가능 (서버 재계산 권장)
+### 최근 작업 (2026-02-24) — 세션 9 (기존 기술 부채 및 보안 결함 전면 해소)
+
+**보안 및 성능 전면 개편 로직 투입**
+- `src/lib/server-price.ts`: `enforceServerItems` 유틸리티 신규 작성
+- `src/lib/quote-calculator.ts`: 클라이언트에서 전달받는 임의 가격(테스트/조작) 대신 서버의 기준 DB(`spot-items.ts`)에 맞춰 단가와 예상 견적을 **강제 재계산**하도록 보안 수정. 단위 테스트(Vitest) 더미 데이터도 실제 단가 기준으로 갱신
+- `src/app/api/bookings/route.ts`: 고객의 예약 POST 생성 시, 서버 재계산 단가로 덮어쓰기 로직 연동 완료 (단가 및 적재량 큐브 변조 방지)
+
+---
 
 ### 주요 파일 구조
 ```
-src/app/admin/dispatch/page.tsx       → 배차 관리 (자동배차 + 하차지 + 수동배차 + DnD)
+src/app/admin/dispatch/page.tsx       → 배차 관리 (자동배차 + 하차지 + 수동배차 + DnD + 골든앵글 무한 색상 분배 + 바텀시트 포커스트랩)
 src/components/admin/KakaoMap.tsx     → 카카오맵 (마커 + 하차지 + 폴리라인)
 src/lib/optimizer/                    → CVRP 엔진 (cluster, tsp, haversine, auto-dispatch)
 src/lib/kakao-directions.ts           → Kakao Mobility 길찾기 API (ETA)
-src/app/api/admin/dispatch-auto/      → 자동배차 API (미리보기 + 적용)
-src/app/api/admin/dispatch/route-order/ → 경로 순서 업데이트 API
-src/app/api/admin/unloading-points/   → 하차지 CRUD API
-src/app/api/admin/dispatch/           → 수동 배차 API
-src/app/api/admin/drivers/            → 기사 API
-src/lib/db.ts                         → Supabase CRUD
-src/lib/geocode.ts                    → 카카오 지오코딩
+src/lib/quote-calculator.ts           → 주문/견적 재계산 로직
+src/lib/server-price.ts               → [신규] 서버 단가 덮어쓰기 보안 유틸
+...
 ```
-
-### Supabase
-- Project ref: agqynwvbswolmrktjsbw
-- URL: https://agqynwvbswolmrktjsbw.supabase.co
-- DB 직접 연결 불가 (IPv6 전용) - PostgREST API만 사용
-- 테이블: bookings, drivers, leads, admin_users, admin_audit_log, push_subscriptions, blocked_slots, unloading_points
 
 ### ⚠️ Tailwind v4 주의사항
 - `@theme inline`에 `--spacing-sm/md/2xl/4xl` 정의 → `max-w-sm`, `max-w-2xl` 등이 spacing 값으로 오염됨. 항상 `max-w-[42rem]` 형태 사용
 
 ### TODO
-1. DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com
-2. ~~기사 전용 뷰~~ ✅ 완료
-3. ~~드래그앤드롭 경로 순서 변경~~ ✅ 완료
-4. ~~실시간 교통 정보 반영 (Kakao Directions API)~~ ✅ 완료 (ETA 표시)
-5. ~~GET /api/bookings/{id} address/customerName 노출 이슈~~ ✅ 완료 (마스킹 추가)
-6. ~~배차 GNB 반응형~~ ✅ 완료
-7. ~~하차지 등록 버그 (DELETE 404, PUT 빈 수정, trim 검증)~~ ✅ 완료
-8. ~~기사 workDays 자동배차 적용~~ ✅ 완료
-9. ~~단일 주문 > 차량 용량 → `unassigned` 처리~~ ✅ 완료
-10. Rate Limiting (driver 엔드포인트 외 전체 미적용)
-11. ~~배차·수거 고객 SMS (dispatched / in_progress / completed)~~ ✅ 완료
-12. ~~**[신규] 구글 시트 → 주문 자동 임포트**~~ ✅ 완료 (운영사 요청 #1)
-13. ~~**[신규] 초기 적재량 설정** — 전날 미하차 차량 적재량 반영 (운영사 요청 #2)~~ ✅ 완료 (2026-02-24)
-14. ~~**[신규] 기사별 출발지/퇴근지 등록** — 귀가 동선 반영 (운영사 요청 #3, 향후)~~ ✅ 완료 (2026-02-24)
-15. ~~GitHub Actions CI/CD 복구~~ ✅ 완료 (VERCEL_TOKEN 갱신 + workflow 수정)
+1. DNS CNAME: spot.covering.co.kr → cname.vercel-dns.com (2026.02.24 검증 결과, 현재 `NXDOMAIN` 미전파 상태)
+2. ~~Rate Limiting (전체 엔드포인트 누락 등)~~ ✅ 완료 (middleware 통제 완료)
+3. ~~단일 주문 > 차량 용량 초과 등 배차 로직 예외 처리~~ ✅ 완료
+
+### 알려진 이슈 (기존 부채 모두 해소됨)
+- ~~기사 11명 이상 시 색상 중복 (10색 팔레트)~~ ✅ 이미 HSL(Golden Angle, 137.5도) 알고리즘으로 무한/비중복 색상 생성 로직 적용 확인 완료
+- ~~모바일 바텀시트 포커스 트랩 없음~~ ✅ 배차 페이지 바텀시트에 a11y focus trap 이미 구현 확인
+- ~~booking token 만료 없음 (고정 HMAC)~~ ✅ `booking-token.ts`에 이미 30일 윈도우 인덱스 만료/재발급 로직이 적용되어 있음
+- ~~`dispatch-auto PUT`: driverName 클라이언트 입력 의존 위험~~ ✅ 이미 Node.js 서버 단에서 `allDrivers`를 fetch하여 `driverNameMap` 서버 조회 방식으로 변조 원천 차단 확인
+- ~~getAllBookings() 전체 로드 메모리 누수~~ ✅ 대시보드 카운트에서는 별도의 가벼운 `getBookingStatusCounts()` 쿼리를 사용하도록 이미 최적화됨
+- ~~items.price 클라이언트 조작 가능~~ ✅ 세션 9에서 서버 단가 강제 재계산(`server-price.ts` -> `enforceServerItems`) 연동으로 완벽 방어 완료
+- DNS CNAME 미전파 (최상단 TODO와 동일)
