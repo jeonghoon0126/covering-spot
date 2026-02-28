@@ -23,6 +23,8 @@ export interface DispatchDriver {
   maxJobCount?: number;
   /** 배차 시작 시 이미 적재된 물량 (m³) — 전날 미하차 분. 기본 0 */
   initialLoadCube?: number;
+  /** 기사 프로필의 가능 시간대 (쉼표 구분, 예: "오전 (9시~12시),오후 (13시~17시)"). 빈 문자열 = 모든 슬롯 */
+  workSlots?: string;
   /** 출발지 좌표 — 이 지점에서 가장 가까운 수거지를 첫 경유지로 선택 */
   startLat?: number;
   startLng?: number;

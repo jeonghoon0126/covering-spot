@@ -98,8 +98,13 @@ export async function POST(req: NextRequest) {
       optimized.push(...optimizeRoute(slotBks));
     }
 
-    // 하차지 경유 계산 (전체 경로 기준)
-    const stops = insertUnloadingStops(optimized, driver.vehicleCapacity || 0, dispatchUnloadingPoints);
+    // 하차지 경유 계산 (전체 경로 기준, 전날 미하차 초기 적재량 반영)
+    const stops = insertUnloadingStops(
+      optimized,
+      driver.vehicleCapacity || 0,
+      dispatchUnloadingPoints,
+      driver.initialLoadCube ?? 0,
+    );
 
     // routeOrder + unloadingStopAfter 일괄 저장
     await Promise.allSettled(

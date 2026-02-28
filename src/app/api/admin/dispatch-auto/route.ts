@@ -25,9 +25,11 @@ const BASE_SERVICE_SECS = 5 * 60;
 const CUBE_SECS_PER_M3 = 7 * 60;
 
 const AutoDispatchSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "날짜는 YYYY-MM-DD 형식이어야 합니다"),
   // 기사별 허용 시간대 제약 (빈 배열 = 제약 없음)
-  driverSlotFilters: z.record(z.string().uuid(), z.array(z.string())).optional(),
+  driverSlotFilters: z
+    .record(z.string().uuid("기사 ID는 유효한 UUID 형식이어야 합니다"), z.array(z.string()))
+    .optional(),
 });
 
 /**
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
       vehicleType: d.vehicleType,
       maxJobCount: JOB_LIMITS[d.vehicleType] ?? undefined,
       initialLoadCube: d.initialLoadCube ?? 0,
+      workSlots: d.workSlots ?? undefined,
       startLat: d.startLatitude ?? undefined,
       startLng: d.startLongitude ?? undefined,
       endLat: d.endLatitude ?? undefined,
@@ -173,9 +176,11 @@ export async function POST(req: NextRequest) {
       }
     });
     // 요청 body의 driverSlotFilters가 있으면 override (없으면 프로필 값 사용)
-    const effectiveSlotFilters = Object.keys(driverSlotFilters ?? {}).length > 0
-      ? driverSlotFilters!
-      : profileSlotFilters;
+    // 주의: 빈 배열 { "driverId": [] } 요청은 실제 제약으로 보지 않음 → 프로필 값 사용
+    const hasActiveFilters = Object.values(driverSlotFilters ?? {}).some(
+      (slots) => slots.length > 0,
+    );
+    const effectiveSlotFilters = hasActiveFilters ? driverSlotFilters! : profileSlotFilters;
 
     // 자동배차: 항상 슬롯별 분리 실행 → 오전→오후→저녁 순서로 routeOrder 배정
     // 슬롯 필터 없어도 주문의 timeSlot 기준으로 그룹을 나누어 시간창 역전 방지
@@ -373,12 +378,20 @@ function buildSlotGroups(
     const slotBookings = slotBookingMap.get(slot)!;
 
     // 이 슬롯을 처리 가능한 기사 필터링:
-    // - driverSlotFilters가 있는 기사: 해당 슬롯이 허용 목록에 포함된 경우만
-    // - driverSlotFilters가 없는 기사: 모든 슬롯 처리 가능 (제한 없음)
+    // - driverSlotFilters에 명시된 기사: 해당 필터 우선 적용 (빈 배열이면 이 슬롯 배차 불가)
+    // - driverSlotFilters에 없는 기사: 프로필 workSlots 확인 후 판단
     const slotDrivers = drivers.filter((d) => {
       const filter = driverSlotFilters[d.id];
-      if (!filter || filter.length === 0) return true;
-      return filter.includes(slot);
+      if (filter !== undefined) {
+        // 고급 설정에 명시: 빈 배열이면 배차 불가, 아니면 허용 목록 확인
+        return filter.length > 0 && filter.includes(slot);
+      }
+      // 고급 설정 없으면 프로필 workSlots 확인
+      if (d.workSlots) {
+        const profileSlots = d.workSlots.split(",").map((s) => s.trim()).filter(Boolean);
+        return profileSlots.length === 0 || profileSlots.includes(slot);
+      }
+      return true;
     });
 
     groups.push({ bookings: slotBookings, drivers: slotDrivers });
