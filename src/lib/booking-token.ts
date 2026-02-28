@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
-const SECRET = process.env.BOOKING_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
+const SECRET = process.env.BOOKING_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+if (!SECRET) throw new Error("BOOKING_TOKEN_SECRET 또는 ADMIN_PASSWORD 환경변수가 필요합니다");
 
 /**
  * 30일 단위 윈도우 인덱스

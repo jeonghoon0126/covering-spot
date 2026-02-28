@@ -124,7 +124,7 @@ export async function PUT(
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
       }
-      sendStatusChanged(updated, "user_confirmed").catch(() => {});
+      sendStatusChanged(updated, "user_confirmed").catch((err) => console.error("[Slack] user_confirmed 알림 실패:", err?.message));
       return NextResponse.json({ booking: updated });
     }
 
@@ -188,7 +188,7 @@ export async function PUT(
         type: "reschedule",
         title: `[일정변경요청] ${updated.customerName || "고객"}`,
         body: `변경 전: ${existing.date} ${existing.timeSlot} → 변경 후: ${updated.date} ${updated.timeSlot}`,
-      }).catch(() => {});
+      }).catch((err) => console.error("[알림] 일정변경 알림 생성 실패:", err?.message));
       return NextResponse.json({ booking: updated });
     }
 
@@ -214,7 +214,7 @@ export async function PUT(
         { status: 500 },
       );
     }
-    sendBookingUpdated(updated).catch(() => {});
+    sendBookingUpdated(updated).catch((err) => console.error("[Slack] 예약수정 알림 실패:", err?.message));
     return NextResponse.json({ booking: updated });
   } catch (e) {
     console.error("[bookings/[id]/PUT]", e);
@@ -264,7 +264,7 @@ export async function DELETE(
     }
 
     await deleteBooking(id);
-    sendBookingDeleted(booking).catch(() => {});
+    sendBookingDeleted(booking).catch((err) => console.error("[Slack] 예약삭제 알림 실패:", err?.message));
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("[bookings/[id]/DELETE]", e);

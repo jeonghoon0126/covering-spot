@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
     await createBooking(booking);
 
     // 수거 신청 접수 SMS (fire-and-forget)
-    sendStatusSms(booking.phone, "received", booking.id).catch(() => { });
+    sendStatusSms(booking.phone, "received", booking.id).catch((err) => console.error("[SMS] 접수 알림 실패:", err?.message));
 
     // 백오피스 알림 (신규 접수)
     createAdminNotification({
@@ -199,14 +199,14 @@ export async function POST(req: NextRequest) {
       type: "new_booking",
       title: `[신규접수] ${booking.customerName}`,
       body: `${booking.date} ${booking.timeSlot} | ${booking.area} | ${booking.address}`,
-    }).catch(() => {});
+    }).catch((err) => console.error("[알림] 신규접수 알림 생성 실패:", err?.message));
 
     // Slack 알림만 fire-and-forget (지연 무관)
     sendBookingCreated(booking).then((threadTs) => {
       if (threadTs) {
-        updateBooking(booking.id, { slackThreadTs: threadTs }).catch(() => { });
+        updateBooking(booking.id, { slackThreadTs: threadTs }).catch((err) => console.error("[DB] slackThreadTs 업데이트 실패:", err?.message));
       }
-    }).catch(() => { });
+    }).catch((err) => console.error("[Slack] 신규접수 알림 실패:", err?.message));
 
     // 예약 생성 시 bookingToken 반환 (고객이 조회/수정/삭제에 사용)
     const bookingToken = generateBookingToken(booking.phone);

@@ -144,10 +144,10 @@ export async function POST(req: NextRequest) {
     sendBookingCreated(created)
       .then((threadTs) => {
         if (threadTs) {
-          updateBooking(created.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+          updateBooking(created.id, { slackThreadTs: threadTs } as Partial<Booking>).catch((err) => console.error("[DB] slackThreadTs 업데이트 실패:", err?.message));
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[Slack] 관리자 예약생성 알림 실패:", err?.message));
 
     return NextResponse.json({ booking: created }, { status: 201 });
   } catch (e) {

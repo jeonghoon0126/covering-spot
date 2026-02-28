@@ -4,7 +4,8 @@ import { NextRequest } from "next/server";
 // 12시간 (하루 작업 기준)
 const DRIVER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
-const SECRET = process.env.DRIVER_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
+const SECRET = process.env.DRIVER_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+if (!SECRET) throw new Error("DRIVER_TOKEN_SECRET 또는 ADMIN_PASSWORD 환경변수가 필요합니다");
 
 interface DriverTokenPayload {
   type: "driver";

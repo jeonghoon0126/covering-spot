@@ -5,7 +5,8 @@ import type { AdminRole } from "@/lib/admin-roles";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
-const SECRET = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD || "change-me";
+const SECRET = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+if (!SECRET) throw new Error("ADMIN_TOKEN_SECRET 또는 ADMIN_PASSWORD 환경변수가 필요합니다");
 
 /**
  * HMAC 기반 토큰 생성 (서버리스 호환 - 상태 없음)
@@ -141,8 +142,9 @@ export async function POST(req: NextRequest) {
 
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
+      console.error("[admin/auth] ADMIN_PASSWORD 환경변수 미설정");
       return NextResponse.json(
-        { error: "관리자 비밀번호가 설정되지 않았습니다" },
+        { error: "인증 서버 오류" },
         { status: 500 },
       );
     }

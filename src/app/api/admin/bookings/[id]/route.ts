@@ -202,9 +202,9 @@ export async function PUT(
     const newStatus = data.status;
     if (newStatus && newStatus !== previousStatus) {
       if (newStatus === "quote_confirmed") {
-        sendQuoteConfirmed(updated).catch(() => {});
+        sendQuoteConfirmed(updated).catch((err) => console.error("[Slack] 견적확정 알림 실패:", err?.message));
       } else {
-        sendStatusChanged(updated, newStatus).catch(() => {});
+        sendStatusChanged(updated, newStatus).catch((err) => console.error("[Slack] 상태변경 알림 실패:", err?.message));
       }
       // 백오피스 알림 생성
       const STATUS_LABEL: Record<string, string> = {
@@ -218,7 +218,7 @@ export async function PUT(
         type: "status_change",
         title: `[${STATUS_LABEL[newStatus] || newStatus}] ${updated.customerName || "고객"}`,
         body: `${updated.date} ${updated.timeSlot} | ${updated.address || ""}`,
-      }).catch(() => {});
+      }).catch((err) => console.error("[알림] 상태변경 알림 생성 실패:", err?.message));
       // 결제 링크 생성 + SMS 알림 (fire-and-forget)
       if (updated.phone) {
         if (newStatus === "payment_requested") {
@@ -253,13 +253,13 @@ export async function PUT(
             message: STATUS_MSG[newStatus],
             url: `/booking/manage?id=${id}`,
           }),
-        }).catch(() => {});
+        }).catch((err) => console.error("[Push] 푸시 알림 발송 실패:", err?.message));
       }
     }
 
     // 관리자 메모 변경 시 스레드 답글
     if (data.adminMemo !== undefined && data.adminMemo !== previousMemo && data.adminMemo) {
-      sendAdminMemoUpdated(updated, data.adminMemo).catch(() => {});
+      sendAdminMemoUpdated(updated, data.adminMemo).catch((err) => console.error("[Slack] 메모 알림 실패:", err?.message));
     }
 
     // Audit log (fire-and-forget)

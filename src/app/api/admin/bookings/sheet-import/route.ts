@@ -236,9 +236,9 @@ export async function POST(req: NextRequest) {
         // Slack 알림 (fire-and-forget)
         sendBookingCreated(created)
           .then((threadTs) => {
-            if (threadTs) updateBooking(created.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+            if (threadTs) updateBooking(created.id, { slackThreadTs: threadTs } as Partial<Booking>).catch((err) => console.error("[DB] slackThreadTs 업데이트 실패:", err?.message));
           })
-          .catch(() => {});
+          .catch((err) => console.error("[Slack] 시트임포트 알림 실패:", err?.message));
         results.push({ rowIndex: row.rowIndex, bookingId: created.id });
       } catch (e) {
         results.push({ rowIndex: row.rowIndex, error: String(e) });
