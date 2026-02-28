@@ -116,7 +116,7 @@ export function useAutoDispatch({
         body: JSON.stringify({
           plan: autoResult.plan.map(({ driverId, bookings: planBookings, unloadingStops }) => ({
             driverId,
-            bookings: planBookings.map(({ id, routeOrder }) => ({ id, routeOrder })),
+            bookings: planBookings.map(({ id, routeOrder, loadCube }) => ({ id, routeOrder, loadCube })),
             unloadingStops: (unloadingStops || []).map(({ afterRouteOrder, pointId }) => ({ afterRouteOrder, pointId })),
           })),
         }),

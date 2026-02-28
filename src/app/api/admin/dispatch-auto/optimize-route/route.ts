@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getBookings, getDrivers, getUnloadingPoints, updateBooking } from "@/lib/db";
+import { updateDriver } from "@/lib/db-drivers";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { optimizeRoute, insertUnloadingStops } from "@/lib/optimizer/tsp";
 import type { DispatchBooking, DispatchUnloadingPoint } from "@/lib/optimizer/types";
@@ -116,6 +117,17 @@ export async function POST(req: NextRequest) {
           unloadingStopAfter: stop?.pointId ?? null,
         } as Partial<Booking>);
       }),
+    );
+
+    // 경로 최적화 완료 후 기사 초기 적재량 갱신 (fire-and-forget)
+    const stopSet = new Set(stops.map((s) => s.afterRouteOrder));
+    let cumLoad = driver.initialLoadCube ?? 0;
+    for (let i = 0; i < optimized.length; i++) {
+      cumLoad += optimized[i].totalLoadingCube;
+      if (stopSet.has(i + 1)) cumLoad = 0; // routeOrder는 1-based
+    }
+    updateDriver(driverId, { initialLoadCube: cumLoad }).catch((err) =>
+      console.error("[optimize-route] initialLoadCube 갱신 실패:", err),
     );
 
     return NextResponse.json({ updated: optimized.length });

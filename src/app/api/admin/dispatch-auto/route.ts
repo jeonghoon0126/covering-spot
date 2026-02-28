@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getBookings, getDrivers, getUnloadingPoints, updateBooking, getBookingPhonesByIds, getDriversWithVehicleForDate } from "@/lib/db";
+import { updateDriver } from "@/lib/db-drivers";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { autoDispatch } from "@/lib/optimizer/auto-dispatch";
@@ -449,6 +450,7 @@ const ApplySchema = z.object({
         z.object({
           id: z.string().regex(UUID_REGEX, "올바른 UUID 형식이 아닙니다"),
           routeOrder: z.number().int().positive(),
+          loadCube: z.number().nonnegative().optional(),
         }),
       ),
       // 하차지 경유 정보: 어떤 routeOrder 이후에 어느 하차지를 경유하는지
@@ -548,6 +550,34 @@ export async function PUT(req: NextRequest) {
 
     if (succeeded.length === 0) {
       return NextResponse.json({ error: "모든 배차 적용 실패", failed }, { status: 500 });
+    }
+
+    // 배차 적용된 기사의 익일 초기 적재량 자동 갱신 (fire-and-forget)
+    // - plan에 없는 기사 → 갱신 없음 (당일 배차 없음)
+    // - loadCube 미포함 요청 → 스킵 (하위 호환)
+    {
+      const driverInitialLoadMap = new Map(allDrivers.map((d) => [d.id, d.initialLoadCube ?? 0]));
+      const driverFinalLoads = new Map<string, number>();
+      for (const dp of plan) {
+        const hasAllLoadCubes = dp.bookings.every((b) => b.loadCube !== undefined);
+        if (!hasAllLoadCubes) continue;
+        const initialLoad = driverInitialLoadMap.get(dp.driverId) ?? 0;
+        const stopSet = new Set(dp.unloadingStops.map((s) => s.afterRouteOrder));
+        const sorted = [...dp.bookings].sort((a, b) => a.routeOrder - b.routeOrder);
+        let cumLoad = initialLoad;
+        for (const b of sorted) {
+          cumLoad += b.loadCube!;
+          if (stopSet.has(b.routeOrder)) cumLoad = 0;
+        }
+        driverFinalLoads.set(dp.driverId, cumLoad);
+      }
+      if (driverFinalLoads.size > 0) {
+        Promise.allSettled(
+          [...driverFinalLoads.entries()].map(([id, load]) =>
+            updateDriver(id, { initialLoadCube: load }),
+          ),
+        ).catch((err) => console.error("[dispatch-auto/PUT] initialLoadCube 갱신 실패:", err));
+      }
     }
 
     // 고객 SMS 발송 (fire-and-forget: SMS 실패가 배차 실패를 유발하지 않음)
