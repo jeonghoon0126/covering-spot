@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import { STATUS_LABELS_SHORT as STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
@@ -14,6 +13,13 @@ const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
   const min = i % 2 === 0 ? "00" : "30";
   return `${String(hour).padStart(2, "0")}:${min}`;
 });
+
+// 섹션 구분: 오전/오후/저녁
+const SECTION_BREAKS: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  "10:00": { label: "오전", bg: "bg-primary-tint", text: "text-primary", border: "border-l-2 border-primary" },
+  "13:00": { label: "오후", bg: "bg-semantic-orange-tint", text: "text-semantic-orange", border: "border-l-2 border-semantic-orange" },
+  "17:00": { label: "저녁", bg: "bg-bg-warm2", text: "text-text-sub", border: "border-l-2 border-border-strong" },
+};
 
 /* ── 유틸 ── */
 
@@ -342,82 +348,103 @@ export default function AdminCalendarPage() {
         {viewMode === "daily" && (
           <>
             {loading ? (
-              <div className="text-center py-12">
-                <LoadingSpinner size="lg" />
+              /* 스켈레톤 로딩 */
+              <div className="space-y-0 animate-pulse">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="flex border-b border-border-light/50">
+                    <div className="w-16 shrink-0 bg-bg-warm py-3 pr-2">
+                      <div className="h-3 bg-bg-warm3 rounded ml-2" />
+                    </div>
+                    <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[2rem]">
+                      {i % 3 === 0 && <div className="h-7 bg-bg-warm3 rounded-md w-36" />}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="space-y-0">
+              <div className="rounded-[--radius-md] border border-border-light overflow-hidden">
                 {TIME_SLOTS.map((slot) => {
                   const items = slotMap[slot];
                   const info = slotInfo[slot];
                   const isFull = info && !info.available;
                   const count = info?.count || 0;
+                  const section = SECTION_BREAKS[slot];
 
                   return (
-                    <div
-                      key={slot}
-                      className={`flex border-b border-border-light/50 ${
-                        isFull ? "bg-semantic-red-tint/30" : ""
-                      }`}
-                    >
-                      {/* 시간 라벨 */}
-                      <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
-                        <span className={`text-xs font-medium ${
-                          items.length > 0 ? "text-text-primary" : "text-text-muted"
-                        }`}>
-                          {slot}
-                        </span>
-                        {count > 0 && (
-                          <span className={`block text-[10px] ${isFull ? "text-semantic-red" : "text-text-muted"}`}>
-                            {count}/2
+                    <>
+                      {/* 섹션 헤더 (오전/오후/저녁) */}
+                      {section && (
+                        <div key={`section-${slot}`} className={`flex items-center px-3 py-1.5 ${section.bg} border-b border-border-light/50`}>
+                          <span className={`text-[11px] font-bold ${section.text}`}>{section.label}</span>
+                        </div>
+                      )}
+                      <div
+                        key={slot}
+                        className={`flex border-b border-border-light/30 ${
+                          isFull ? "bg-semantic-red-tint/20" : ""
+                        }`}
+                      >
+                        {/* 시간 라벨 */}
+                        <div className={`w-16 max-sm:w-14 shrink-0 py-2.5 pr-2 text-right bg-bg-warm ${section ? section.border : ""}`}>
+                          <span className={`text-xs font-medium ${
+                            items.length > 0 ? "text-text-primary" : "text-text-muted"
+                          }`}>
+                            {slot}
                           </span>
-                        )}
-                      </div>
+                          {count > 0 && (
+                            isFull ? (
+                              <span className="block text-[9px] font-bold mt-0.5 px-1 rounded bg-semantic-red text-white">마감</span>
+                            ) : (
+                              <span className="block text-[10px] text-text-muted">{count}/2</span>
+                            )
+                          )}
+                        </div>
 
-                      {/* 예약 카드 영역 */}
-                      <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
-                        {items.map((b) => (
-                          <button
-                            key={b.id}
-                            onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                            className="flex items-center gap-2 bg-bg rounded-md px-3 py-2 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left max-w-full"
-                          >
-                            <span
-                              className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
+                        {/* 예약 카드 영역 */}
+                        <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[2rem] flex flex-col gap-1">
+                          {items.map((b) => (
+                            <button
+                              key={b.id}
+                              onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                              className="flex items-center gap-2 bg-bg rounded-md px-3 py-1.5 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 text-left w-fit max-w-full"
                             >
-                              {STATUS_LABELS[b.status]}
-                            </span>
-                            <span className="text-xs font-medium truncate">
-                              {b.customerName}
-                            </span>
-                            <span className="text-[10px] text-text-muted shrink-0">
-                              {b.area}
-                            </span>
-                            <span className="text-[10px] text-text-muted shrink-0">
-                              {b.items.length}종
-                            </span>
-                          </button>
-                        ))}
+                              <span
+                                className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
+                              >
+                                {STATUS_LABELS[b.status]}
+                              </span>
+                              <span className="text-xs font-medium truncate max-w-[120px]">
+                                {b.customerName}
+                              </span>
+                              <span className="text-[10px] text-text-muted shrink-0">
+                                {b.area}
+                              </span>
+                              <span className="text-[10px] text-text-muted shrink-0">
+                                {b.items.length}종
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   );
                 })}
 
                 {/* 시간 미정 */}
                 {slotMap["미정"].length > 0 && (
                   <div className="flex border-b border-border-light/50 bg-semantic-orange-tint/20">
-                    <div className="w-16 max-sm:w-14 shrink-0 py-3 pr-2 text-right">
+                    <div className="w-16 max-sm:w-14 shrink-0 py-2.5 pr-2 text-right bg-bg-warm border-l-2 border-semantic-orange">
                       <span className="text-xs font-medium text-semantic-orange">미정</span>
                     </div>
-                    <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[3rem] flex flex-wrap gap-2">
+                    <div className="flex-1 py-2 pl-3 border-l border-border-light min-h-[2rem] flex flex-col gap-1">
                       {slotMap["미정"].map((b) => (
                         <button
                           key={b.id}
                           onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                          className="flex items-center gap-2 bg-bg rounded-md px-3 py-2 border border-border-light hover:shadow-hover transition-all duration-200 text-left"
+                          className="flex items-center gap-2 bg-bg rounded-md px-3 py-1.5 border border-border-light hover:shadow-hover transition-all duration-200 text-left w-fit"
                         >
                           <span
-                            className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
+                            className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}
                           >
                             {STATUS_LABELS[b.status]}
                           </span>
@@ -449,8 +476,19 @@ export default function AdminCalendarPage() {
         {viewMode === "weekly" && (
           <>
             {weeklyLoading ? (
-              <div className="text-center py-12">
-                <LoadingSpinner size="lg" />
+              <div className="overflow-x-auto -mx-4 px-4">
+                <div className="grid grid-cols-7 gap-2 min-w-[700px] animate-pulse">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="flex flex-col">
+                      <div className="h-10 bg-bg-warm3 rounded-t-[--radius-md]" />
+                      <div className="flex-1 border border-t-0 border-border-light rounded-b-[--radius-md] p-1.5 space-y-1.5 min-h-[120px]">
+                        {Array.from({ length: i % 3 === 0 ? 2 : i % 3 === 1 ? 1 : 0 }).map((_, j) => (
+                          <div key={j} className="h-9 bg-bg-warm3 rounded-md" />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 px-4">

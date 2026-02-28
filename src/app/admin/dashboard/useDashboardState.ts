@@ -38,6 +38,10 @@ export function useDashboardState() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 경쟁 조건 방지: 탭 전환 시 이전 요청 취소
   const abortRef = useRef<AbortController | null>(null);
+  // 클라이언트 캐시: 동일 파라미터 요청 5초 이내 재사용
+  type CacheEntry = { bookings: Booking[]; counts: Record<string, number>; total: number; ts: number };
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const CACHE_TTL = 5_000;
 
   // 알림 배지
   const [unreadCount, setUnreadCount] = useState(0);
@@ -108,6 +112,16 @@ export function useDashboardState() {
       params.set("page", String(currentPage));
       params.set("limit", String(PAGE_SIZE));
 
+      const cacheKey = params.toString();
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL) {
+        setBookings(cached.bookings);
+        setCounts(cached.counts);
+        setTotal(cached.total);
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(`/api/admin/bookings?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -131,9 +145,13 @@ export function useDashboardState() {
       const data = await res.json();
       if (signal.aborted) return;
 
-      setBookings(data.bookings || []);
-      if (data.counts) setCounts(data.counts);
-      setTotal(data.total ?? 0);
+      const newBookings = data.bookings || [];
+      const newCounts = data.counts || {};
+      const newTotal = data.total ?? 0;
+      setBookings(newBookings);
+      if (data.counts) setCounts(newCounts);
+      setTotal(newTotal);
+      cacheRef.current.set(cacheKey, { bookings: newBookings, counts: newCounts, total: newTotal, ts: Date.now() });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setBookings([]);

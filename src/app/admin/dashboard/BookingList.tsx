@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 import { formatPrice, formatManWon } from "@/lib/format";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
@@ -74,8 +73,30 @@ export function BookingList({
 
       {/* 목록 */}
       {loading ? (
-        <div className="text-center py-12">
-          <LoadingSpinner size="lg" />
+        <div className="space-y-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-bg rounded-lg border border-border-light animate-pulse">
+              <div className="flex items-start p-4">
+                <div className="w-4 h-4 bg-bg-warm3 rounded mr-3 mt-0.5 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-14 bg-bg-warm3 rounded-full" />
+                      <div className="h-4 w-16 bg-bg-warm3 rounded" />
+                    </div>
+                    <div className="h-4 w-20 bg-bg-warm3 rounded" />
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-32 bg-bg-warm3 rounded" />
+                      <div className="h-3 w-48 bg-bg-warm3 rounded" />
+                    </div>
+                    <div className="h-5 w-16 bg-bg-warm3 rounded shrink-0" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : bookings.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">
@@ -92,7 +113,7 @@ export function BookingList({
             return (
               <div
                 key={b.id}
-                className="bg-bg rounded-lg border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
+                className="group bg-bg rounded-lg border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
               >
                 {/* 메인 영역 (클릭 -> 상세) */}
                 <div className="flex items-start">
@@ -155,9 +176,11 @@ export function BookingList({
                   </button>
                 </div>
 
-                {/* 퀵 액션 바 */}
+                {/* 퀵 액션 바: 호버 시 표시, confirm 중이면 항상 표시 */}
                 {quickAction && (
-                  <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5">
+                  <div className={`px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5 transition-opacity duration-150 ${
+                    confirmPending?.bookingId === b.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}>
                     {confirmPending?.bookingId === b.id ? (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-text-sub">&quot;{quickAction.label}&quot; 변경할까요?</span>
@@ -186,9 +209,9 @@ export function BookingList({
                     )}
                   </div>
                 )}
-                {/* pending은 상세에서 견적 확정해야 하므로 안내 */}
+                {/* pending은 상세에서 견적 확정해야 하므로 안내 (호버 시 표시) */}
                 {b.status === "pending" && (
-                  <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5">
+                  <div className="px-4 max-sm:px-3.5 pb-3 max-sm:pb-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     <button
                       onClick={() => router.push(`/admin/bookings/${b.id}`)}
                       className="px-4 py-2 rounded-full text-xs font-medium bg-semantic-orange-tint text-semantic-orange transition-all duration-200 hover:opacity-90"

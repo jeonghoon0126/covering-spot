@@ -186,9 +186,20 @@ export default function BookingListPanel({
       {/* 주문 목록 또는 자동배차 미리보기 */}
       <div className="flex-1 overflow-y-auto">
         {autoMode === "loading" ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 gap-3">
-            <LoadingSpinner size="md" />
-            <span className="text-sm text-text-muted">자동배차 계산 중...</span>
+          <div className="flex-1 p-4 space-y-2 animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-bg-warm rounded-lg border border-border-light p-3 flex items-start gap-2.5">
+                <div className="w-4 h-4 bg-bg-warm3 rounded mt-0.5 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-10 bg-bg-warm3 rounded-full" />
+                    <div className="h-3.5 w-20 bg-bg-warm3 rounded" />
+                  </div>
+                  <div className="h-3 w-40 bg-bg-warm3 rounded" />
+                </div>
+              </div>
+            ))}
+            <p className="text-center text-xs text-text-muted pt-2">자동배차 계산 중...</p>
           </div>
         ) : autoMode === "preview" && autoResult ? (
           <AutoDispatchPreview

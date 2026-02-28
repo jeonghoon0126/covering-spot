@@ -19,14 +19,18 @@ export function StatusTabs({ activeTab, counts, totalCount, onTabChange }: Statu
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
-            className={`shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
               isActive
                 ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
-                : "bg-bg text-text-sub border border-border-light hover:border-primary/30"
+                : "bg-bg text-text-sub border border-border-light hover:border-primary/30 hover:text-text-primary"
             }`}
           >
-            {tab.label}{" "}
-            <span className={isActive ? "text-white/70" : "text-text-muted"}>
+            {tab.label}
+            <span className={`text-xs font-semibold min-w-[18px] text-center ${
+              isActive
+                ? "text-white/80"
+                : count > 0 ? "px-1.5 py-px rounded-full bg-bg-warm2 text-text-sub" : "text-text-muted"
+            }`}>
               {count}
             </span>
           </button>

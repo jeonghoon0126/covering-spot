@@ -56,8 +56,24 @@ export default function AdminBookingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg-warm flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen bg-bg-warm">
+        <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
+          <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 bg-bg-warm3 rounded animate-pulse" />
+            <div className="h-5 w-24 bg-bg-warm3 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="max-w-[42rem] mx-auto px-4 py-4 space-y-4 animate-pulse">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-bg rounded-[--radius-md] border border-border-light p-4 space-y-3">
+              <div className="h-4 w-24 bg-bg-warm3 rounded" />
+              <div className="space-y-2">
+                <div className="h-3 w-full bg-bg-warm3 rounded" />
+                <div className="h-3 w-3/4 bg-bg-warm3 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

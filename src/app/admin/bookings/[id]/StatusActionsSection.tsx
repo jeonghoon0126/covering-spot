@@ -14,7 +14,8 @@ export function StatusActionsSection({
   if (nextActions.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="bg-bg rounded-[--radius-md] border border-border-light p-4 shadow-sm space-y-2">
+      <h3 className="text-sm font-semibold text-text-sub mb-3">다음 액션</h3>
       {nextActions.map((action) => {
         const isPrimary =
           action.status !== "cancelled" && action.status !== "rejected";

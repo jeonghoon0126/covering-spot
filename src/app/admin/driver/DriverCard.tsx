@@ -66,8 +66,8 @@ export default function DriverCard({
 }: DriverCardProps) {
   return (
     <div
-      className={`bg-bg rounded-lg border p-4 transition-all ${
-        driver.active ? "border-border-light" : "border-border-light/50 opacity-60"
+      className={`bg-bg rounded-lg border p-4 transition-all shadow-sm ${
+        driver.active ? "border-border-light" : "border-border-light/40 opacity-55"
       }`}
     >
       {isEditing ? (

@@ -37,7 +37,7 @@ export function SearchFilters({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="이름, 전화번호, 주소, 주문번호 검색"
-            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
         </div>
         <button
@@ -62,14 +62,14 @@ export function SearchFilters({
             type="date"
             value={dateFrom}
             onChange={(e) => onDateChange("from", e.target.value)}
-            className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+            className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
           <span className="text-text-muted text-xs">~</span>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => onDateChange("to", e.target.value)}
-            className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition-all duration-200"
+            className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
           {(dateFrom || dateTo) && (
             <button

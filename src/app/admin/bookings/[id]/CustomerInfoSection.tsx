@@ -6,7 +6,7 @@ interface CustomerInfoSectionProps {
 
 export function CustomerInfoSection({ booking }: CustomerInfoSectionProps) {
   return (
-    <div className="bg-bg rounded-lg p-5 border border-border-light">
+    <div className="bg-bg rounded-lg p-5 border border-border-light shadow-sm">
       <h3 className="text-sm font-semibold text-text-sub mb-3">
         고객 정보
       </h3>

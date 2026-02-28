@@ -343,9 +343,10 @@ export function useDispatchState() {
     }
   }, []);
 
-  // 카드 클릭 → 지도 panTo + 선택
+  // 카드 클릭 → 지도 panTo + 선택 + 모바일 상세 바텀시트
   const handleCardClick = useCallback((booking: Booking) => {
     setSelectedBookingId(booking.id);
+    setMobileDetail(true);
     if (booking.latitude && booking.longitude) {
       mapRef.current?.panTo(booking.latitude, booking.longitude);
     }
