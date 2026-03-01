@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import { useDashboardState } from "./useDashboardState";
 import { exportCSV } from "./dashboard-utils";
 import { DashboardHeader } from "./DashboardHeader";
@@ -34,7 +35,12 @@ export default function AdminDashboardPage() {
         onExportCSV={handleExportCSV}
         onRefresh={state.fetchBookings}
         autoRefresh={state.autoRefresh}
-        onToggleAutoRefresh={() => state.setAutoRefresh(!state.autoRefresh)}
+        onToggleAutoRefresh={() => {
+          const next = !state.autoRefresh;
+          state.setAutoRefresh(next);
+          if (next) safeSessionSet("admin_auto_refresh", "1");
+          else safeSessionRemove("admin_auto_refresh");
+        }}
       />
 
       <div className="max-w-[56rem] mx-auto px-4 py-4">

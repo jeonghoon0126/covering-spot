@@ -477,7 +477,7 @@ export default function AdminCalendarPage() {
           <>
             {weeklyLoading ? (
               <div className="overflow-x-auto -mx-4 px-4">
-                <div className="grid grid-cols-7 gap-2 min-w-[700px] animate-pulse">
+                <div className="grid grid-cols-7 gap-2 min-w-[840px] animate-pulse">
                   {Array.from({ length: 7 }).map((_, i) => (
                     <div key={i} className="flex flex-col">
                       <div className="h-10 bg-bg-warm3 rounded-t-[--radius-md]" />
@@ -492,7 +492,7 @@ export default function AdminCalendarPage() {
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 px-4">
-                <div className="grid grid-cols-7 gap-2 min-w-[700px]">
+                <div className="grid grid-cols-7 gap-2 min-w-[840px]">
                   {weekDays.map((day, i) => {
                     const dayB = weeklyBookings[day] || [];
                     const isCurrentDay = day === getToday();
@@ -500,7 +500,7 @@ export default function AdminCalendarPage() {
                       <div key={day} className="flex flex-col">
                         {/* 컬럼 헤더 */}
                         <div
-                          className={`text-center py-2 rounded-t-[--radius-md] border border-border-light ${
+                          className={`text-center py-2.5 rounded-t-[--radius-md] border border-border-light ${
                             isCurrentDay
                               ? "bg-primary text-white"
                               : "bg-bg"
@@ -525,17 +525,17 @@ export default function AdminCalendarPage() {
                               onClick={() => router.push(`/admin/bookings/${b.id}`)}
                               className="w-full text-left bg-bg-warm rounded-md px-2 py-1.5 border border-border-light hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200"
                             >
-                              <div className="flex items-center gap-1 mb-0.5">
-                                <span className="text-[10px] font-medium text-text-sub">
-                                  {b.confirmedTime || b.timeSlot || "미정"}
-                                </span>
+                              <div className="flex items-center justify-between gap-1 mb-0.5">
                                 <span
-                                  className={`text-[9px] font-semibold px-1 py-px rounded-full ${STATUS_COLORS[b.status]}`}
+                                  className={`text-[9px] font-semibold px-1 py-px rounded-full shrink-0 ${STATUS_COLORS[b.status]}`}
                                 >
                                   {STATUS_LABELS[b.status]}
                                 </span>
+                                <span className="text-[9px] text-text-muted shrink-0">
+                                  {b.confirmedTime || b.timeSlot || "미정"}
+                                </span>
                               </div>
-                              <p className="text-[11px] font-medium truncate">
+                              <p className="text-[11px] font-medium truncate leading-tight">
                                 {b.customerName}
                               </p>
                             </button>

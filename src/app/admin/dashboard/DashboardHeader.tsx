@@ -92,26 +92,34 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
 
           {/* 시트 임포트 + 내보내기 (desktop, icon only) */}
           <div className="hidden lg:flex items-center">
-            <button
-              onClick={onSheetImport}
-              className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
-              title="시트 임포트"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                <path d="M1 5.5H13M5 5.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
-            </button>
-            <button
-              onClick={onExportCSV}
-              className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
-              title="CSV 내보내기"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
-            </button>
+            <div className="relative group/sheet">
+              <button
+                onClick={onSheetImport}
+                className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M1 5.5H13M5 5.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 rounded-md bg-text-primary text-bg text-[11px] font-medium whitespace-nowrap opacity-0 group-hover/sheet:opacity-100 scale-95 group-hover/sheet:scale-100 transition-all duration-150 pointer-events-none z-50">
+                시트 임포트
+              </span>
+            </div>
+            <div className="relative group/export">
+              <button
+                onClick={onExportCSV}
+                className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 rounded-md bg-text-primary text-bg text-[11px] font-medium whitespace-nowrap opacity-0 group-hover/export:opacity-100 scale-95 group-hover/export:scale-100 transition-all duration-150 pointer-events-none z-50">
+                내보내기
+              </span>
+            </div>
           </div>
 
           {/* Refresh Pill: 새로고침 + 자동새로고침 통합 (desktop) */}
@@ -138,20 +146,25 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
           </div>
 
           {/* 알림 */}
-          <button
-            onClick={() => router.push("/admin/notifications")}
-            className="relative p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
-            aria-label="알림"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 13.5C6.33 14.09 6.97 14.5 7.7 14.5C8.43 14.5 9.07 14.09 9.4 13.5M12.3 5.5C12.3 3 10.27 1 7.7 1C5.13 1 3.1 3 3.1 5.5C3.1 10 1 11.5 1 11.5H14.4C14.4 11.5 12.3 10 12.3 5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white bg-semantic-red rounded-full px-1">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </button>
+          <div className="relative group/bell">
+            <button
+              onClick={() => router.push("/admin/notifications")}
+              className="relative p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
+              aria-label="알림"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 13.5C6.33 14.09 6.97 14.5 7.7 14.5C8.43 14.5 9.07 14.09 9.4 13.5M12.3 5.5C12.3 3 10.27 1 7.7 1C5.13 1 3.1 3 3.1 5.5C3.1 10 1 11.5 1 11.5H14.4C14.4 11.5 12.3 10 12.3 5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white bg-semantic-red rounded-full px-1">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 rounded-md bg-text-primary text-bg text-[11px] font-medium whitespace-nowrap opacity-0 group-hover/bell:opacity-100 scale-95 group-hover/bell:scale-100 transition-all duration-150 pointer-events-none z-50">
+              알림
+            </span>
+          </div>
 
           {/* 새 예약 — Primary, 항상 표시 */}
           <button
@@ -165,15 +178,19 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
           </button>
 
           {/* 로그아웃 (desktop) */}
-          <button
-            onClick={handleLogout}
-            className="hidden lg:flex p-2 text-text-muted hover:text-semantic-red hover:bg-fill-tint rounded-md transition-colors"
-            title="로그아웃"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M5 1.5H3A1.5 1.5 0 0 0 1.5 3v8A1.5 1.5 0 0 0 3 12.5h2M9.5 10l3-3-3-3M5.5 7h7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          <div className="relative group/logout hidden lg:block">
+            <button
+              onClick={handleLogout}
+              className="flex p-2 text-text-muted hover:text-semantic-red hover:bg-fill-tint rounded-md transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 1.5H3A1.5 1.5 0 0 0 1.5 3v8A1.5 1.5 0 0 0 3 12.5h2M9.5 10l3-3-3-3M5.5 7h7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span className="absolute top-full right-0 mt-1.5 px-2 py-1 rounded-md bg-text-primary text-bg text-[11px] font-medium whitespace-nowrap opacity-0 group-hover/logout:opacity-100 scale-95 group-hover/logout:scale-100 transition-all duration-150 pointer-events-none z-50">
+              로그아웃
+            </span>
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
 import type { Booking } from "@/types/booking";
 import { PAGE_SIZE, type SheetImportRow } from "./dashboard-constants";
 
@@ -46,8 +46,10 @@ export function useDashboardState() {
   // 알림 배지
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 자동 새로고침 (30초 간격)
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  // 자동 새로고침 (30초 간격) — sessionStorage로 페이지 이동 후에도 유지
+  const [autoRefresh, setAutoRefresh] = useState(() =>
+    safeSessionGet("admin_auto_refresh") === "1"
+  );
 
   // 시트 임포트 모달
   const [showSheetImport, setShowSheetImport] = useState(false);
