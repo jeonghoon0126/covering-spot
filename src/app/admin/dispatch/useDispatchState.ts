@@ -116,9 +116,15 @@ export function useDispatchState() {
   // recalcDoneRef: 날짜별 하차지 소급 계산 여부 추적 (useEffect 아래 activeBookings 의존)
   const recalcDoneRef = useRef<string | null>(null);
 
-  // 활성 예약 (취소/거부 제외)
+  // 활성 예약 (취소/거부/미확정 제외 → 일정 확정된 건만)
   const activeBookings = useMemo(() => {
-    return bookings.filter((b) => b.status !== "cancelled" && b.status !== "rejected");
+    return bookings.filter(
+      (b) =>
+        b.status !== "cancelled" &&
+        b.status !== "rejected" &&
+        b.status !== "pending" &&
+        b.status !== "quote_confirmed",
+    );
   }, [bookings]);
 
   // ── 서브 훅: 자동배차 ──

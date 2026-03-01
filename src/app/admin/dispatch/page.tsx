@@ -21,7 +21,7 @@ export default function AdminDispatchPage() {
   if (!s.token) return null;
 
   return (
-    <div className="h-screen bg-bg-warm flex flex-col overflow-hidden">
+    <div className="h-screen bg-bg-warm flex flex-col">
       {/* 토스트 */}
       <DispatchToast toast={s.toast} />
 

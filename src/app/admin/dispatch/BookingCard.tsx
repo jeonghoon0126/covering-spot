@@ -68,7 +68,10 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
             {booking.driverId && booking.driverName && (
               <span className="text-[11px] font-medium px-1.5 py-0.5 rounded ml-auto flex-shrink-0"
                 style={{ background: `${driverColor || "#10B981"}18`, color: driverColor || "#10B981" }}>
-                {booking.driverName}
+                {booking.driverName}{(() => {
+                  const vt = driverStats.find((s) => s.driverId === booking.driverId)?.vehicleType;
+                  return vt ? ` (${vt})` : "";
+                })()}
               </span>
             )}
           </div>
