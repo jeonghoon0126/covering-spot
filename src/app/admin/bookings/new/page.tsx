@@ -474,55 +474,144 @@ export default function AdminBookingNewPage() {
               value={form.memo}
               onChange={(e) => updateField("memo", e.target.value)}
               placeholder="수거 시 참고할 사항 (선택)"
-              rows={3}
+              rows={2}
             />
 
+            {/* 엘리베이터 */}
             <div className="flex flex-col">
-              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
-                지상 출입 가능
-              </label>
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">엘리베이터</label>
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, hasGroundAccess: true }))}
-                  className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                    form.hasGroundAccess === true
-                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                      : "bg-bg-warm hover:bg-primary-bg border border-border-light"
-                  }`}
-                >
-                  가능
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, hasGroundAccess: false }))}
-                  className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                    form.hasGroundAccess === false
-                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
-                      : "bg-bg-warm hover:bg-primary-bg border border-border-light"
-                  }`}
-                >
-                  불가
-                </button>
+                {[{ v: true, label: "있음" }, { v: false, label: "없음" }].map(({ v, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, hasElevator: v }))}
+                    className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      form.hasElevator === v
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* 주차 */}
             <div className="flex flex-col">
-              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">
-                접수 출처
-              </label>
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">주차</label>
+              <div className="flex gap-3">
+                {[{ v: true, label: "가능" }, { v: false, label: "불가" }].map(({ v, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, hasParking: v }))}
+                    className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      form.hasParking === v
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 지상 출입 */}
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">지상 출입 가능</label>
+              <div className="flex gap-3">
+                {[{ v: true, label: "가능" }, { v: false, label: "불가" }].map(({ v, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, hasGroundAccess: v }))}
+                    className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      form.hasGroundAccess === v
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 사다리차 */}
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">사다리차</label>
+              <div className="flex gap-3">
+                {[{ v: true, label: "필요" }, { v: false, label: "불필요" }].map(({ v, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, needLadder: v }))}
+                    className={`flex-1 py-3 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                      form.needLadder === v
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
+                        : "bg-bg-warm hover:bg-primary-bg border border-border-light"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {form.needLadder && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="flex flex-col">
+                    <label className="mb-1.5 text-xs font-medium text-text-muted">사다리차 종류</label>
+                    <select
+                      value={form.ladderType}
+                      onChange={(e) => updateField("ladderType", e.target.value)}
+                      className="h-10 px-3 rounded-md border border-border bg-white text-sm focus:outline-none focus:border-brand-400"
+                    >
+                      <option value="">선택</option>
+                      <option value="15M이하">15M 이하</option>
+                      <option value="15M~20M">15M~20M</option>
+                      <option value="20M이상">20M 이상</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="mb-1.5 text-xs font-medium text-text-muted">사용 시간 (시간)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={form.ladderHours || ""}
+                      onChange={(e) => setForm((prev) => ({ ...prev, ladderHours: Number(e.target.value) || 0 }))}
+                      placeholder="시간 수"
+                      className="h-10 px-3 rounded-md border border-border bg-white text-sm focus:outline-none focus:border-brand-400"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 접수 출처 */}
+            <div className="flex flex-col">
+              <label className="mb-2 text-sm font-semibold leading-[22px] text-text-primary">접수 출처</label>
               <select
                 value={form.source}
                 onChange={(e) => updateField("source", e.target.value)}
                 className="w-full h-12 rounded-md px-4 text-base leading-6 outline-none transition-all duration-200 border border-border bg-white text-text-primary focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
               >
                 {SOURCE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
+                  <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
             </div>
+
+            {/* 내부 메모 (어드민 전용) */}
+            <TextArea
+              label="내부 메모 (어드민 전용, 고객 미노출)"
+              value={form.adminMemo}
+              onChange={(e) => updateField("adminMemo", e.target.value)}
+              placeholder="운영팀 참고 사항 (선택)"
+              rows={2}
+            />
           </div>
         </div>
 

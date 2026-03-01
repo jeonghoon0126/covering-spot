@@ -15,8 +15,14 @@ export interface FormData {
   date: string;
   timeSlot: string;
   memo: string;
+  adminMemo: string;
   source: string;
   hasGroundAccess: boolean;
+  hasElevator: boolean;
+  hasParking: boolean;
+  needLadder: boolean;
+  ladderType: string;
+  ladderHours: number;
 }
 
 export interface FormErrors {
@@ -66,8 +72,14 @@ export function useBookingForm(): UseBookingFormReturn {
     date: "",
     timeSlot: "",
     memo: "",
+    adminMemo: "",
     source: "카카오톡 상담",
     hasGroundAccess: false,
+    hasElevator: false,
+    hasParking: false,
+    needLadder: false,
+    ladderType: "",
+    ladderHours: 0,
   });
 
   useEffect(() => {
@@ -145,8 +157,15 @@ export function useBookingForm(): UseBookingFormReturn {
           date: form.date,
           timeSlot: form.timeSlot,
           memo: form.memo.trim(),
+          adminMemo: form.adminMemo.trim(),
           source: form.source,
           hasGroundAccess: form.hasGroundAccess,
+          hasElevator: form.hasElevator,
+          hasParking: form.hasParking,
+          needLadder: form.needLadder,
+          ladderType: form.ladderType,
+          ladderHours: form.ladderHours,
+          ladderPrice: 0,
         }),
       });
 

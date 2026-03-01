@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { getBookingStatusCounts, getBookingsPaginated, createBooking, updateBooking } from "@/lib/db";
+import { getBookingStatusCounts, getBookingsPaginated, createBooking, updateBooking, createAdminNotification } from "@/lib/db";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { sendBookingCreated } from "@/lib/slack-notify";
+import { sendStatusSms } from "@/lib/sms-notify";
+import { geocodeAddress } from "@/lib/geocode";
 import { calcCrewSize } from "@/lib/crew-utils";
 import type { Booking } from "@/types/booking";
 
@@ -114,8 +116,10 @@ export async function POST(req: NextRequest) {
       items,
       totalPrice: priceNum,
       crewSize: calcCrewSize(totalLoadingCube),
-      needLadder: false,
-      ladderPrice: 0,
+      needLadder: body.needLadder ?? false,
+      ladderType: body.ladderType || "",
+      ladderHours: body.ladderHours || 0,
+      ladderPrice: body.ladderPrice || 0,
       customerName: body.customerName.trim(),
       phone: body.phone.trim(),
       address: body.address.trim(),
@@ -124,8 +128,8 @@ export async function POST(req: NextRequest) {
       status: "pending",
       createdAt: now,
       updatedAt: now,
-      hasElevator: false,
-      hasParking: false,
+      hasElevator: body.hasElevator ?? false,
+      hasParking: body.hasParking ?? false,
       hasGroundAccess: body.hasGroundAccess ?? false,
       estimateMin: priceNum,
       estimateMax: priceNum,
@@ -138,7 +142,25 @@ export async function POST(req: NextRequest) {
       totalLoadingCube,
     };
 
+    // Geocoding: createBooking 전에 처리 (자동배차 lat/lng 누락 버그 방지)
+    const coords = await geocodeAddress(booking.address).catch(() => null);
+    if (coords) {
+      booking.latitude = coords.lat;
+      booking.longitude = coords.lng;
+    }
+
     const created = await createBooking(booking);
+
+    // SMS 접수 알림 (fire-and-forget)
+    sendStatusSms(created.phone, "received", created.id).catch((err) => console.error("[SMS] 수동접수 알림 실패:", err?.message));
+
+    // 백오피스 알림 (신규 수동접수)
+    createAdminNotification({
+      bookingId: created.id,
+      type: "new_booking",
+      title: `[수동접수] ${created.customerName}`,
+      body: `${created.date} ${created.timeSlot} | ${created.area} | ${created.address}`,
+    }).catch((err) => console.error("[알림] 수동접수 알림 생성 실패:", err?.message));
 
     // Slack 알림 (fire-and-forget)
     sendBookingCreated(created)
