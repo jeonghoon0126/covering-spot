@@ -91,7 +91,6 @@ export async function GET(req: NextRequest) {
     // 신청 품목의 총 적재량 (m³). 없으면 0 → 기존 방식 fallback
     const loadingCubeParam = req.nextUrl.searchParams.get("loadingCube");
     const requestedCube = loadingCubeParam ? parseFloat(loadingCubeParam) : 0;
-    const useCubeLogic = requestedCube > 0;
 
     // 해당 날짜의 활성 예약 조회 (cancelled 제외)
     let confirmedCounts: Record<string, number> = {};
@@ -125,46 +124,44 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // 기사별 잔여 적재량 기반 로직 (loadingCube 파라미터 있을 때만 시도)
-      if (useCubeLogic) {
-        try {
-          const drivers = await getDriversForDate(date);
-          if (drivers.length > 0) {
-            useDriverLogic = true;
+      // 기사별 잔여 적재량 기반 로직 (항상 시도)
+      try {
+        const drivers = await getDriversForDate(date);
+        if (drivers.length > 0) {
+          useDriverLogic = true;
 
-            // 기사별: 이미 배차된 예약의 total_loading_cube 합산 (cancelled/rejected 제외)
-            // getBookings(date)는 이미 cancelled 제외 상태이므로 rejected만 추가 필터
-            const usedCubePerDriver: Record<string, number> = {};
-            for (const d of drivers) {
-              usedCubePerDriver[d.id] = 0;
-            }
-            for (const b of bookings) {
-              if (b.status === "rejected") continue;
-              if (b.driverId && usedCubePerDriver[b.driverId] !== undefined) {
-                usedCubePerDriver[b.driverId] += b.totalLoadingCube ?? 0;
-              }
-            }
-
-            // 슬롯별 기사 잔여 적재량 맵 초기화
-            for (const slot of DEFAULT_SLOTS) {
-              driverCapacityMap[slot] = {};
-              for (const d of drivers) {
-                // workSlots 체크: 빈 문자열이면 모든 슬롯 허용
-                if (d.workSlots && d.workSlots.trim() !== "") {
-                  const allowedSlots = d.workSlots.split(",").map((s) => s.trim());
-                  if (!allowedSlots.includes(slot)) continue;
-                }
-                const remaining =
-                  d.vehicleCapacity - d.initialLoadCube - (usedCubePerDriver[d.id] ?? 0);
-                driverCapacityMap[slot][d.id] = remaining;
-              }
+          // 기사별: 이미 배차된 예약의 total_loading_cube 합산 (cancelled/rejected 제외)
+          // getBookings(date)는 이미 cancelled 제외 상태이므로 rejected만 추가 필터
+          const usedCubePerDriver: Record<string, number> = {};
+          for (const d of drivers) {
+            usedCubePerDriver[d.id] = 0;
+          }
+          for (const b of bookings) {
+            if (b.status === "rejected") continue;
+            if (b.driverId && usedCubePerDriver[b.driverId] !== undefined) {
+              usedCubePerDriver[b.driverId] += b.totalLoadingCube ?? 0;
             }
           }
-        } catch (driverErr) {
-          // 기사 조회 실패 → fallback (기존 MAX_PER_SLOT 방식)
-          console.warn("[slots/GET] 기사 조회 실패, fallback 사용", driverErr);
-          useDriverLogic = false;
+
+          // 슬롯별 기사 잔여 적재량 맵 초기화
+          for (const slot of DEFAULT_SLOTS) {
+            driverCapacityMap[slot] = {};
+            for (const d of drivers) {
+              // workSlots 체크: 빈 문자열이면 모든 슬롯 허용
+              if (d.workSlots && d.workSlots.trim() !== "") {
+                const allowedSlots = d.workSlots.split(",").map((s) => s.trim());
+                if (!allowedSlots.includes(slot)) continue;
+              }
+              const remaining =
+                d.vehicleCapacity - d.initialLoadCube - (usedCubePerDriver[d.id] ?? 0);
+              driverCapacityMap[slot][d.id] = remaining;
+            }
+          }
         }
+      } catch (driverErr) {
+        // 기사 조회 실패 → fallback (기존 MAX_PER_SLOT 방식)
+        console.warn("[slots/GET] 기사 조회 실패, fallback 사용", driverErr);
+        useDriverLogic = false;
       }
     } catch (dbErr) {
       console.error("[slots/GET] DB 조회 실패", dbErr);
@@ -194,7 +191,8 @@ export async function GET(req: NextRequest) {
         // 기사별 잔여 적재량 기반: 가용 기사가 1명이라도 있으면 available
         const driverMap = driverCapacityMap[time] ?? {};
         const driverEntries = Object.values(driverMap);
-        const availableDrivers = driverEntries.filter((rem) => rem >= requestedCube);
+        // requestedCube=0이면 "여유 있는 기사 존재 여부"로 판단 (rem > 0)
+        const availableDrivers = driverEntries.filter((rem) => requestedCube > 0 ? rem >= requestedCube : rem > 0);
         const remainingCapacity =
           driverEntries.length > 0 ? Math.max(...driverEntries) : 0;
         const isAvailable = availableDrivers.length > 0 && !isPast && !isBlocked;

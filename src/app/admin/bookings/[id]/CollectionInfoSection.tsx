@@ -12,12 +12,18 @@ export function CollectionInfoSection({ booking }: CollectionInfoSectionProps) {
         수거 정보
       </h3>
       <div className="space-y-0 text-sm">
-        <div className="flex justify-between py-2.5 border-b border-border-light">
+        <div className={`flex justify-between py-2.5 border-b border-border-light`}>
           <span className="text-text-sub">희망일</span>
           <span className="font-medium">
             {booking.date} {booking.timeSlot}
           </span>
         </div>
+        {booking.preferredSlots && booking.preferredSlots.length > 0 && (
+          <div className="flex justify-between py-2.5 border-b border-border-light">
+            <span className="text-text-sub">선호 시간대</span>
+            <span className="font-medium text-right">{booking.preferredSlots.join(", ")}</span>
+          </div>
+        )}
         <div className="flex justify-between py-2.5 border-b border-border-light">
           <span className="text-text-sub">지역</span>
           <span className="font-medium">{booking.area}</span>

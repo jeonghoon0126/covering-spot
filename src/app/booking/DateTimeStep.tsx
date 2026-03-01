@@ -7,8 +7,8 @@ import { DAYS_KO, TIME_OPTIONS, TIME_LABELS, getMonthDays } from "./booking-cons
 interface DateTimeStepProps {
   selectedDate: string;
   setSelectedDate: (v: string) => void;
-  selectedTime: string;
-  setSelectedTime: (v: string) => void;
+  selectedTimes: string[];
+  onToggleTime: (time: string) => void;
   calMonth: { year: number; month: number };
   setCalMonth: React.Dispatch<React.SetStateAction<{ year: number; month: number }>>;
   timeSlotCounts: Record<string, number>;
@@ -18,8 +18,8 @@ interface DateTimeStepProps {
 export function DateTimeStep({
   selectedDate,
   setSelectedDate,
-  selectedTime,
-  setSelectedTime,
+  selectedTimes,
+  onToggleTime,
   calMonth,
   setCalMonth,
   timeSlotCounts,
@@ -99,10 +99,16 @@ export function DateTimeStep({
       {/* 시간대 선택 */}
       {selectedDate && (
         <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
-          <h3 className="font-semibold mb-1">시간대 선택</h3>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold">시간대 선택</h3>
+            {selectedTimes.length > 0 && (
+              <span className="text-xs font-semibold text-primary bg-primary-tint/40 px-2 py-0.5 rounded-full">
+                {selectedTimes.length}개 선택
+              </span>
+            )}
+          </div>
           <p className="text-sm text-text-sub mb-3">
-            쓰레기 수거량에 따라서 수거 시간대가 확정돼요.<br />
-            매니저가 신청 내용 확인 후 견적과 함께 확정 안내를 드려요.
+            가능한 시간대를 모두 선택해 주세요. 여러 개 선택할수록 빠른 수거가 가능해요.
           </p>
           {slotsLoading ? (
             <div className="flex justify-center py-4">
@@ -113,17 +119,18 @@ export function DateTimeStep({
               {TIME_OPTIONS.map((opt) => {
                 const count = timeSlotCounts[opt] ?? -1;
                 const isFull = count === 0; // -1 = 미로드 (가능으로 표시), 0 = 마감
+                const isSelected = selectedTimes.includes(opt);
                 return (
                   <button
                     key={opt}
-                    onClick={() => !isFull && setSelectedTime(opt)}
+                    onClick={() => !isFull && onToggleTime(opt)}
                     disabled={isFull}
-                    aria-label={`${opt} ${isFull ? '마감' : '선택 가능'}`}
-                    aria-pressed={opt === selectedTime}
+                    aria-label={`${opt} ${isFull ? '마감' : isSelected ? '선택됨' : '선택 가능'}`}
+                    aria-pressed={isSelected}
                     className={`py-3.5 rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                       isFull
                         ? "bg-fill-tint text-text-muted cursor-not-allowed"
-                        : opt === selectedTime
+                        : isSelected
                           ? "bg-primary text-white shadow-[0_4px_12px_rgba(26,163,255,0.3)]"
                           : "bg-bg-warm hover:bg-primary-bg hover:-translate-y-0.5"
                     }`}

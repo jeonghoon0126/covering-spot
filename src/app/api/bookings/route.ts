@@ -181,6 +181,7 @@ export async function POST(req: NextRequest) {
       agreedToPrivacy: validData.agreedToPrivacy,
       agreedToMarketing: validData.agreedToMarketing ?? false,
       agreedToNightNotification: validData.agreedToNightNotification ?? false,
+      preferredSlots: validData.preferredSlots ?? [],
     };
 
     // Geocoding을 createBooking 전에 완료: 자동배차 시 lat/lng가 null이면 주문 제외되는 버그 방지

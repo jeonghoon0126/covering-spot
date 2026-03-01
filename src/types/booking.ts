@@ -61,6 +61,8 @@ export interface Booking {
   agreedToPrivacy?: boolean; // 개인정보 수집·이용 동의 (필수)
   agreedToMarketing?: boolean; // 마케팅 정보 수신 동의 (선택)
   agreedToNightNotification?: boolean; // 야간 수신 동의 21:00~익일08:00 (선택)
+  preferredSlots?: string[]; // 고객이 선택한 선호 시간대 목록 (복수 선택)
+  quoteConfirmedAt?: string | null; // 견적 확정 시각 (자동 만료 기준)
 }
 
 export interface UnloadingPoint {

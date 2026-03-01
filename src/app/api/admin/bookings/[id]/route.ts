@@ -174,6 +174,11 @@ export async function PUT(
     const previousStatus = existing.status;
     const previousMemo = existing.adminMemo;
 
+    // quote_confirmed 전환 시 타임스탬프 저장 (7일 자동 만료 기준)
+    if (data.status === "quote_confirmed" && previousStatus !== "quote_confirmed") {
+      allowedUpdates.quoteConfirmedAt = new Date().toISOString();
+    }
+
     // expectedUpdatedAt가 있으면 optimistic locking 적용
     const expectedUpdatedAt: string | undefined = data.expectedUpdatedAt;
     if (!expectedUpdatedAt) {

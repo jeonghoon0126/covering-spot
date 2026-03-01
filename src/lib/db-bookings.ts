@@ -44,6 +44,8 @@ const FIELD_MAP: Record<string, string> = {
   agreedToPrivacy: "agreed_to_privacy",
   agreedToMarketing: "agreed_to_marketing",
   agreedToNightNotification: "agreed_to_night_notification",
+  preferredSlots: "preferred_slots",
+  quoteConfirmedAt: "quote_confirmed_at",
 };
 
 export function rowToBooking(row: Record<string, unknown>): Booking {
@@ -93,6 +95,8 @@ export function rowToBooking(row: Record<string, unknown>): Booking {
     agreedToPrivacy: (row.agreed_to_privacy as boolean) ?? false,
     agreedToMarketing: (row.agreed_to_marketing as boolean) ?? false,
     agreedToNightNotification: (row.agreed_to_night_notification as boolean) ?? false,
+    preferredSlots: (row.preferred_slots as string[]) ?? [],
+    quoteConfirmedAt: (row.quote_confirmed_at as string) ?? null,
   };
 }
 
@@ -140,6 +144,7 @@ function bookingToRow(b: Booking) {
     agreed_to_privacy: b.agreedToPrivacy ?? false,
     agreed_to_marketing: b.agreedToMarketing ?? false,
     agreed_to_night_notification: b.agreedToNightNotification ?? false,
+    preferred_slots: b.preferredSlots ?? [],
   };
 }
 

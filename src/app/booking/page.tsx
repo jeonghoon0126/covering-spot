@@ -46,7 +46,7 @@ function BookingPageContent() {
 
   // Step 1: 날짜/시간
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -115,7 +115,8 @@ function BookingPageContent() {
       if (d.addressDetail) setAddressDetail(d.addressDetail);
       if (d.memo) setMemo(d.memo);
       if (d.selectedDate) setSelectedDate(d.selectedDate);
-      if (d.selectedTime) setSelectedTime(d.selectedTime);
+      if (Array.isArray(d.selectedTimes) && d.selectedTimes.length) setSelectedTimes(d.selectedTimes);
+      else if (d.selectedTime) setSelectedTimes([d.selectedTime]); // 구버전 draft 호환
       if (d.selectedArea) setSelectedArea(d.selectedArea);
       if (d.selectedItems?.length) setSelectedItems(d.selectedItems);
       if (d.hasElevator !== undefined) setHasElevator(d.hasElevator);
@@ -147,7 +148,7 @@ function BookingPageContent() {
         setAddressDetail(b.addressDetail || "");
         setMemo(b.memo || "");
         setSelectedDate(b.date || "");
-        setSelectedTime(b.timeSlot || "");
+        setSelectedTimes(b.preferredSlots?.length ? b.preferredSlots : b.timeSlot ? [b.timeSlot] : []);
         setSelectedArea(b.area || "");
         if (b.items?.length) setSelectedItems(b.items);
         if (b.hasElevator != null) setHasElevator(b.hasElevator);
@@ -170,13 +171,13 @@ function BookingPageContent() {
       try {
         localStorage.setItem("covering_spot_booking_draft", JSON.stringify({
           customerName, phone, address, addressDetail, memo,
-          selectedDate, selectedTime, selectedArea, selectedItems,
+          selectedDate, selectedTimes, selectedArea, selectedItems,
           hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step,
         }));
       } catch { /* quota 초과 무시 */ }
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step]);
+  }, [draftLoaded, customerName, phone, address, addressDetail, memo, selectedDate, selectedTimes, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder, ladderType, ladderHours, step]);
 
   // 스텝 변경 트래킹
   const prevStepRef = useRef(step);
@@ -197,7 +198,7 @@ function BookingPageContent() {
 
   // 날짜 변경 시 시간 선택 초기화 + 슬롯 카운트를 미로드 상태로 리셋
   useEffect(() => {
-    setSelectedTime("");
+    setSelectedTimes([]);
     setTimeSlotCounts({
       "10:00": -1, "12:00": -1, "14:00": -1, "16:00": -1,
     });
@@ -334,7 +335,7 @@ function BookingPageContent() {
           addressDetail,
           memo,
           date: selectedDate,
-          timeSlot: selectedTime,
+          timeSlot: selectedTimes[0] || "",
           area: selectedArea,
           items: selectedItems,
           hasElevator,
@@ -346,7 +347,7 @@ function BookingPageContent() {
         /* 리드 저장 실패는 무시 */
       });
     }
-  }, [step, leadSaved, customerName, phone, address, addressDetail, memo, selectedDate, selectedTime, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder]);
+  }, [step, leadSaved, customerName, phone, address, addressDetail, memo, selectedDate, selectedTimes, selectedArea, selectedItems, hasElevator, hasParking, hasGroundAccess, needLadder]);
 
   // 품목 수량 변경
   function updateItemQty(
@@ -412,7 +413,8 @@ function BookingPageContent() {
 
       const bookingData = {
         date: selectedDate,
-        timeSlot: selectedTime,
+        timeSlot: selectedTimes[0] || "",
+        preferredSlots: selectedTimes,
         area: selectedArea,
         items: selectedItems,
         totalPrice: quote.totalPrice,
@@ -442,7 +444,7 @@ function BookingPageContent() {
         // 수정 모드: PUT — CustomerUpdateSchema.strict()에 허용된 필드만 전송
         const editData = {
           date: selectedDate,
-          timeSlot: selectedTime,
+          timeSlot: selectedTimes[0] || "",
           items: selectedItems,
           memo,
           photos: photoUrls.length > 0 ? photoUrls : undefined,
@@ -515,7 +517,7 @@ function BookingPageContent() {
   // 스텝별 완료 조건
   const canNext = [
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
-    selectedDate && selectedTime,                        // Step 1: 날짜/시간
+    selectedDate && selectedTimes.length > 0,            // Step 1: 날짜/시간
     selectedItems.length > 0,                            // Step 2: 품목 (사진은 선택)
     hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 3: 작업 환경
     true,                                                 // Step 4: 사다리차
@@ -558,8 +560,12 @@ function BookingPageContent() {
         <DateTimeStep
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
-          selectedTime={selectedTime}
-          setSelectedTime={setSelectedTime}
+          selectedTimes={selectedTimes}
+          onToggleTime={(time) =>
+            setSelectedTimes((prev) =>
+              prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time],
+            )
+          }
           calMonth={calMonth}
           setCalMonth={setCalMonth}
           timeSlotCounts={timeSlotCounts}
@@ -618,7 +624,7 @@ function BookingPageContent() {
           address={address}
           addressDetail={addressDetail}
           selectedDate={selectedDate}
-          selectedTime={selectedTime}
+          selectedTime={selectedTimes[0] || ""}
           selectedArea={selectedArea}
           selectedItems={selectedItems}
           hasElevator={hasElevator}

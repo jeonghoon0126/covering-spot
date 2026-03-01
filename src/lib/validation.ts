@@ -37,6 +37,7 @@ export const BookingCreateSchema = z.object({
   agreedToPrivacy: z.boolean(),
   agreedToMarketing: z.boolean().optional().default(false),
   agreedToNightNotification: z.boolean().optional().default(false),
+  preferredSlots: z.array(z.string()).min(1).optional(),
 });
 
 export const BookingUpdateSchema = z.object({
