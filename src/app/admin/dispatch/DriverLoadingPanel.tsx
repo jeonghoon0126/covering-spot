@@ -86,7 +86,7 @@ export default function DriverLoadingPanel({
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                     <span className="text-xs font-semibold truncate">{stat.driverName}</span>
-                    <span className="text-[11px] text-text-muted">{stat.vehicleType}</span>
+                    <span className="text-[11px] text-text-muted">{stat.vehicleType}{stat.licensePlate ? ` (${stat.licensePlate})` : ""}</span>
                     <span className="ml-auto text-[11px] text-text-muted">{stat.assignedCount}건</span>
                   </div>
                   <div className="h-1.5 bg-fill-tint rounded-full overflow-hidden mb-0.5">

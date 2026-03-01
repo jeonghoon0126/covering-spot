@@ -31,7 +31,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   received: () =>
     `[커버링 방문수거] 수거 신청이 접수되었어요!\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
   quote_confirmed: (finalPrice) =>
-    `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
+    `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n★ 수거일 3일 전까지 확정하지 않으시면 예약이 자동 취소돼요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
   in_progress: () =>
     "[커버링 방문수거] 수거 팀이 출발했어요!\n\n도착 예정 시간에 맞춰 문 앞에 품목을 준비해 주시면 더 빠르게 진행돼요.\n감사합니다!",
   completed: () =>
@@ -48,7 +48,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   rejected: () =>
     "[커버링 방문수거] 죄송합니다. 해당 건은 수거가 어려운 상황이에요.\n\n자세한 사유가 궁금하시면 카카오톡 채널로 문의해 주세요.\n불편을 드려 죄송합니다.",
   quote_expired: () =>
-    "[커버링 방문수거] 견적 확인 기간(7일)이 지나 예약이 자동 취소되었습니다.\n\n다시 신청하실 수 있어요.",
+    "[커버링 방문수거] 견적 확인 기간이 지나 예약이 자동 취소되었습니다.\n(수거 3일 전까지 미확정 또는 견적 발송 후 7일 초과)\n\n다시 신청하실 수 있어요.",
 };
 
 /**

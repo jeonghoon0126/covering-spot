@@ -19,16 +19,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 7일 이상 경과한 quote_confirmed 예약 조회
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
+    // KST 기준 현재 시각
+    const nowKst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+
+    // 조건 1: 견적 확정 후 7일 초과
+    const cutoff7 = new Date(nowKst);
+    cutoff7.setDate(cutoff7.getDate() - 7);
+
+    // 조건 2: 수거 예정일 3일 전 컷오프 (date < today + 3)
+    const cutoff3 = new Date(nowKst);
+    cutoff3.setDate(cutoff3.getDate() + 3);
+    const cutoff3Str = `${cutoff3.getFullYear()}-${String(cutoff3.getMonth() + 1).padStart(2, "0")}-${String(cutoff3.getDate()).padStart(2, "0")}`;
 
     const { data: expired, error: fetchError } = await supabase
       .from("bookings")
-      .select("id, phone, customer_name")
+      .select("id, phone, customer_name, date")
       .eq("status", "quote_confirmed")
-      .lt("quote_confirmed_at", cutoff.toISOString())
-      .not("quote_confirmed_at", "is", null);
+      .not("quote_confirmed_at", "is", null)
+      .or(`quote_confirmed_at.lt.${cutoff7.toISOString()},date.lt.${cutoff3Str}`);
 
     if (fetchError) {
       console.error("[cron/expire-quotes] 조회 실패:", fetchError.message);
