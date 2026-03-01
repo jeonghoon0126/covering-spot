@@ -12,12 +12,12 @@ export function AdminLogo() {
   const isDashboard = pathname === "/admin/dashboard";
 
   const symbol = (
-    <span
-      className="flex items-center justify-center w-7 h-7 rounded-md bg-primary text-white text-sm font-extrabold select-none shrink-0"
-      aria-label="커버링"
-    >
-      C
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/logo.png"
+      alt="커버링"
+      className="w-7 h-7 object-contain shrink-0 rounded-sm"
+    />
   );
 
   if (isDashboard) return symbol;

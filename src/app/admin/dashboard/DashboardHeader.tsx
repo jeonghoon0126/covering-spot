@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import { AdminLogo } from "@/components/ui/AdminLogo";
@@ -17,27 +18,129 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRefresh, autoRefresh, onToggleAutoRefresh }: DashboardHeaderProps) {
   const router = useRouter();
   const { experimentName, variant } = useExperiment();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMenu = () => setMobileMenuOpen(false);
+
+  const handleLogout = () => {
+    safeSessionRemove("admin_token");
+    router.push("/admin");
+  };
 
   return (
     <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
-      <div className="max-w-[56rem] mx-auto px-4 py-3 flex items-center justify-between gap-2">
-        {/* 좌측: 로고 + 제목 */}
+      <div className="max-w-[56rem] mx-auto px-4 h-14 flex items-center gap-2">
+
+        {/* 모바일 햄버거 */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="lg:hidden p-2 text-text-sub hover:text-text-primary transition-colors"
+          aria-label="메뉴 열기"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M2 4.5H16M2 9H16M2 13.5H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+
+        {/* 브랜딩: 로고 + 제목 */}
         <div className="flex items-center gap-2 shrink-0">
           <AdminLogo />
-          <h1 className="text-base font-bold whitespace-nowrap">커버링 방문수거 관리</h1>
+          <h1 className="text-sm font-bold whitespace-nowrap hidden sm:block">커버링 방문수거 관리</h1>
           {experimentName && (
-            <span className="hidden sm:inline text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-semantic-orange-tint text-semantic-orange whitespace-nowrap">
+            <span className="hidden md:inline text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-semantic-orange-tint text-semantic-orange whitespace-nowrap">
               {experimentName}: {variant || "미할당"}
             </span>
           )}
         </div>
 
-        {/* 우측: 네비게이션 버튼들 */}
-        <div className="flex items-center gap-0.5 min-w-0">
+        {/* 핵심 Nav — 데스크탑만 */}
+        <nav className="hidden lg:flex items-center gap-0.5 border-l border-border-light pl-3 ml-1">
+          <button
+            onClick={() => router.push("/admin/calendar")}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-text-sub hover:text-text-primary hover:bg-fill-tint transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M1 5.5H13M4 1V3.5M10 1V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+            캘린더
+          </button>
+          <button
+            onClick={() => router.push("/admin/dispatch")}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-text-sub hover:text-text-primary hover:bg-fill-tint transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M1.5 4.5L7 1L12.5 4.5V10L7 13L1.5 10V4.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+              <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            </svg>
+            배차
+          </button>
+          <button
+            onClick={() => router.push("/admin/driver")}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-text-sub hover:text-text-primary hover:bg-fill-tint transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M2 13C2 10.2 4.2 8 7 8C9.8 8 12 10.2 12 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+            기사님
+          </button>
+        </nav>
+
+        {/* 우측 유틸리티 */}
+        <div className="ml-auto flex items-center gap-1">
+
+          {/* 시트 임포트 + 내보내기 (desktop, icon only) */}
+          <div className="hidden lg:flex items-center">
+            <button
+              onClick={onSheetImport}
+              className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
+              title="시트 임포트"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M1 5.5H13M5 5.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={onExportCSV}
+              className="p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
+              title="CSV 내보내기"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Refresh Pill: 새로고침 + 자동새로고침 통합 (desktop) */}
+          <div className="hidden lg:flex h-8 items-center border border-border rounded-lg bg-bg-warm overflow-hidden">
+            <button
+              onClick={onRefresh}
+              className="px-2.5 h-full flex items-center hover:bg-fill-tint transition-colors text-text-sub hover:text-text-primary"
+              title="수동 새로고침"
+            >
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <path d="M1.5 7A5.5 5.5 0 0 1 12 4M12.5 7A5.5 5.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M12 1V4H9M2 13V10H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <div className="w-px h-4 bg-border-light" />
+            <button
+              onClick={onToggleAutoRefresh}
+              className="flex items-center gap-1.5 px-2.5 h-full hover:bg-fill-tint transition-colors"
+              title={autoRefresh ? "자동 새로고침 끄기" : "자동 새로고침 켜기"}
+            >
+              <span className="text-[11px] text-text-sub font-medium">자동</span>
+              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${autoRefresh ? "bg-semantic-green" : "bg-border"}`} />
+            </button>
+          </div>
+
           {/* 알림 */}
           <button
             onClick={() => router.push("/admin/notifications")}
-            className="relative text-sm text-text-sub hover:text-text-primary transition-colors duration-200 px-2 py-2 shrink-0"
+            className="relative p-2 text-text-sub hover:text-text-primary hover:bg-fill-tint rounded-md transition-colors"
             aria-label="알림"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -50,119 +153,110 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
             )}
           </button>
 
-          {/* 시트 임포트 */}
-          <button
-            onClick={onSheetImport}
-            className="text-sm text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1 px-2 py-2 font-medium shrink-0"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-              <path d="M1 5.5H13M5 5.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-            </svg>
-            <span className="hidden lg:inline">시트 임포트</span>
-          </button>
-
-          {/* 새 예약 — md부터 텍스트 표시 (가장 중요) */}
+          {/* 새 예약 — Primary, 항상 표시 */}
           <button
             onClick={() => router.push("/admin/bookings/new")}
-            className="text-sm text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1 px-2 py-2 font-medium shrink-0"
+            className="flex items-center gap-1 px-3 h-8 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-dark transition-colors shrink-0"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
             <span className="hidden md:inline">새 예약</span>
           </button>
 
-          {/* 캘린더 */}
+          {/* 로그아웃 (desktop) */}
           <button
-            onClick={() => router.push("/admin/calendar")}
-            className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-              <path d="M1 5.5H13M4 1V3.5M10 1V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-            </svg>
-            <span className="hidden lg:inline">캘린더</span>
-          </button>
-
-          {/* 배차 */}
-          <button
-            onClick={() => router.push("/admin/dispatch")}
-            className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1.5 4.5L7 1L12.5 4.5V10L7 13L1.5 10V4.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
-              <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-            </svg>
-            <span className="hidden lg:inline">배차</span>
-          </button>
-
-          {/* 기사님 */}
-          <button
-            onClick={() => router.push("/admin/driver")}
-            className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/>
-              <path d="M2 13C2 10.2 4.2 8 7 8C9.8 8 12 10.2 12 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-            </svg>
-            <span className="hidden lg:inline">기사님</span>
-          </button>
-
-          {/* 내보내기 */}
-          <button
-            onClick={onExportCSV}
-            className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-            </svg>
-            <span className="hidden lg:inline">내보내기</span>
-          </button>
-
-          {/* 새로고침 */}
-          <button
-            onClick={onRefresh}
-            className="text-sm text-text-sub hover:text-text-primary transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0"
-            title="수동 새로고침"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1.5 7A5.5 5.5 0 0 1 12 4M12.5 7A5.5 5.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              <path d="M12 1V4H9M2 13V10H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="hidden lg:inline">새로고침</span>
-          </button>
-
-          {/* 자동 새로고침 */}
-          <button
-            onClick={onToggleAutoRefresh}
-            className={`text-sm transition-colors duration-200 flex items-center gap-1 px-2 py-2 shrink-0 ${autoRefresh ? "text-semantic-green" : "text-text-sub hover:text-text-primary"}`}
-            title={autoRefresh ? "자동 새로고침 끄기 (30초)" : "자동 새로고침 켜기 (30초)"}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1.5 7A5.5 5.5 0 0 1 12 4M12.5 7A5.5 5.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              <path d="M12 1V4H9M2 13V10H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              {autoRefresh && <circle cx="7" cy="7" r="1.5" fill="currentColor"/>}
-            </svg>
-            <span className="hidden lg:inline">{autoRefresh ? "자동:ON" : "자동:OFF"}</span>
-          </button>
-
-          {/* 로그아웃 */}
-          <button
-            onClick={() => {
-              safeSessionRemove("admin_token");
-              router.push("/admin");
-            }}
-            className="text-sm text-semantic-red hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-2 shrink-0"
+            onClick={handleLogout}
+            className="hidden lg:flex p-2 text-text-muted hover:text-semantic-red hover:bg-fill-tint rounded-md transition-colors"
+            title="로그아웃"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M5 1.5H3A1.5 1.5 0 0 0 1.5 3v8A1.5 1.5 0 0 0 3 12.5h2M9.5 10l3-3-3-3M5.5 7h7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="hidden lg:inline">로그아웃</span>
           </button>
         </div>
       </div>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-border-light bg-bg shadow-md">
+          <nav className="px-4 py-2 space-y-0.5">
+            <button
+              onClick={() => { router.push("/admin/calendar"); closeMenu(); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-text-primary hover:bg-fill-tint transition-colors text-left"
+            >
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M1 5.5H13M4 1V3.5M10 1V3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              캘린더
+            </button>
+            <button
+              onClick={() => { router.push("/admin/dispatch"); closeMenu(); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-text-primary hover:bg-fill-tint transition-colors text-left"
+            >
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
+                <path d="M1.5 4.5L7 1L12.5 4.5V10L7 13L1.5 10V4.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                <circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+              </svg>
+              배차
+            </button>
+            <button
+              onClick={() => { router.push("/admin/driver"); closeMenu(); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-text-primary hover:bg-fill-tint transition-colors text-left"
+            >
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M2 13C2 10.2 4.2 8 7 8C9.8 8 12 10.2 12 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              기사님
+            </button>
+          </nav>
+          <div className="px-4 py-2 border-t border-border-light flex items-center gap-1">
+            <button
+              onClick={() => { onSheetImport(); closeMenu(); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm text-text-sub hover:bg-fill-tint transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M1 5.5H13M5 5.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              시트 임포트
+            </button>
+            <button
+              onClick={() => { onExportCSV(); closeMenu(); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm text-text-sub hover:bg-fill-tint transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 11H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              내보내기
+            </button>
+            <button
+              onClick={() => { onRefresh(); closeMenu(); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm text-text-sub hover:bg-fill-tint transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1.5 7A5.5 5.5 0 0 1 12 4M12.5 7A5.5 5.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M12 1V4H9M2 13V10H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              새로고침
+            </button>
+          </div>
+          <div className="px-4 py-2 border-t border-border-light">
+            <button
+              onClick={() => { handleLogout(); closeMenu(); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-semantic-red hover:bg-semantic-red-tint transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 1.5H3A1.5 1.5 0 0 0 1.5 3v8A1.5 1.5 0 0 0 3 12.5h2M9.5 10l3-3-3-3M5.5 7h7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
