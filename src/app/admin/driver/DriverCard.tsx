@@ -67,7 +67,11 @@ export default function DriverCard({
   return (
     <div
       className={`bg-bg rounded-lg border p-4 transition-all shadow-sm ${
-        driver.active ? "border-border-light" : "border-border-light/40 opacity-55"
+        isEditing
+          ? "border-primary ring-1 ring-primary/20"
+          : driver.active
+            ? "border-border-light"
+            : "border-border-light/50 bg-fill-tint/40"
       }`}
     >
       {isEditing ? (
@@ -203,7 +207,7 @@ export default function DriverCard({
                 <span className={`w-2 h-2 rounded-full shrink-0 ${
                   driver.active ? "bg-semantic-green" : "bg-text-muted"
                 }`} />
-                <span className="text-sm font-semibold text-text-primary">
+                <span className={`text-sm font-semibold ${driver.active ? "text-text-primary" : "text-text-muted"}`}>
                   {driver.name}
                 </span>
                 <span className="text-xs text-primary font-medium">

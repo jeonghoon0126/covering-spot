@@ -61,6 +61,7 @@ export function SearchFilters({
           <input
             type="date"
             value={dateFrom}
+            max={dateTo || undefined}
             onChange={(e) => onDateChange("from", e.target.value)}
             className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
@@ -68,17 +69,18 @@ export function SearchFilters({
           <input
             type="date"
             value={dateTo}
+            min={dateFrom || undefined}
             onChange={(e) => onDateChange("to", e.target.value)}
             className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={onResetDates}
-              className="shrink-0 text-xs text-semantic-red"
-            >
-              초기화
-            </button>
-          )}
+          <button
+            onClick={onResetDates}
+            className={`shrink-0 text-xs text-semantic-red transition-opacity ${
+              dateFrom || dateTo ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            초기화
+          </button>
         </div>
       )}
     </div>
