@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -14,6 +14,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
+  const [googleFailed, setGoogleFailed] = useState(false);
+  const googleReadyRef = useRef(false);
 
   const handleGoogleResponse = useCallback(
     async (credential: string) => {
@@ -55,6 +57,7 @@ export default function AdminLoginPage() {
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
+    script.onerror = () => setGoogleFailed(true);
     script.onload = () => {
       const google = (window as unknown as Record<string, unknown>).google as {
         accounts: {
@@ -65,7 +68,10 @@ export default function AdminLoginPage() {
         };
       } | undefined;
 
-      if (!google) return;
+      if (!google) {
+        setGoogleFailed(true);
+        return;
+      }
 
       google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -86,8 +92,16 @@ export default function AdminLoginPage() {
           width: 320,
           text: "signin_with",
         });
+        googleReadyRef.current = true;
         setGoogleReady(true);
+      } else {
+        setGoogleFailed(true);
       }
+
+      // 3초 후에도 버튼이 렌더되지 않으면 폴백 (origin 미허용 등)
+      setTimeout(() => {
+        if (!googleReadyRef.current) setGoogleFailed(true);
+      }, 3000);
     };
     document.head.appendChild(script);
     return () => {
@@ -130,17 +144,19 @@ export default function AdminLoginPage() {
           <p className="text-sm text-text-sub text-center mb-8">관리자 로그인</p>
 
           {/* Google 로그인 */}
-          {GOOGLE_CLIENT_ID && (
+          {GOOGLE_CLIENT_ID && !googleFailed && (
             <>
               <div id="google-signin-btn" className={`flex justify-center ${googleReady ? "" : "min-h-[44px]"}`} />
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border-light" />
+              {googleReady && (
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border-light" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-bg px-3 text-text-muted">또는</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-bg px-3 text-text-muted">또는</span>
-                </div>
-              </div>
+              )}
             </>
           )}
 
@@ -150,7 +166,7 @@ export default function AdminLoginPage() {
               placeholder="비밀번호"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus={!GOOGLE_CLIENT_ID}
+              autoFocus={!GOOGLE_CLIENT_ID || googleFailed}
               error={!!error}
               helperText={error || undefined}
             />
