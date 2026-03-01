@@ -49,6 +49,12 @@ export interface DriverListTabProps {
   onCancelEdit: () => void;
   onStartEdit: (driver: Driver) => void;
   onToggleActive: (driver: Driver) => void;
+
+  // 월간 통계
+  statsData: { driverId: string; driverName: string; vehicleType: string; active: boolean; bookingCount: number; totalLoadingCube: number; avgLoadingCube: number }[];
+  statsMonth: string;
+  setStatsMonth: (m: string) => void;
+  statsLoading: boolean;
 }
 
 export default function DriverListTab({
@@ -88,11 +94,16 @@ export default function DriverListTab({
   onCancelEdit,
   onStartEdit,
   onToggleActive,
+  statsData,
+  statsMonth,
+  setStatsMonth,
+  statsLoading,
 }: DriverListTabProps) {
-  const TABS: { key: FilterTab; label: string; count: number }[] = [
+  const TABS: { key: FilterTab; label: string; count?: number }[] = [
     { key: "all", label: "전체", count: allDrivers.length },
     { key: "active", label: "활성", count: activeCount },
     { key: "inactive", label: "비활성", count: inactiveCount },
+    { key: "stats", label: "월간 통계" },
   ];
 
   return (
@@ -110,10 +121,12 @@ export default function DriverListTab({
                   : "bg-bg text-text-sub border border-border-light"
               }`}
             >
-              {tab.label}{" "}
-              <span className={filterTab === tab.key ? "text-white/70" : "text-text-muted"}>
-                {tab.count}
-              </span>
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={`ml-1 ${filterTab === tab.key ? "text-white/70" : "text-text-muted"}`}>
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -126,10 +139,62 @@ export default function DriverListTab({
       </div>
 
       {/* 기사 추가 인라인 폼 */}
-      {showAddForm && <DriverAddForm {...addFormProps} />}
+      {showAddForm && filterTab !== "stats" && <DriverAddForm {...addFormProps} />}
+
+      {/* 월간 통계 탭 */}
+      {filterTab === "stats" && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <label className="text-sm text-text-sub font-medium">월 선택</label>
+            <input
+              type="month"
+              value={statsMonth}
+              onChange={(e) => setStatsMonth(e.target.value)}
+              className="text-sm border border-border-light rounded-md px-2 py-1 bg-bg text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          {statsLoading ? (
+            <div className="text-center py-8 text-text-muted text-sm">불러오는 중...</div>
+          ) : statsData.length === 0 ? (
+            <div className="text-center py-8 text-text-muted text-sm">통계 데이터가 없습니다</div>
+          ) : (
+            <div className="rounded-[--radius-md] border border-border-light overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-bg-warm border-b border-border-light">
+                    <th className="text-left px-3 py-2 font-semibold text-text-sub text-xs">기사</th>
+                    <th className="text-center px-3 py-2 font-semibold text-text-sub text-xs">차량</th>
+                    <th className="text-right px-3 py-2 font-semibold text-text-sub text-xs">건수</th>
+                    <th className="text-right px-3 py-2 font-semibold text-text-sub text-xs">총 적재량</th>
+                    <th className="text-right px-3 py-2 font-semibold text-text-sub text-xs">평균</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statsData.map((s) => (
+                    <tr key={s.driverId} className="border-b border-border-light/50 last:border-0 hover:bg-bg-warm/50">
+                      <td className="px-3 py-2.5">
+                        <span className={s.active ? "text-text-primary font-medium" : "text-text-muted"}>
+                          {s.driverName}
+                        </span>
+                        {!s.active && (
+                          <span className="ml-1.5 text-[10px] text-text-muted bg-fill-tint px-1 py-0.5 rounded">비활성</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs text-text-sub">{s.vehicleType}</td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-text-primary">{s.bookingCount}</td>
+                      <td className="px-3 py-2.5 text-right text-text-sub">{s.totalLoadingCube.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right text-text-muted text-xs">{s.avgLoadingCube.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 기사 목록 */}
-      {loading ? (
+      {filterTab !== "stats" && (loading ? (
         <div className="text-center py-12 text-text-muted text-sm">불러오는 중...</div>
       ) : filteredDrivers.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">
@@ -170,7 +235,7 @@ export default function DriverListTab({
             />
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }

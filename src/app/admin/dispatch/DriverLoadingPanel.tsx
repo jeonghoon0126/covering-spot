@@ -139,6 +139,11 @@ export default function DriverLoadingPanel({
             <rect x="2" y="9.5" width="4" height="1.5" rx="0.75" fill="currentColor"/>
           </svg>
           기사 현황
+          {driverStats.some(s => s.totalLoadingCube > s.vehicleCapacity) && (
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-semantic-red text-white text-[10px] font-bold">
+              {driverStats.filter(s => s.totalLoadingCube > s.vehicleCapacity).length}
+            </span>
+          )}
         </button>
       )}
     </div>

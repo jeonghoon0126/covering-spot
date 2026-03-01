@@ -50,6 +50,11 @@ export default function AdminDriverListPage() {
 
   const [saving, setSaving] = useState(false);
 
+  // 월간 통계
+  const [statsData, setStatsData] = useState<{ driverId: string; driverName: string; vehicleType: string; active: boolean; bookingCount: number; totalLoadingCube: number; avgLoadingCube: number }[]>([]);
+  const [statsMonth, setStatsMonth] = useState(() => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 7));
+  const [statsLoading, setStatsLoading] = useState(false);
+
   // 토스트
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,6 +108,19 @@ export default function AdminDriverListPage() {
   useEffect(() => {
     fetchDrivers();
   }, [fetchDrivers]);
+
+  // 월간 통계: filterTab === "stats"이고 token 있을 때만 fetch
+  useEffect(() => {
+    if (filterTab !== "stats" || !token || !statsMonth) return;
+    setStatsLoading(true);
+    fetch(`/api/admin/drivers/stats?month=${statsMonth}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => setStatsData(data.stats || []))
+      .catch(() => {})
+      .finally(() => setStatsLoading(false));
+  }, [filterTab, token, statsMonth]);
 
   /* ── 기사 추가 ── */
 
@@ -327,6 +345,10 @@ export default function AdminDriverListPage() {
           onCancelEdit={() => setEditingId(null)}
           onStartEdit={handleStartEdit}
           onToggleActive={handleToggleActive}
+          statsData={statsData}
+          statsMonth={statsMonth}
+          setStatsMonth={setStatsMonth}
+          statsLoading={statsLoading}
         />
       </div>
 

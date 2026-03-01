@@ -47,7 +47,13 @@ export function useDispatchData(options?: UseDispatchDataOptions): UseDispatchDa
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(getToday());
+  const [selectedDate, setSelectedDateRaw] = useState<string>(
+    () => safeSessionGet("dispatch_last_date") || getToday()
+  );
+  const setSelectedDate = useCallback((date: string) => {
+    safeSessionSet("dispatch_last_date", date);
+    setSelectedDateRaw(date);
+  }, []);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [driverStats, setDriverStats] = useState<DriverStats[]>([]);

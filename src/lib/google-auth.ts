@@ -51,3 +51,19 @@ export async function getOrCreateAdmin(
 
   return existing;
 }
+
+export async function getAdmins(): Promise<{ id: string; email: string; name: string; role: string }[]> {
+  const { data } = await supabase
+    .from("admin_users")
+    .select("id, email, name, role")
+    .order("created_at");
+  return data || [];
+}
+
+export async function updateAdminRole(id: string, role: "admin" | "operator"): Promise<boolean> {
+  const { error } = await supabase
+    .from("admin_users")
+    .update({ role })
+    .eq("id", id);
+  return !error;
+}

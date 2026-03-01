@@ -210,6 +210,12 @@ export default function DriverCard({
                 <span className={`text-sm font-semibold ${driver.active ? "text-text-primary" : "text-text-muted"}`}>
                   {driver.name}
                 </span>
+                {(!driver.phone || !driver.licensePlate) && (
+                  <span
+                    title={[!driver.phone && "전화번호", !driver.licensePlate && "차량번호"].filter(Boolean).join(", ") + " 미입력"}
+                    className="text-[11px] text-semantic-yellow cursor-help"
+                  >⚠</span>
+                )}
                 <span className="text-xs text-primary font-medium">
                   {driver.vehicleType || "1톤"}
                 </span>

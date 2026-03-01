@@ -43,4 +43,4 @@ export interface Assignment {
   vehicle?: Vehicle;
 }
 
-export type FilterTab = "all" | "active" | "inactive";
+export type FilterTab = "all" | "active" | "inactive" | "stats";

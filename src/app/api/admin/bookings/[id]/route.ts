@@ -302,3 +302,31 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    if (!validateToken(req)) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    const { role } = getAdminFromToken(req);
+    if (!hasPermission(role, "delete")) {
+      return NextResponse.json({ error: "삭제 권한이 없습니다" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const { error } = await supabase.from("bookings").delete().eq("id", id);
+    if (error) {
+      console.error("[admin/bookings/[id]/DELETE]", error);
+      return NextResponse.json({ error: "삭제 실패" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("[admin/bookings/[id]/DELETE]", e);
+    return NextResponse.json({ error: "삭제 실패" }, { status: 500 });
+  }
+}

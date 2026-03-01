@@ -21,6 +21,7 @@ export interface DispatchHeaderProps {
   onFilterSlotChange: (value: string) => void;
   onNavigateCalendar: () => void;
   onNavigateDriver: () => void;
+  onOpenReassign: () => void;
 }
 
 /* ── 헤더 (날짜, 필터, 범례) ── */
@@ -39,6 +40,7 @@ export default function DispatchHeader({
   onFilterSlotChange,
   onNavigateCalendar,
   onNavigateDriver,
+  onOpenReassign,
 }: DispatchHeaderProps) {
   return (
     <div className="sticky top-0 z-20 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
@@ -53,6 +55,12 @@ export default function DispatchHeader({
               className="text-xs font-medium text-text-sub hover:text-primary transition-colors shrink-0 hidden sm:block"
             >
               기사님 관리
+            </button>
+            <button
+              onClick={onOpenReassign}
+              className="text-xs font-medium text-semantic-orange hover:text-semantic-orange/80 transition-colors shrink-0 hidden sm:block border border-semantic-orange/30 px-2 py-0.5 rounded-md hover:bg-semantic-orange-tint"
+            >
+              재배차 도구
             </button>
           </div>
 

@@ -31,6 +31,9 @@ export default function AdminLoginPage() {
           if (data.admin?.name) {
             safeSessionSet("admin_name", data.admin.name);
           }
+          if (data.admin?.role) {
+            safeSessionSet("admin_role", data.admin.role);
+          }
           const returnUrl = safeSessionGet("admin_return_url");
           safeSessionRemove("admin_return_url");
           router.push(returnUrl || "/admin/dashboard");

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getBookings, getDrivers, updateBooking, getBookingPhonesByIds } from "@/lib/db";
-import { validateToken } from "@/app/api/admin/auth/route";
+import { validateToken, getAdminFromToken } from "@/app/api/admin/auth/route";
+import { hasPermission } from "@/lib/admin-roles";
 import { sendStatusSms } from "@/lib/sms-notify";
 import type { Booking } from "@/types/booking";
 
@@ -88,6 +89,11 @@ export async function POST(req: NextRequest) {
   try {
     if (!validateToken(req)) {
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    const { role } = getAdminFromToken(req);
+    if (!hasPermission(role, "status_change")) {
+      return NextResponse.json({ error: "배차 권한이 없습니다" }, { status: 403 });
     }
 
     const body = await req.json();

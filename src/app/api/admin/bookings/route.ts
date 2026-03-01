@@ -144,12 +144,11 @@ export async function POST(req: NextRequest) {
 
     // Geocoding: createBooking 전에 처리 (자동배차 lat/lng 누락 버그 방지)
     const coords = await geocodeAddress(booking.address).catch(() => null);
-    if (coords) {
-      booking.latitude = coords.lat;
-      booking.longitude = coords.lng;
-    }
+    const bookingWithCoords: Booking = coords
+      ? { ...booking, latitude: coords.lat, longitude: coords.lng }
+      : booking;
 
-    const created = await createBooking(booking);
+    const created = await createBooking(bookingWithCoords);
 
     // SMS 접수 알림 (fire-and-forget)
     sendStatusSms(created.phone, "received", created.id).catch((err) => console.error("[SMS] 수동접수 알림 실패:", err?.message));

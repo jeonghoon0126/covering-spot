@@ -9,11 +9,14 @@ import BookingListPanel from "./BookingListPanel";
 import MapPanel from "./MapPanel";
 import UnloadingModal from "./UnloadingModal";
 import MobileBottomSheet from "./MobileBottomSheet";
+import ReassignModal from "./ReassignModal";
+import { useState } from "react";
 
 /* ── 메인 페이지 ── */
 
 export default function AdminDispatchPage() {
   const s = useDispatchState();
+  const [showReassignModal, setShowReassignModal] = useState(false);
 
   if (!s.token) return null;
 
@@ -37,6 +40,7 @@ export default function AdminDispatchPage() {
         onFilterSlotChange={(v) => { s.setFilterSlot(v); s.setCheckedIds(new Set()); }}
         onNavigateCalendar={() => s.router.push("/admin/calendar")}
         onNavigateDriver={() => s.router.push("/admin/driver")}
+        onOpenReassign={() => setShowReassignModal(true)}
       />
 
       {s.loading ? (
@@ -142,6 +146,16 @@ export default function AdminDispatchPage() {
               autoMode={s.autoMode}
             />
           </div>
+
+          {/* ── 재배차 도구 모달 ── */}
+          {showReassignModal && (
+            <ReassignModal
+              drivers={s.drivers}
+              token={s.token}
+              onClose={() => setShowReassignModal(false)}
+              onSuccess={() => s.fetchData()}
+            />
+          )}
 
           {/* ── 하차지 관리 모달 ── */}
           {s.showUnloadingModal && (

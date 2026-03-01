@@ -74,19 +74,20 @@ export function useDashboardState() {
     setToken(t);
   }, [router]);
 
-  // 알림 배지 카운트 (30초 간격 폴링)
+  // 알림 배지 카운트 — SSE 실시간 스트리밍 (30초 폴링 대체)
   useEffect(() => {
     if (!token) return;
-    const fetchCount = () =>
-      fetch("/api/admin/notifications?unreadOnly=true", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then((d) => setUnreadCount(d.unreadCount ?? 0))
-        .catch(() => {});
-    fetchCount();
-    const interval = setInterval(fetchCount, 30_000);
-    return () => clearInterval(interval);
+    let es: EventSource;
+    function connect() {
+      es = new EventSource(`/api/admin/notifications/stream?token=${encodeURIComponent(token)}`);
+      es.onmessage = (e) => {
+        try { setUnreadCount(JSON.parse(e.data).unreadCount ?? 0); } catch { /* ignore */ }
+      };
+      // 서버가 55초 후 연결 종료 → 브라우저가 자동 재연결
+      es.onerror = () => es.close();
+    }
+    connect();
+    return () => es?.close();
   }, [token]);
 
   // 검색어 디바운스 (400ms)

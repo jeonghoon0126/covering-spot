@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import { AdminLogo } from "@/components/ui/AdminLogo";
-import { safeSessionRemove } from "@/lib/storage";
+import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
 
 interface DashboardHeaderProps {
   unreadCount: number;
@@ -19,6 +19,7 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
   const router = useRouter();
   const { experimentName, variant } = useExperiment();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isAdmin = safeSessionGet("admin_role") === "admin";
 
   const closeMenu = () => setMobileMenuOpen(false);
 
@@ -85,6 +86,19 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
             </svg>
             기사님
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => router.push("/admin/admins")}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-text-sub hover:text-text-primary hover:bg-fill-tint transition-colors"
+            >
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M2 12.5C2 10.3 4.2 8.5 7 8.5C9.8 8.5 12 10.3 12 12.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M9.5 6.5L11 8L13 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              관리자 설정
+            </button>
+          )}
         </nav>
 
         {/* 우측 유틸리티 */}
@@ -228,6 +242,19 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
               </svg>
               기사님
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => { router.push("/admin/admins"); closeMenu(); }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-text-primary hover:bg-fill-tint transition-colors text-left"
+              >
+                <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M2 12.5C2 10.3 4.2 8.5 7 8.5C9.8 8.5 12 10.3 12 12.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  <path d="M9.5 6.5L11 8L13 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                관리자 설정
+              </button>
+            )}
           </nav>
           <div className="px-4 py-2 border-t border-border-light flex items-center gap-1">
             <button

@@ -64,6 +64,30 @@ function formatShortDate(dateStr: string): string {
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
+function addMonths(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
+}
+
+function buildMonthDays(dateStr: string): (string | null)[] {
+  const d = new Date(dateStr + "T00:00:00");
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
+  const days: (string | null)[] = Array(offset).fill(null);
+  for (let day = 1; day <= lastDate; day++) {
+    days.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+  }
+  while (days.length < 42) days.push(null);
+  return days;
+}
+
 /* ── 메인 페이지 ── */
 
 export default function AdminCalendarPage() {
@@ -73,12 +97,15 @@ export default function AdminCalendarPage() {
   const [token, setToken] = useState("");
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [slotInfo, setSlotInfo] = useState<Record<string, { available: boolean; count: number }>>({});
-  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
+  const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">("daily");
   const [weeklyBookings, setWeeklyBookings] = useState<Record<string, Booking[]>>({});
   const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [monthlyBookings, setMonthlyBookings] = useState<Record<string, Booking[]>>({});
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
   const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
+  const monthDays = useMemo(() => buildMonthDays(selectedDate), [selectedDate]);
 
   /* ── 인증 ── */
 
@@ -163,6 +190,33 @@ export default function AdminCalendarPage() {
     });
   }, [viewMode, weekStart, token, weekDays]);
 
+  // 월간뷰: 해당 월 예약 일괄 조회
+  useEffect(() => {
+    if (viewMode !== "monthly" || !token) return;
+    const d = new Date(selectedDate + "T00:00:00");
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const dateFrom = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const dateTo = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDate).padStart(2, "0")}`;
+    setMonthlyLoading(true);
+    fetch(`/api/admin/bookings?dateFrom=${dateFrom}&dateTo=${dateTo}&status=all&limit=1000`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const map: Record<string, Booking[]> = {};
+        for (const b of (data.bookings || []) as Booking[]) {
+          if (b.status === "cancelled" || b.status === "rejected") continue;
+          if (!map[b.date]) map[b.date] = [];
+          map[b.date].push(b);
+        }
+        setMonthlyBookings(map);
+      })
+      .catch(() => {})
+      .finally(() => setMonthlyLoading(false));
+  }, [viewMode, selectedDate, token]);
+
   /* ── 캘린더 계산 ── */
 
   // 선택한 날짜의 예약만 필터 + 취소/수거불가 제외
@@ -215,7 +269,7 @@ export default function AdminCalendarPage() {
   }, [dayBookings]);
 
   const isToday = selectedDate === getToday();
-  const headerTitle = viewMode === "daily" ? "일간 캘린더" : "주간 캘린더";
+  const headerTitle = viewMode === "daily" ? "일간 캘린더" : viewMode === "weekly" ? "주간 캘린더" : "월간 캘린더";
 
   return (
     <>
@@ -246,6 +300,16 @@ export default function AdminCalendarPage() {
                 }`}
               >
                 주간
+              </button>
+              <button
+                onClick={() => setViewMode("monthly")}
+                className={`text-xs px-3 py-1 font-medium transition-colors ${
+                  viewMode === "monthly"
+                    ? "bg-primary text-white"
+                    : "bg-bg text-text-sub hover:bg-bg-warm"
+                }`}
+              >
+                월간
               </button>
             </div>
           </div>
@@ -287,7 +351,7 @@ export default function AdminCalendarPage() {
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() =>
-                  setSelectedDate(addDays(selectedDate, viewMode === "daily" ? -1 : -7))
+                  setSelectedDate(viewMode === "monthly" ? addMonths(selectedDate, -1) : addDays(selectedDate, viewMode === "daily" ? -1 : -7))
                 }
                 className="p-2 rounded-full hover:bg-bg transition-colors"
               >
@@ -308,7 +372,7 @@ export default function AdminCalendarPage() {
                       ))}
                     </p>
                   </>
-                ) : (
+                ) : viewMode === "weekly" ? (
                   <>
                     <p className="text-base font-bold">
                       {formatShortDate(weekDays[0])} ~ {formatShortDate(weekDays[6])}
@@ -317,11 +381,21 @@ export default function AdminCalendarPage() {
                       총 {Object.values(weeklyBookings).reduce((sum, arr) => sum + arr.length, 0)}건
                     </p>
                   </>
+                ) : (
+                  <>
+                    <p className="text-base font-bold">
+                      {new Date(selectedDate + "T00:00:00").getFullYear()}년{" "}
+                      {new Date(selectedDate + "T00:00:00").getMonth() + 1}월
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      총 {Object.values(monthlyBookings).reduce((sum, arr) => sum + arr.length, 0)}건
+                    </p>
+                  </>
                 )}
               </div>
               <button
                 onClick={() =>
-                  setSelectedDate(addDays(selectedDate, viewMode === "daily" ? 1 : 7))
+                  setSelectedDate(viewMode === "monthly" ? addMonths(selectedDate, 1) : addDays(selectedDate, viewMode === "daily" ? 1 : 7))
                 }
                 className="p-2 rounded-full hover:bg-bg transition-colors"
               >
@@ -469,6 +543,81 @@ export default function AdminCalendarPage() {
               </div>
             )}
 
+          </>
+        )}
+
+        {/* ── 월간 뷰 ── */}
+        {viewMode === "monthly" && (
+          <>
+            {monthlyLoading ? (
+              <div className="animate-pulse">
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {WEEKDAY_LABELS.map((d) => (
+                    <div key={d} className="h-5 bg-bg-warm3 rounded" />
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 42 }).map((_, i) => (
+                    <div key={i} className="h-16 bg-bg-warm3 rounded-md" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 mb-1">
+                  {WEEKDAY_LABELS.map((d) => (
+                    <div key={d} className="text-center text-xs font-medium text-text-muted py-1">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={`empty-${idx}`} />;
+                    const dayB = monthlyBookings[day] || [];
+                    const amCount = dayB.filter((b) => b.timeSlot?.includes("오전")).length;
+                    const pmCount = dayB.filter((b) => b.timeSlot?.includes("오후")).length;
+                    const eveCount = dayB.filter((b) => b.timeSlot?.includes("저녁")).length;
+                    const unscheduled = dayB.length - amCount - pmCount - eveCount;
+                    const isCurrentMonth = day.startsWith(selectedDate.slice(0, 7));
+                    const isTodayCell = day === getToday();
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => { setSelectedDate(day); setViewMode("daily"); }}
+                        className={`rounded-md p-1.5 text-left transition-colors min-h-[64px] flex flex-col ${
+                          isTodayCell ? "ring-2 ring-primary bg-primary-tint/20" : `border border-border-light/50 ${isCurrentMonth ? "bg-bg hover:bg-bg-warm" : "bg-bg-warm hover:bg-bg-warm2"}`
+                        }`}
+                      >
+                        <p className={`text-xs font-semibold mb-0.5 ${
+                          isTodayCell ? "text-primary" : isCurrentMonth ? "text-text-primary" : "text-text-muted"
+                        }`}>
+                          {parseInt(day.slice(8), 10)}
+                        </p>
+                        {amCount > 0 && (
+                          <span className="text-[9px] font-medium text-primary bg-primary-tint px-1 py-0.5 rounded block leading-tight mb-0.5">
+                            오전 {amCount}
+                          </span>
+                        )}
+                        {pmCount > 0 && (
+                          <span className="text-[9px] font-medium text-semantic-orange bg-semantic-orange-tint px-1 py-0.5 rounded block leading-tight mb-0.5">
+                            오후 {pmCount}
+                          </span>
+                        )}
+                        {eveCount > 0 && (
+                          <span className="text-[9px] font-medium text-text-sub bg-bg-warm3 px-1 py-0.5 rounded block leading-tight mb-0.5">
+                            저녁 {eveCount}
+                          </span>
+                        )}
+                        {unscheduled > 0 && (
+                          <span className="text-[9px] text-text-muted px-1 py-0.5 block leading-tight">
+                            미정 {unscheduled}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
 

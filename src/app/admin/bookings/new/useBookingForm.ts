@@ -115,10 +115,6 @@ export function useBookingForm(): UseBookingFormReturn {
 
     if (!form.address.trim()) {
       next.address = "주소를 입력해주세요";
-    } else if (!form.area) {
-      if (!confirm("서비스 지역을 감지하지 못했습니다.\n지역 없이 예약을 생성하시겠습니까?")) {
-        return false;
-      }
     }
 
     setErrors(next);
@@ -165,7 +161,6 @@ export function useBookingForm(): UseBookingFormReturn {
           needLadder: form.needLadder,
           ladderType: form.ladderType,
           ladderHours: form.ladderHours,
-          ladderPrice: 0,
         }),
       });
 
