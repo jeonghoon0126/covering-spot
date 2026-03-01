@@ -58,7 +58,7 @@ export default function AdminDispatchPage() {
           {/* ── 모바일 탭 전환 ── */}
           <MobileTabBar
             mobileTab={s.mobileTab}
-            onSelectTab={(tab) => { s.setMobileTab(tab); s.setMobileDetail(false); }}
+            onSelectTab={(tab) => { s.setMobileTab(tab); if (tab === "map") s.setMobileDetail(false); }}
           />
 
           {/* ── 데스크톱: 좌우 분할 / 모바일: 탭 전환 ── */}

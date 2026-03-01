@@ -268,7 +268,7 @@ const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
       bounds.extend(position);
     });
 
-    if (!disableAutoFit) {
+    if (!disableAutoFit && !selectedIdRef.current) {
       if (markers.length === 1) {
         mapRef.current.setCenter(
           new kakao.maps.LatLng(markers[0].lat, markers[0].lng),

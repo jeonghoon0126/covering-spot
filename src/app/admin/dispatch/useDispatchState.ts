@@ -434,11 +434,11 @@ export function useDispatchState() {
       } else {
         const data = await res.json().catch(() => ({}));
         showToast(data.error || "배차 실패");
-        fetchData(); // 롤백
+        fetchData({ silent: true }); // 롤백
       }
     } catch {
       showToast("네트워크 오류");
-      fetchData();
+      fetchData({ silent: true });
     } finally {
       setDispatching(false);
     }
@@ -517,11 +517,11 @@ export function useDispatchState() {
       } else {
         const data = await res.json().catch(() => ({}));
         showToast(data.error || "배차 실패");
-        fetchData(); // 롤백
+        fetchData({ silent: true }); // 롤백
       }
     } catch {
       showToast("네트워크 오류");
-      fetchData();
+      fetchData({ silent: true });
     } finally {
       setDispatching(false);
     }
@@ -564,11 +564,11 @@ export function useDispatchState() {
       } else {
         const data = await res.json().catch(() => ({}));
         showToast(data.error || "배차 해제 실패");
-        fetchData(); // 롤백
+        fetchData({ silent: true }); // 롤백
       }
     } catch {
       showToast("네트워크 오류");
-      fetchData();
+      fetchData({ silent: true });
     } finally {
       setDispatching(false);
     }
