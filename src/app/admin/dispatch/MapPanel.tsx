@@ -112,7 +112,7 @@ export default function MapPanel({
 
       {/* 지도 위 선택된 주문 오버레이 — 데스크톱 */}
       {selectedBooking && (
-        <div className="hidden lg:block absolute bottom-4 right-4 w-[320px] bg-bg rounded-xl border border-border-light shadow-lg overflow-hidden">
+        <div className="hidden lg:block absolute bottom-4 right-4 z-10 w-[320px] bg-bg rounded-xl border border-border-light shadow-lg overflow-hidden">
           <OverlayCard
             booking={selectedBooking}
             driverColor={selectedBooking.driverId ? driverColorMap.get(selectedBooking.driverId) : undefined}
