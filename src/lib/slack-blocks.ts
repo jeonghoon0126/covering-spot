@@ -55,13 +55,17 @@ export function actionButtonBlock(
 export function bookingContextBlock(
   b: Pick<
     Booking,
-    "date" | "timeSlot" | "area" | "customerName" | "phone" | "address" | "addressDetail"
+    "date" | "timeSlot" | "area" | "customerName" | "phone" | "address" | "addressDetail" | "preferredSlots"
   >,
 ) {
-  return fieldsBlock([
+  const fields: { label: string; value: string }[] = [
     { label: "날짜", value: `${b.date} (${getDayName(b.date)}) ${b.timeSlot}` },
     { label: "지역", value: b.area },
     { label: "고객", value: `${b.customerName} (${b.phone})` },
     { label: "주소", value: `${b.address} ${b.addressDetail}` },
-  ]);
+  ];
+  if (b.preferredSlots && b.preferredSlots.length > 1) {
+    fields.push({ label: "선호시간대", value: b.preferredSlots.join(", ") });
+  }
+  return fieldsBlock(fields);
 }

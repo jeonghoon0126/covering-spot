@@ -153,7 +153,14 @@ export function QuoteSection({
           수거 시간 확정
         </h3>
         {/* 고객 희망 시간대 표시 */}
-        {booking.timeSlot && (
+        {booking.preferredSlots && booking.preferredSlots.length > 1 ? (
+          <p className="text-xs text-text-muted mb-2">
+            고객 희망:{" "}
+            <span className="font-semibold text-text-primary">
+              {booking.preferredSlots.join(", ")}
+            </span>
+          </p>
+        ) : booking.timeSlot && (
           <p className="text-xs text-text-muted mb-2">
             고객 희망:{" "}
             <span className="font-semibold text-text-primary">
