@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { safeSessionGet } from "@/lib/storage";
+import { safeLocalGet } from "@/lib/storage";
 import { AdminLogo } from "@/components/ui/AdminLogo";
 
 /* ── 타입 ── */
@@ -70,7 +70,7 @@ export default function VehiclesPage() {
   const [unavailableLoading, setUnavailableLoading] = useState(false);
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) { router.replace("/admin"); return; }
     setToken(t);
   }, [router]);

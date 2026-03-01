@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionGet, safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import type { Booking } from "@/types/booking";
 import { PAGE_SIZE, type SheetImportRow } from "./dashboard-constants";
 
@@ -66,7 +66,7 @@ export function useDashboardState() {
   }, []);
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       router.push("/admin");
       return;
@@ -134,7 +134,7 @@ export function useDashboardState() {
       if (signal.aborted) return;
 
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

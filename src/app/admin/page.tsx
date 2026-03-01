@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionGet, safeSessionRemove, safeLocalSet } from "@/lib/storage";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -29,12 +29,12 @@ export default function AdminLoginPage() {
         });
         const data = await res.json();
         if (res.ok && data.token) {
-          safeSessionSet("admin_token", data.token);
+          safeLocalSet("admin_token", data.token);
           if (data.admin?.name) {
-            safeSessionSet("admin_name", data.admin.name);
+            safeLocalSet("admin_name", data.admin.name);
           }
           if (data.admin?.role) {
-            safeSessionSet("admin_role", data.admin.role);
+            safeLocalSet("admin_role", data.admin.role);
           }
           const returnUrl = safeSessionGet("admin_return_url");
           safeSessionRemove("admin_return_url");
@@ -122,7 +122,7 @@ export default function AdminLoginPage() {
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        safeSessionSet("admin_token", data.token);
+        safeLocalSet("admin_token", data.token);
         const returnUrl = safeSessionGet("admin_return_url");
         safeSessionRemove("admin_return_url");
         router.push(returnUrl || "/admin/dashboard");

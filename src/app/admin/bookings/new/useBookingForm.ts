@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { detectAreaFromAddress } from "@/data/spot-areas";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import type { BookingItem } from "@/types/booking";
 
 export interface FormData {
@@ -83,7 +83,7 @@ export function useBookingForm(): UseBookingFormReturn {
   });
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
@@ -165,7 +165,7 @@ export function useBookingForm(): UseBookingFormReturn {
       });
 
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

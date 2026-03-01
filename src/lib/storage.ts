@@ -11,3 +11,15 @@ export function safeSessionSet(key: string, value: string): void {
 export function safeSessionRemove(key: string): void {
   try { sessionStorage.removeItem(key); } catch { /* 무시 */ }
 }
+
+export function safeLocalGet(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+export function safeLocalSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* 무시 */ }
+}
+
+export function safeLocalRemove(key: string): void {
+  try { localStorage.removeItem(key); } catch { /* 무시 */ }
+}

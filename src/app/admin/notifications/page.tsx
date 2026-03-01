@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AdminLogo } from "@/components/ui/AdminLogo";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { safeSessionGet } from "@/lib/storage";
+import { safeLocalGet } from "@/lib/storage";
 
 interface Notification {
   id: string;
@@ -40,7 +40,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
-    const token = safeSessionGet("admin_token");
+    const token = safeLocalGet("admin_token");
     if (!token) { router.push("/admin"); return; }
     try {
       const res = await fetch("/api/admin/notifications", {
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   async function handleMarkAllRead() {
-    const token = safeSessionGet("admin_token");
+    const token = safeLocalGet("admin_token");
     if (!token) return;
     await fetch("/api/admin/notifications", {
       method: "PUT",
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
 
   function handleClick(n: Notification) {
     if (!n.isRead) {
-      const token = safeSessionGet("admin_token");
+      const token = safeLocalGet("admin_token");
       if (token) {
         fetch("/api/admin/notifications", {
           method: "PATCH",

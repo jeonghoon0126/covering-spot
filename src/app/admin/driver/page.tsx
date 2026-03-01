@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import { VEHICLE_CAPACITY } from "@/lib/constants";
 
 import type { Driver, FilterTab } from "./types";
@@ -73,7 +73,7 @@ export default function AdminDriverListPage() {
   /* ── 인증 ── */
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
@@ -92,7 +92,7 @@ export default function AdminDriverListPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/booking";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import { STATUS_LABELS_SHORT as STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
 import { AdminLogo } from "@/components/ui/AdminLogo";
 
@@ -110,7 +110,7 @@ export default function AdminCalendarPage() {
   /* ── 인증 ── */
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
@@ -129,7 +129,7 @@ export default function AdminCalendarPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

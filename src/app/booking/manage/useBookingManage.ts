@@ -99,10 +99,11 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   const todayKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const today = `${todayKST.getFullYear()}-${String(todayKST.getMonth() + 1).padStart(2, "0")}-${String(todayKST.getDate()).padStart(2, "0")}`;
 
-  /** localStorage에서 bookingToken 가져오기 */
+  /** localStorage 또는 sessionStorage에서 bookingToken 가져오기 (다른 기기 지원) */
   function getBookingToken(): string | null {
     try {
-      return localStorage.getItem("covering_spot_booking_token");
+      return localStorage.getItem("covering_spot_booking_token")
+        || sessionStorage.getItem("covering_spot_booking_token");
     } catch {
       return null;
     }
@@ -137,6 +138,14 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
       const data = await res.json();
       const found = data.bookings || [];
       setBookings(found);
+      // 서버가 발급한 토큰 저장 (다른 기기에서 조회 시 수정/취소 가능하도록)
+      if (data.token) {
+        try {
+          if (!localStorage.getItem("covering_spot_booking_token")) {
+            sessionStorage.setItem("covering_spot_booking_token", data.token);
+          }
+        } catch { /* ignore */ }
+      }
       try { sessionStorage.setItem("covering_manage_phone", phone.trim()); } catch { /* ignore */ }
       track("[EVENT] SpotBookingSearchResult", { found: found.length });
     } catch {
@@ -265,6 +274,8 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "확인 처리 실패");
       }
+    } catch {
+      alert("네트워크 오류");
     } finally {
       setSaving(false);
     }

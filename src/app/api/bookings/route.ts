@@ -63,7 +63,9 @@ export async function GET(req: NextRequest) {
     // 조회는 토큰 없이 허용 (phone + IP·phone별 rate limit으로 열거 공격 방어)
     // 수정(PUT)/삭제(DELETE)는 booking-token 검증 유지
     const bookings = await getBookingsByPhone(phone);
-    return NextResponse.json({ bookings });
+    // 전화번호 인증 성공 시 토큰 발급 (다른 기기에서 조회 후 수정/취소 가능하도록)
+    const token = generateBookingToken(digits);
+    return NextResponse.json({ bookings, token });
   } catch (e) {
     console.error("[bookings/GET]", e);
     return NextResponse.json(

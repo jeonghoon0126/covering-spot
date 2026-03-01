@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { Booking } from "@/types/booking";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import { STATUS_LABELS } from "@/lib/constants";
 import { NEXT_STATUS, EDITABLE_STATUSES } from "./booking-detail-constants";
 import type { AuditLog } from "./booking-detail-constants";
@@ -34,9 +34,9 @@ export function useBookingDetail() {
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
-      safeSessionSet("admin_return_url", window.location.pathname);
+      safeSessionSet("admin_return_url", window.location.pathname + window.location.search);
       router.push("/admin");
       return;
     }
@@ -88,8 +88,8 @@ export function useBookingDetail() {
     })
       .then((r) => {
         if (r.status === 401) {
-          safeSessionRemove("admin_token");
-          safeSessionSet("admin_return_url", window.location.pathname);
+          safeLocalRemove("admin_token");
+          safeSessionSet("admin_return_url", window.location.pathname + window.location.search);
           router.push("/admin");
           return null;
         }

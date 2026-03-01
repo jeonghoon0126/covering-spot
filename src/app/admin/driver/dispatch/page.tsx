@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import type { Booking } from "@/types/booking";
 
 import type { Driver, Vehicle, Assignment, BlockedSlot } from "../types";
@@ -56,7 +56,7 @@ export default function AdminDispatchPage() {
   /* ── 인증 ── */
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
@@ -74,7 +74,7 @@ export default function AdminDispatchPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }
@@ -154,7 +154,7 @@ export default function AdminDispatchPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

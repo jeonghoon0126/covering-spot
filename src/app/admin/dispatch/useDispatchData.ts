@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionSet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionGet, safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import type { Booking, UnloadingPoint } from "@/types/booking";
 import {
   type Driver,
@@ -70,7 +70,7 @@ export function useDispatchData(options?: UseDispatchDataOptions): UseDispatchDa
 
   // 인증
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
+    const t = safeLocalGet("admin_token");
     if (!t) {
       safeSessionSet("admin_return_url", window.location.pathname);
       router.push("/admin");
@@ -99,7 +99,7 @@ export function useDispatchData(options?: UseDispatchDataOptions): UseDispatchDa
       });
       if (controller.signal.aborted) return;
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }

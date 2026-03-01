@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useExperiment } from "@/contexts/ExperimentContext";
 import { AdminLogo } from "@/components/ui/AdminLogo";
-import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
+import { safeLocalGet, safeLocalRemove } from "@/lib/storage";
 
 interface DashboardHeaderProps {
   unreadCount: number;
@@ -19,12 +19,12 @@ export function DashboardHeader({ unreadCount, onSheetImport, onExportCSV, onRef
   const router = useRouter();
   const { experimentName, variant } = useExperiment();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isAdmin = safeSessionGet("admin_role") === "admin";
+  const isAdmin = safeLocalGet("admin_role") === "admin";
 
   const closeMenu = () => setMobileMenuOpen(false);
 
   const handleLogout = () => {
-    safeSessionRemove("admin_token");
+    safeLocalRemove("admin_token");
     router.push("/admin");
   };
 

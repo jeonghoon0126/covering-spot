@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { safeSessionGet, safeSessionRemove } from "@/lib/storage";
+import { safeSessionRemove, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 
 interface AdminUser {
   id: string;
@@ -21,8 +21,8 @@ export default function AdminsPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = safeSessionGet("admin_token");
-    const role = safeSessionGet("admin_role");
+    const t = safeLocalGet("admin_token");
+    const role = safeLocalGet("admin_role");
     if (!t || role !== "admin") {
       safeSessionRemove("admin_return_url");
       router.push("/admin/dashboard");
@@ -53,7 +53,7 @@ export default function AdminsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
-        safeSessionRemove("admin_token");
+        safeLocalRemove("admin_token");
         router.push("/admin");
         return;
       }
