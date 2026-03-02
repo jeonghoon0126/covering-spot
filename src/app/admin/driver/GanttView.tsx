@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { Booking, UnloadingPoint } from "@/types/booking";
 import type { Driver } from "./types";
 
@@ -57,6 +57,23 @@ interface DragState {
   originalTime: string | null;
 }
 
+/* ── 유틸리티 훅 ── */
+
+function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      if (!ref.current || ref.current.contains(event.target as Node)) return;
+      handler();
+    };
+    document.addEventListener("mousedown", listener);
+    document.addEventListener("touchstart", listener);
+    return () => {
+      document.removeEventListener("mousedown", listener);
+      document.removeEventListener("touchstart", listener);
+    };
+  }, [ref, handler]);
+}
+
 /* ── Gantt 유틸 ── */
 
 function timeToHours(timeStr: string): number {
@@ -75,6 +92,17 @@ function pixelOffsetToTime(offsetPx: number, totalWidth: number): string {
   const h = Math.floor(hours);
   const m = hours - h >= 0.5 ? 30 : 0;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function calculateUnloadingTimeInfo(booking: Booking): { time: string; isValid: boolean } {
+  const startTime = booking.confirmedTime || booking.timeSlot;
+  if (!startTime) return { time: "", isValid: false };
+  const duration = booking.confirmedDuration ?? 1;
+  const afterHours = timeToHours(startTime) + duration;
+  if (afterHours >= GANTT_END_HOUR) return { time: "", isValid: false };
+  const h = Math.floor(afterHours);
+  const m = afterHours % 1 >= 0.5 ? 30 : 0;
+  return { time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, isValid: true };
 }
 
 /* ── GanttBlock 컴포넌트 ── */
@@ -101,6 +129,14 @@ function GanttBlock({
   onAddUnloadingStop,
 }: GanttBlockProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(addMenuRef, () => setShowAddMenu(false));
+
+  // isUpdating 시작되면 메뉴 자동 닫기
+  useEffect(() => {
+    if (isUpdating) setShowAddMenu(false);
+  }, [isUpdating]);
 
   const time = booking.confirmedTime || booking.timeSlot;
   if (!time) return null;
@@ -179,7 +215,7 @@ function GanttBlock({
       {/* 하차지 추가 버튼 — 하차지 없고 unloadingPoints 있을 때 hover 시 노출 */}
       {!hasUnloadingStop && hasUnloadingPoints && onAddUnloadingStop && (
         <div className="absolute -right-0.5 top-1/2 -translate-y-1/2 z-[5]">
-          <div className="relative">
+          <div ref={addMenuRef} className="relative">
             <button
               onClick={(e) => { e.stopPropagation(); setShowAddMenu((v) => !v); }}
               disabled={isUpdating}
@@ -376,7 +412,7 @@ export default function GanttView({
         <div
           data-gantt-grid
           ref={driverId === (drivers[0]?.id ?? null) ? gridRef : undefined}
-          className="flex-1 relative overflow-hidden"
+          className="flex-1 relative" // overflow-hidden 제거 → 드롭다운 메뉴 잘림 방지
         >
           {Array.from({ length: GANTT_HOURS - 1 }, (_, i) => i + 1).map((i) => (
             <div
@@ -399,7 +435,7 @@ export default function GanttView({
               booking={b}
               isUnloading={false}
               unloadingPoints={unloadingPoints}
-              isUpdating={updatingUnloadingIds.has(b.id)}
+              isUpdating={updatingUnloadingIds.has(b.id) || updating === b.id}
               onDragStart={handleDragStart}
               onClick={onBookingClick}
               onAddUnloadingStop={onUpdateUnloadingStop ? (bookingId, pointId) => onUpdateUnloadingStop(bookingId, pointId) : undefined}
@@ -409,21 +445,17 @@ export default function GanttView({
           {rowBookings
             .filter((b) => unloadingTargetIds.has(b.id))
             .map((b) => {
-              const time = b.confirmedTime || b.timeSlot;
-              if (!time) return null;
-              const duration = b.confirmedDuration ?? 1;
-              const afterHours = timeToHours(time) + duration;
-              if (afterHours >= GANTT_END_HOUR) return null;
-              const afterTime = `${String(Math.floor(afterHours)).padStart(2, "0")}:${afterHours % 1 >= 0.5 ? "30" : "00"}`;
-              const fakeUnloading = { ...b, confirmedTime: afterTime, confirmedDuration: 0.5 };
+              const { time, isValid } = calculateUnloadingTimeInfo(b);
+              if (!isValid) return null;
+              const fakeUnloading = { ...b, confirmedTime: time, confirmedDuration: 0.5 };
               return (
                 <GanttBlock
                   key={`${b.id}-unloading`}
                   booking={fakeUnloading as Booking}
                   isUnloading={true}
                   isUpdating={updatingUnloadingIds.has(b.id)}
-                  onDragStart={handleDragStart}
-                  onClick={onBookingClick}
+                  onDragStart={() => {}} // 하차지 블록은 드래그 불가
+                  onClick={() => onBookingClick(b.id)}
                   onRemoveUnloadingStop={onUpdateUnloadingStop ? (bookingId) => onUpdateUnloadingStop(bookingId, null) : undefined}
                 />
               );
