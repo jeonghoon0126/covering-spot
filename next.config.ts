@@ -18,10 +18,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: "covering",
-  project: "covering-spot",
-  silent: true,
-  widenClientFileUpload: true,
-  disableLogger: true,
-});
+// SENTRY_AUTH_TOKEN 없으면 소스맵 업로드 스킵 (Vercel 빌드 실패 방지)
+export default process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, {
+      org: "covering",
+      project: "covering-spot",
+      silent: true,
+      widenClientFileUpload: true,
+      disableLogger: true,
+    })
+  : nextConfig;
