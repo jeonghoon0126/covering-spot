@@ -202,6 +202,30 @@ export async function POST(req: NextRequest) {
     merged.unassigned.push(...emptyGroupBookings, ...oversizedUnassigned);
     merged.stats.unassigned += emptyGroupBookings.length + oversizedUnassigned.length;
     merged.stats.totalBookings += emptyGroupBookings.length + oversizedUnassigned.length;
+
+    // 슬롯 그룹 간 carry-over 적재량 보정:
+    // 각 그룹을 독립 실행하면 그룹1 마지막 구간 잔여 적재량이 그룹2 initialLoad로 전달 안 됨.
+    // merge 후 기사별 전체 경로에 대해 insertUnloadingStops 재실행 → 경계 overflow 해소.
+    if (dispatchUnloadingPoints.length > 0) {
+      const bookingMap = new Map(dispatchBookings.map((b) => [b.id, b]));
+      for (const dp of merged.plan) {
+        const driver = dispatchDrivers.find((d) => d.id === dp.driverId);
+        if (!driver) continue;
+        const sortedBookings = [...dp.bookings]
+          .sort((a, b) => a.routeOrder - b.routeOrder)
+          .map((b) => bookingMap.get(b.id))
+          .filter((b): b is DispatchBooking => b !== undefined);
+        if (sortedBookings.length === 0) continue;
+        dp.unloadingStops = insertUnloadingStops(
+          sortedBookings,
+          driver.vehicleCapacity,
+          dispatchUnloadingPoints,
+          driver.initialLoadCube ?? 0,
+        );
+        dp.legs = dp.unloadingStops.length + 1;
+      }
+    }
+
     const result = merged;
 
     // 기사별 ETA 병렬 계산 (실패해도 plan은 반환 — graceful degradation)
