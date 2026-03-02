@@ -89,6 +89,7 @@
 /* ═══ Global ═══ */
 html {
   scroll-behavior: smooth;
+  overflow-x: clip; /* body overflow가 viewport로 전파되지 않도록 — fixed 포지셔닝 보호 */
 }
 
 @media (prefers-reduced-motion: reduce) {

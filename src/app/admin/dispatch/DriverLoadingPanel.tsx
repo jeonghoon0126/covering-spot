@@ -50,7 +50,7 @@ export default function DriverLoadingPanel({
               </svg>
             </button>
           </div>
-          <div className="p-2 space-y-1.5 max-h-[420px] overflow-y-auto">
+          <div className="p-2 space-y-1.5 max-h-[calc(100vh-300px)] overflow-y-auto">
             {driverStats.map((stat) => {
               const pct = getLoadingPercent(stat.totalLoadingCube, stat.vehicleCapacity);
               const isOver = stat.totalLoadingCube > stat.vehicleCapacity;
