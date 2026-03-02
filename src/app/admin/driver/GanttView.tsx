@@ -171,31 +171,31 @@ function GanttBlock({
         {cube > 0 && (
           <span className="text-[9px] text-text-primary font-semibold leading-[1.3]">{cube}m³</span>
         )}
-        
-        {/* 하차지 뱃지 */}
-        {hasUnloadingStop && (
-          <div
-            className="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 bg-[#8A96A8]/20 border border-[#8A96A8]/40 rounded px-1 py-0.5 max-w-[80%]"
-            title={point?.name ?? "하차지"}
-          >
-            <span className="text-[8px] text-[#374151] truncate">
-              {(point?.name ?? "하차지").slice(0, 5)}
-            </span>
-            {onRemoveUnloadingStop && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
-                disabled={isUpdating}
-                className="flex-shrink-0 w-2.5 h-2.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
-                title="하차지 제거"
-              >
-                <svg width="5" height="5" viewBox="0 0 8 8" fill="none">
-                  <path d="M1 1L7 7M1 7L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* 하차지 뱃지 — 블록 외부 아래에 표시 (겹침 방지) */}
+      {hasUnloadingStop && (
+        <div
+          className="absolute top-full left-0 mt-px z-[3] flex items-center gap-0.5 bg-[#8A96A8]/20 border border-[#8A96A8]/40 rounded px-1 py-0.5 whitespace-nowrap"
+          title={point?.name ?? "하차지"}
+        >
+          <span className="text-[8px] text-[#374151]">
+            {(point?.name ?? "하차지").slice(0, 5)}
+          </span>
+          {onRemoveUnloadingStop && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
+              disabled={isUpdating}
+              className="flex-shrink-0 w-2.5 h-2.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
+              title="하차지 제거"
+            >
+              <svg width="5" height="5" viewBox="0 0 8 8" fill="none">
+                <path d="M1 1L7 7M1 7L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 하차지 추가 버튼 — 하차지 없고 unloadingPoints 있을 때 hover 시 노출 */}
       {!hasUnloadingStop && hasUnloadingPoints && onToggleAddUnloadingMenu && (
@@ -311,9 +311,9 @@ export default function GanttView({
     async (e: React.DragEvent, targetDriverId: string | null) => {
       e.preventDefault();
       if (!dragState) return;
-  
+
       const { bookingId, originalDriverId, originalTime } = dragState;
-  
+
       const row = (e.currentTarget as HTMLElement).querySelector("[data-gantt-grid]") as HTMLElement | null;
       let confirmedTime = originalTime;
       if (row) {
@@ -321,40 +321,40 @@ export default function GanttView({
         const offsetX = e.clientX - rect.left;
         confirmedTime = pixelOffsetToTime(offsetX, rect.width);
       }
-  
+
       if (targetDriverId === originalDriverId && confirmedTime === originalTime) {
         setDragState(null);
         setDropTarget(null);
         return;
       }
-  
+
       const originalBooking = localBookings.find(b => b.id === bookingId);
       if (!originalBooking) return;
-  
+
       const targetDriverName = targetDriverId
         ? drivers.find((d) => d.id === targetDriverId)?.name ?? null
         : null;
-  
+
       const updatedBooking: Booking = {
         ...originalBooking,
         driverId: targetDriverId,
         confirmedTime,
       };
-  
-      setLocalBookings(prevBookings => 
+
+      setLocalBookings(prevBookings =>
         prevBookings.map(b => b.id === bookingId ? updatedBooking : b)
       );
       setUpdating(bookingId);
       setDragState(null);
       setDropTarget(null);
-  
+
       try {
         const body: Record<string, unknown> = { confirmedTime };
         if (targetDriverId !== originalDriverId) {
           body.driverId = targetDriverId ?? null;
           body.driverName = targetDriverName;
         }
-  
+
         const res = await fetch(`/api/admin/bookings/${bookingId}`, {
           method: "PUT",
           headers: {
@@ -363,14 +363,14 @@ export default function GanttView({
           },
           body: JSON.stringify(body),
         });
-  
+
         if (!res.ok) {
           throw new Error(await res.text());
         }
         onBookingUpdated();
       } catch (err) {
         console.error("[GanttView] 배차 업데이트 오류, 롤백", err);
-        setLocalBookings(prevBookings => 
+        setLocalBookings(prevBookings =>
           prevBookings.map(b => b.id === bookingId ? originalBooking : b)
         );
       } finally {
@@ -423,7 +423,7 @@ export default function GanttView({
         <div
           data-gantt-grid
           ref={driverId === (drivers[0]?.id ?? null) ? gridRef : undefined}
-          className="flex-1 relative" // overflow-hidden 제거 → 드롭다운 메뉴 잘림 방지
+          className="flex-1 relative" // overflow-hidden 제거 → 하차지 badge + 드롭다운 잘림 방지
         >
           {Array.from({ length: GANTT_HOURS - 1 }, (_, i) => i + 1).map((i) => (
             <div
@@ -455,12 +455,6 @@ export default function GanttView({
               }
             />
           ))}
-
-          {updating && rowBookings.some((b) => b.id === updating) && (
-            <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/60">
-              <span className="text-[11px] text-primary">저장 중...</span>
-            </div>
-          )}
         </div>
       </div>
     );

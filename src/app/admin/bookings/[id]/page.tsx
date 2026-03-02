@@ -92,7 +92,7 @@ export default function AdminBookingDetailPage() {
       <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur-[20px] border-b border-border-light">
         <div className="max-w-[42rem] mx-auto px-4 py-3 flex items-center gap-3">
           <button
-            onClick={() => router.push(`/admin/dashboard`)}
+            onClick={() => router.back()}
             className="text-text-sub hover:text-text-primary transition-colors duration-200"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
