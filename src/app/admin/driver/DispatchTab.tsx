@@ -298,7 +298,7 @@ export default function DispatchTab({
                   </div>
                 ))}
                 <div className="flex items-center gap-1">
-                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", backgroundColor: "#ECEFF1", borderLeft: "3px solid #90A4AE" }} />
+                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", backgroundColor: "#EEF2F6", borderLeft: "3px solid #8A96A8" }} />
                   <span className="text-[10px] text-text-muted">하차지</span>
                 </div>
                 <span className="text-[10px] text-text-muted ml-auto">드래그로 기사/시간 변경 가능</span>

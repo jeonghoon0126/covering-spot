@@ -157,13 +157,13 @@ function GanttBlock({
         className="absolute inset-y-1 flex items-center justify-between px-1.5 overflow-visible rounded z-[1] group"
         style={{
           left: `${leftPercent}%`,
-          width: `${Math.max(clampedWidth, 3)}%`,
+          width: `${Math.max(clampedWidth, 5)}%`,
           backgroundColor: "#EEF2F6",
           borderLeft: "3px solid #8A96A8",
         }}
         title="하차지"
       >
-        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub truncate">하차지</span>
+        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub truncate">하차</span>
         {onRemoveUnloadingStop && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}

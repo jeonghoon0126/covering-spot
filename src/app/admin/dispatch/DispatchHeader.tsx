@@ -52,9 +52,14 @@ export default function DispatchHeader({
             <h1 className="text-lg font-bold truncate">배차 관리</h1>
             <button
               onClick={onNavigateDriver}
-              className="text-xs font-medium text-text-sub hover:text-primary transition-colors shrink-0 hidden sm:block"
+              className="flex items-center gap-1.5 text-xs font-medium text-text-sub bg-bg border border-border-light rounded-md px-2.5 py-1 hover:bg-bg-warm transition-colors shrink-0"
             >
-              기사님 관리
+              {/* 사람 아이콘 */}
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.167 13.5V12.833C12.167 11.522 11.144 10.5 10 10.5H6C4.856 10.5 3.833 11.522 3.833 12.833V13.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 8.5C9.381 8.5 10.5 7.381 10.5 6C10.5 4.619 9.381 3.5 8 3.5C6.619 3.5 5.5 4.619 5.5 6C5.5 7.381 6.619 8.5 8 8.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>기사님 관리</span>
             </button>
             {/* 재배차 도구 버튼 — 임시 비활성화
             <button
@@ -91,7 +96,7 @@ export default function DispatchHeader({
 
         {/* 2행: 필터(좌) + 범례(우) */}
         <div className="flex items-center gap-2 mt-2">
-          {/* 필터 — flex-1로 가용 공간 확보 */}
+          {/* 필터 */}
           <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
             <select
               value={filterDriverId}
@@ -123,7 +128,7 @@ export default function DispatchHeader({
             </select>
           </div>
 
-          {/* 범례 + 가이드 — 데스크탑에서만 표시, overflow 방지 */}
+          {/* 범례 + 가이드 — 데스크탑에서만 표시 */}
           <div className="hidden lg:flex items-center gap-2 text-xs shrink-0">
             <div className="flex items-center gap-2.5 text-text-muted">
               <span className="flex items-center gap-1">
