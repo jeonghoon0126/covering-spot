@@ -182,27 +182,24 @@ function enforceClusterLimits(
     const cluster = clusters[clusterIdx];
     if (cluster.totalLoad <= driver.vehicleCapacity) continue;
 
-    // 누적 적재량이 용량을 초과하는 주문들 추출
     // 가장 먼 주문부터 제거해 totalLoad를 capacity 이하로 낮춤
+    // cluster.totalLoad를 직접 갱신해 break 조건과 항상 일치하도록 함
     const cx = cluster.centroidLat;
     const cy = cluster.centroidLng;
-    const withDist = cluster.bookings.map((b) => ({
-      booking: b,
-      dist: haversine(cx, cy, b.lat, b.lng),
-    }));
-    withDist.sort((a, b) => b.dist - a.dist);
+    const sorted = [...cluster.bookings].sort(
+      (a, b) => haversine(cx, cy, b.lat, b.lng) - haversine(cx, cy, a.lat, a.lng),
+    );
 
-    const toRemove: typeof withDist = [];
-    let runningLoad = cluster.totalLoad;
-    for (const item of withDist) {
-      if (runningLoad <= driver.vehicleCapacity) break;
-      toRemove.push(item);
-      runningLoad -= item.booking.totalLoadingCube;
+    const overflow: DispatchBooking[] = [];
+    for (const booking of sorted) {
+      if (cluster.totalLoad <= driver.vehicleCapacity) break;
+      overflow.push(booking);
+      cluster.totalLoad -= booking.totalLoadingCube;
     }
 
-    const overflow = toRemove.map((o) => o.booking);
     const overflowIds = new Set(overflow.map((b) => b.id));
     cluster.bookings = cluster.bookings.filter((b) => !overflowIds.has(b.id));
+    // 부동소수점 오차 방어: bookings 합산으로 totalLoad 재확정
     cluster.totalLoad = cluster.bookings.reduce((s, b) => s + b.totalLoadingCube, 0);
 
     reassignOverflow(overflow, clusterIdx, clusters, driverAssignment, driverById);
