@@ -99,22 +99,10 @@ function pixelOffsetToTime(offsetPx: number, totalWidth: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-function calculateUnloadingTimeInfo(booking: Booking): { time: string; isValid: boolean } {
-  const startTime = booking.confirmedTime || booking.timeSlot;
-  if (!startTime) return { time: "", isValid: false };
-  const duration = booking.confirmedDuration ?? 1;
-  const afterHours = timeToHours(startTime) + duration;
-  if (afterHours >= GANTT_END_HOUR) return { time: "", isValid: false };
-  const h = Math.floor(afterHours);
-  const m = afterHours % 1 >= 0.5 ? 30 : 0;
-  return { time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, isValid: true };
-}
-
 /* ── GanttBlock 컴포넌트 ── */
 
 interface GanttBlockProps {
   booking: Booking;
-  isUnloading?: boolean;
   unloadingPoints?: UnloadingPoint[];
   isUpdating?: boolean;
   driverColorMap: Map<string, string>;
@@ -126,7 +114,6 @@ interface GanttBlockProps {
 
 function GanttBlock({
   booking,
-  isUnloading = false,
   unloadingPoints,
   isUpdating,
   driverColorMap,
@@ -148,40 +135,6 @@ function GanttBlock({
   const address = booking.address?.slice(0, 20) ?? "";
   const cube = booking.totalLoadingCube ?? 0;
 
-  if (isUnloading) {
-    const point = unloadingPoints?.find(p => p.id === booking.unloadingStopAfter);
-    const pointName = point?.name ?? "하차지";
-
-    return (
-      <div
-        className="absolute inset-y-1 flex items-center justify-between px-1.5 overflow-visible rounded z-[1] group cursor-default"
-        style={{
-          left: `${leftPercent}%`,
-          width: `${Math.max(clampedWidth, 5)}%`,
-          backgroundColor: "#EEF2F6",
-          borderLeft: "3px solid #8A96A8",
-        }}
-        title={pointName}
-      >
-        <span className="text-[9px] font-bold text-[#374151] truncate">
-          {pointName.slice(0, 4)}
-        </span>
-        {onRemoveUnloadingStop && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
-            disabled={isUpdating}
-            className="ml-0.5 flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-40 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-[#6B7280]"
-            title="하차지 제거"
-          >
-            <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
-              <path d="M1 1L7 7M1 7L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </button>
-        )}
-      </div>
-    );
-  }
-
   const UNASSIGNED_BG = "#E5E7EB";
   const UNASSIGNED_BORDER = "#9CA3AF";
 
@@ -191,6 +144,7 @@ function GanttBlock({
 
   const hasUnloadingPoints = unloadingPoints && unloadingPoints.length > 0;
   const hasUnloadingStop = !!booking.unloadingStopAfter;
+  const point = hasUnloadingStop ? unloadingPoints?.find((p) => p.id === booking.unloadingStopAfter) : undefined;
 
   return (
     <div
@@ -204,7 +158,7 @@ function GanttBlock({
         draggable
         onDragStart={(e) => onDragStart(e, booking.id, booking.driverId ?? null, time)}
         onClick={() => onClick(booking.id)}
-        className="w-full h-full flex flex-col justify-center px-1.5 py-0.5 overflow-hidden rounded cursor-grab shadow-sm"
+        className="relative w-full h-full flex flex-col justify-center px-1.5 py-0.5 rounded cursor-grab shadow-sm overflow-visible"
         style={{ backgroundColor: bg, borderLeft: `3px solid ${border}` }}
         title={`${booking.customerName} | ${booking.address} | ${cube}m³`}
       >
@@ -216,6 +170,30 @@ function GanttBlock({
         </span>
         {cube > 0 && (
           <span className="text-[9px] text-text-primary font-semibold leading-[1.3]">{cube}m³</span>
+        )}
+        
+        {/* 하차지 뱃지 */}
+        {hasUnloadingStop && (
+          <div
+            className="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 bg-[#8A96A8]/20 border border-[#8A96A8]/40 rounded px-1 py-0.5 max-w-[80%]"
+            title={point?.name ?? "하차지"}
+          >
+            <span className="text-[8px] text-[#374151] truncate">
+              {(point?.name ?? "하차지").slice(0, 5)}
+            </span>
+            {onRemoveUnloadingStop && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
+                disabled={isUpdating}
+                className="flex-shrink-0 w-2.5 h-2.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
+                title="하차지 제거"
+              >
+                <svg width="5" height="5" viewBox="0 0 8 8" fill="none">
+                  <path d="M1 1L7 7M1 7L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -308,14 +286,6 @@ export default function GanttView({
     map["__unassigned__"] = localBookings.filter((b) => !b.driverId);
     return map;
   }, [drivers, localBookings]);
-
-  const unloadingTargetIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const b of localBookings) {
-      if (b.unloadingStopAfter) set.add(b.id);
-    }
-    return set;
-  }, [localBookings]);
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, bookingId: string, driverId: string | null, time: string | null) => {
@@ -474,36 +444,17 @@ export default function GanttView({
             <GanttBlock
               key={b.id}
               booking={b}
-              isUnloading={false}
               unloadingPoints={unloadingPoints}
               isUpdating={updatingUnloadingIds.has(b.id) || updating === b.id}
               driverColorMap={driverColorMap}
               onDragStart={handleDragStart}
               onClick={onBookingClick}
               onToggleAddUnloadingMenu={onUpdateUnloadingStop ? handleToggleAddMenu : undefined}
+              onRemoveUnloadingStop={
+                onUpdateUnloadingStop ? () => onUpdateUnloadingStop(b.id, null) : undefined
+              }
             />
           ))}
-
-          {rowBookings
-            .filter((b) => unloadingTargetIds.has(b.id))
-            .map((b) => {
-              const { time, isValid } = calculateUnloadingTimeInfo(b);
-              if (!isValid) return null;
-              const fakeUnloading = { ...b, confirmedTime: time, confirmedDuration: 0.5 };
-              return (
-                <GanttBlock
-                  key={`${b.id}-unloading`}
-                  booking={fakeUnloading as Booking}
-                  isUnloading={true}
-                  unloadingPoints={unloadingPoints}
-                  isUpdating={updatingUnloadingIds.has(b.id)}
-                  driverColorMap={driverColorMap}
-                  onDragStart={() => {}} // 하차지 블록은 드래그 불가
-                  onClick={() => {}} // 하차지 블록은 클릭 불가
-                  onRemoveUnloadingStop={onUpdateUnloadingStop ? (bookingId) => onUpdateUnloadingStop(bookingId, null) : undefined}
-                />
-              );
-            })}
 
           {updating && rowBookings.some((b) => b.id === updating) && (
             <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/60">
@@ -574,4 +525,3 @@ export default function GanttView({
     </div>
   );
 }
-
