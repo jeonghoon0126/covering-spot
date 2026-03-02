@@ -27,6 +27,8 @@ jobs:
             exit 1
           fi
 
+          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+
           for i in $(seq 1 24); do
             sleep 15
             STATE=$(curl -s "https://api.vercel.com/v13/deployments/$DEPLOY_URL?teamId=team_EyB9AZd0p5WrrY8og8951AY1" \
@@ -37,3 +39,25 @@ jobs:
             if [[ "$STATE" == "ERROR" ]]; then echo "Build failed"; exit 1; fi
           done
           echo "Timeout"; exit 1
+
+      - name: Notify Slack (success)
+        if: success()
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\":\"U09PTJ5PBDK\",\"text\":\"✅ *프로덕션 배포 완료*\n\`${SHORT_SHA}\` ${MSG}\nhttps://coveringspot.vercel.app\"}"
+
+      - name: Notify Slack (failure)
+        if: failure()
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\":\"U09PTJ5PBDK\",\"text\":\"❌ *프로덕션 배포 실패*\n\`${SHORT_SHA}\` ${MSG}\nhttps://github.com/${{ github.repository }}/actions\"}"
