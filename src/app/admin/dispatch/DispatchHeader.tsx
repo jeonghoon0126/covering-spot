@@ -21,7 +21,7 @@ export interface DispatchHeaderProps {
   onFilterSlotChange: (value: string) => void;
   onNavigateCalendar: () => void;
   onNavigateDriver: () => void;
-  onOpenReassign: () => void;
+  onOpenReassign?: () => void; // 재배차 도구 임시 비활성화
 }
 
 /* ── 헤더 (날짜, 필터, 범례) ── */
@@ -56,12 +56,14 @@ export default function DispatchHeader({
             >
               기사님 관리
             </button>
+            {/* 재배차 도구 버튼 — 임시 비활성화
             <button
               onClick={onOpenReassign}
               className="text-xs font-medium text-semantic-orange hover:text-semantic-orange/80 transition-colors shrink-0 hidden sm:block border border-semantic-orange/30 px-2 py-0.5 rounded-md hover:bg-semantic-orange-tint"
             >
               재배차 도구
             </button>
+            */}
           </div>
 
           {/* 날짜 선택 */}

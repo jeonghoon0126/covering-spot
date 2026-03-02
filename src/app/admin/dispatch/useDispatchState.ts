@@ -8,6 +8,7 @@ import {
   SLOT_ORDER,
   SLOT_MAX_PER_DRIVER,
   UNASSIGNED_COLOR,
+  mapTimeToSlotGroup,
 } from "./dispatch-utils";
 import { useDispatchData } from "./useDispatchData";
 import { useAutoDispatch } from "./useAutoDispatch";
@@ -177,12 +178,16 @@ export function useDispatchState() {
     if (filterDriverId !== "all" && filterDriverId !== "unassigned") {
       return [...filtered].sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
     }
-    // 전체/미배차 뷰: 시간대 순(오전→오후→저녁) → 동일 슬롯 내 접수순(createdAt)
+    // 전체/미배차 뷰: 슬롯 그룹 순(오전→오후→저녁→기타) → 그룹 내 시간 순 → 접수순(createdAt)
     return [...filtered].sort((a, b) => {
-      const ai = SLOT_ORDER.indexOf(a.timeSlot || "");
-      const bi = SLOT_ORDER.indexOf(b.timeSlot || "");
+      const ga = mapTimeToSlotGroup(a.timeSlot);
+      const gb = mapTimeToSlotGroup(b.timeSlot);
+      const ai = SLOT_ORDER.indexOf(ga);
+      const bi = SLOT_ORDER.indexOf(gb);
       const slotDiff = (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
       if (slotDiff !== 0) return slotDiff;
+      const timeDiff = (a.timeSlot || "99:99").localeCompare(b.timeSlot || "99:99");
+      if (timeDiff !== 0) return timeDiff;
       return (a.createdAt || "").localeCompare(b.createdAt || "");
     });
   }, [activeBookings, filterDriverId, filterSlot]);

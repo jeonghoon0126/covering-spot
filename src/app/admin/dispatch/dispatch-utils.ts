@@ -49,6 +49,20 @@ export const SLOT_MAX_PER_DRIVER: Record<string, number> = {
 
 export const UNASSIGNED_COLOR = "#3B82F6";
 
+// timeSlot 실제 저장값("10:00", "14:00" 등) → SLOT_ORDER 그룹명 매핑
+export function mapTimeToSlotGroup(timeSlot: string | null | undefined): string {
+  if (!timeSlot) return "기타";
+  const hour = parseInt(timeSlot.split(":")[0], 10);
+  if (!isNaN(hour)) {
+    if (hour >= 9 && hour <= 12) return "오전 (9시~12시)";
+    if (hour >= 13 && hour <= 17) return "오후 (13시~17시)";
+    if (hour >= 18 && hour <= 20) return "저녁 (18시~20시)";
+  }
+  // 레거시: 이미 SLOT_ORDER 한글값인 경우 그대로 반환
+  if (SLOT_ORDER.includes(timeSlot)) return timeSlot;
+  return "기타";
+}
+
 // 동선 시간 계산 상수 (서울 시내 기준)
 export const ROUTE_ROAD_FACTOR = 1.4;   // 직선거리 → 도로거리 보정계수
 export const ROUTE_AVG_SPEED_KMH = 20;  // 서울 시내 평균 이동속도 (km/h)
