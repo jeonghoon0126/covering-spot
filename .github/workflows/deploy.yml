@@ -7,6 +7,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy via Vercel REST API (gitSource — no file upload)
         run: |
           REPO_ID=$(curl -s "https://api.github.com/repos/${{ github.repository }}" \
@@ -43,13 +45,36 @@ jobs:
       - name: Notify Slack (success)
         if: success()
         run: |
-          MSG="${{ github.event.head_commit.message }}"
           SHORT_SHA="${{ github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
-          curl -s -X POST "https://slack.com/api/chat.postMessage" \
-            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"channel\":\"U09PTJ5PBDK\",\"text\":\"✅ *프로덕션 배포 완료*\n\`${SHORT_SHA}\` ${MSG}\nhttps://coveringspot.vercel.app\"}"
+          MSG="${{ github.event.head_commit.message }}"
+
+          # RELEASE_NOTES.md 있으면 내용 포함
+          if [ -f RELEASE_NOTES.md ]; then
+            NOTES=$(cat RELEASE_NOTES.md)
+          else
+            NOTES=""
+          fi
+
+          python3 - <<PYEOF
+          import json, urllib.request
+
+          short_sha = "$SHORT_SHA"
+          msg = """$MSG"""
+          notes = """$NOTES"""
+
+          text = f"✅ *프로덕션 배포 완료*\n\`{short_sha}\` {msg}\nhttps://coveringspot.vercel.app"
+          if notes.strip():
+              text += f"\n\n{notes.strip()}"
+
+          payload = json.dumps({"channel": "U09PTJ5PBDK", "text": text}).encode()
+          req = urllib.request.Request(
+              "https://slack.com/api/chat.postMessage",
+              data=payload,
+              headers={"Authorization": "Bearer ${{ secrets.SLACK_BOT_TOKEN }}", "Content-Type": "application/json"}
+          )
+          urllib.request.urlopen(req)
+          PYEOF
 
       - name: Notify Slack (failure)
         if: failure()
