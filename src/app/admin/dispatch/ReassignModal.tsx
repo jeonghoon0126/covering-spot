@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { Booking } from "@/types/booking";
 import type { Driver } from "./dispatch-utils";
 
@@ -127,8 +126,8 @@ export default function ReassignModal({ drivers, token, onClose, onSuccess }: Re
   const sourceDriver = drivers.find((d) => d.id === sourceDriverId);
   const targetDriver = drivers.find((d) => d.id === targetDriverId);
 
-  const modal = (
-    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 9999 }} className="flex items-center justify-center p-4 bg-black/50">
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-bg rounded-[--radius-lg] border border-border-light shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-light shrink-0">
@@ -335,6 +334,4 @@ export default function ReassignModal({ drivers, token, onClose, onSuccess }: Re
       </div>
     </div>
   );
-
-  return createPortal(modal, document.body);
 }
