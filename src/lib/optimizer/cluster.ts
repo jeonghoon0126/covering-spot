@@ -156,6 +156,9 @@ function arraysEqual(a: number[], b: number[]): boolean {
  * 2단계: vehicleCapacity 초과 시 초과분을 여유 있는 기사에 재배정
  *
  * 초과분은 센트로이드에서 가장 먼 주문부터 추출해 가장 가까운 여유 클러스터로 이동.
+ *
+ * 최대 3회 반복: 재배정 후 수신 클러스터가 다시 초과될 수 있어 재검사 필요
+ * (단일 패스는 overflow → 다른 클러스터 추가 → 그 클러스터 재초과 미검사 버그 유발)
  */
 function enforceClusterLimits(
   clusters: Cluster[],
@@ -164,45 +167,53 @@ function enforceClusterLimits(
 ): void {
   const driverById = new Map(drivers.map((d) => [d.id, d]));
 
-  // 건수 제한 처리
-  for (const [clusterIdx, driverId] of driverAssignment) {
-    const driver = driverById.get(driverId);
-    if (!driver?.maxJobCount) continue;
-    const cluster = clusters[clusterIdx];
-    if (cluster.bookings.length <= driver.maxJobCount) continue;
+  for (let pass = 0; pass < 3; pass++) {
+    let anyOverflow = false;
 
-    const overflow = extractOverflow(cluster, cluster.bookings.length - driver.maxJobCount);
-    reassignOverflow(overflow, clusterIdx, clusters, driverAssignment, driverById);
-  }
+    // 건수 제한 처리
+    for (const [clusterIdx, driverId] of driverAssignment) {
+      const driver = driverById.get(driverId);
+      if (!driver?.maxJobCount) continue;
+      const cluster = clusters[clusterIdx];
+      if (cluster.bookings.length <= driver.maxJobCount) continue;
 
-  // 용량 제한 처리
-  for (const [clusterIdx, driverId] of driverAssignment) {
-    const driver = driverById.get(driverId);
-    if (!driver?.vehicleCapacity) continue;
-    const cluster = clusters[clusterIdx];
-    if (cluster.totalLoad <= driver.vehicleCapacity) continue;
-
-    // 가장 먼 주문부터 제거해 totalLoad를 capacity 이하로 낮춤
-    // cluster.totalLoad를 직접 갱신해 break 조건과 항상 일치하도록 함
-    const cx = cluster.centroidLat;
-    const cy = cluster.centroidLng;
-    const sorted = [...cluster.bookings].sort(
-      (a, b) => haversine(cx, cy, b.lat, b.lng) - haversine(cx, cy, a.lat, a.lng),
-    );
-
-    const overflow: DispatchBooking[] = [];
-    for (const booking of sorted) {
-      if (cluster.totalLoad <= driver.vehicleCapacity) break;
-      overflow.push(booking);
-      cluster.totalLoad -= booking.totalLoadingCube;
+      anyOverflow = true;
+      const overflow = extractOverflow(cluster, cluster.bookings.length - driver.maxJobCount);
+      reassignOverflow(overflow, clusterIdx, clusters, driverAssignment, driverById);
     }
 
-    const overflowIds = new Set(overflow.map((b) => b.id));
-    cluster.bookings = cluster.bookings.filter((b) => !overflowIds.has(b.id));
-    // 부동소수점 오차 방어: bookings 합산으로 totalLoad 재확정
-    cluster.totalLoad = cluster.bookings.reduce((s, b) => s + b.totalLoadingCube, 0);
+    // 용량 제한 처리
+    for (const [clusterIdx, driverId] of driverAssignment) {
+      const driver = driverById.get(driverId);
+      if (!driver?.vehicleCapacity) continue;
+      const cluster = clusters[clusterIdx];
+      if (cluster.totalLoad <= driver.vehicleCapacity) continue;
 
-    reassignOverflow(overflow, clusterIdx, clusters, driverAssignment, driverById);
+      anyOverflow = true;
+      // 가장 먼 주문부터 제거해 totalLoad를 capacity 이하로 낮춤
+      // cluster.totalLoad를 직접 갱신해 break 조건과 항상 일치하도록 함
+      const cx = cluster.centroidLat;
+      const cy = cluster.centroidLng;
+      const sorted = [...cluster.bookings].sort(
+        (a, b) => haversine(cx, cy, b.lat, b.lng) - haversine(cx, cy, a.lat, a.lng),
+      );
+
+      const overflow: DispatchBooking[] = [];
+      for (const booking of sorted) {
+        if (cluster.totalLoad <= driver.vehicleCapacity) break;
+        overflow.push(booking);
+        cluster.totalLoad -= booking.totalLoadingCube;
+      }
+
+      const overflowIds = new Set(overflow.map((b) => b.id));
+      cluster.bookings = cluster.bookings.filter((b) => !overflowIds.has(b.id));
+      // 부동소수점 오차 방어: bookings 합산으로 totalLoad 재확정
+      cluster.totalLoad = cluster.bookings.reduce((s, b) => s + b.totalLoadingCube, 0);
+
+      reassignOverflow(overflow, clusterIdx, clusters, driverAssignment, driverById);
+    }
+
+    if (!anyOverflow) break;
   }
 }
 

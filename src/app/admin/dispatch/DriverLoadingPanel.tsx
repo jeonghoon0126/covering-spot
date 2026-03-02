@@ -12,6 +12,7 @@ export interface DriverLoadingPanelProps {
   driverSlotBreakdown: Map<string, Record<string, number>>;
   filterDriverId: string;
   isOpen: boolean;
+  hidden?: boolean;
   activeBookings: Booking[];
   unloadingPoints: UnloadingPoint[];
   onToggleOpen: (open: boolean) => void;
@@ -27,12 +28,14 @@ export default function DriverLoadingPanel({
   driverSlotBreakdown,
   filterDriverId,
   isOpen,
+  hidden,
   activeBookings,
   unloadingPoints,
   onToggleOpen,
   onSelectDriver,
   onFitToPositions,
 }: DriverLoadingPanelProps) {
+  if (hidden) return null;
   if (driverStats.length === 0) return null;
 
   return (

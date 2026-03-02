@@ -144,6 +144,7 @@ export default function AdminDispatchPage() {
               onCloseOverlay={() => s.setSelectedBookingId(null)}
               mobileTab={s.mobileTab}
               autoMode={s.autoMode}
+              hideDriverPanel={showReassignModal}
             />
           </div>
 

@@ -424,7 +424,9 @@ function mergeDispatchResults(results: (AutoDispatchResult | null)[]): AutoDispa
         existing.totalLoad += dp.totalLoad;
         existing.totalDistance += dp.totalDistance;
         existing.legs += dp.legs;
-        existing.unloadingStops.push(...dp.unloadingStops);
+        existing.unloadingStops.push(
+          ...dp.unloadingStops.map((s) => ({ ...s, afterRouteOrder: s.afterRouteOrder + offset })),
+        );
       } else {
         merged.plan.push({ ...dp });
       }

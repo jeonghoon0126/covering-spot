@@ -44,6 +44,7 @@ interface MapPanelProps {
   // 모바일
   mobileTab: "map" | "list";
   autoMode: "idle" | "loading" | "preview";
+  hideDriverPanel?: boolean;
 }
 
 export default function MapPanel({
@@ -73,6 +74,7 @@ export default function MapPanel({
   onCloseOverlay,
   mobileTab,
   autoMode,
+  hideDriverPanel,
 }: MapPanelProps) {
   return (
     <div className={`flex-1 relative ${
@@ -103,6 +105,7 @@ export default function MapPanel({
         driverSlotBreakdown={driverSlotBreakdown}
         filterDriverId={filterDriverId}
         isOpen={driverPanelOpen}
+        hidden={hideDriverPanel}
         activeBookings={activeBookings}
         unloadingPoints={unloadingPoints}
         onToggleOpen={onToggleDriverPanel}
