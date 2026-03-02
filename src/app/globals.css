@@ -99,7 +99,7 @@ body {
   color: var(--color-text-primary);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip = 가로 오버플로우 방지, BFC 생성 없음 → fixed 포지셔닝 정상 동작 */
 }
 
 /* ═══ Price bar animation (CSS 변수 기반) ═══ */

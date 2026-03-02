@@ -73,9 +73,9 @@ export async function POST(req: NextRequest) {
     // resolvedCapacity=0인 기사 = 차량이 이용불가 상태 → 자동배차에서 제외
     const drivers = driversWithVehicle.filter((d) => d.resolvedCapacity > 0);
 
-    // quote_confirmed 상태만 배차 가능 (pending=견적전, in_progress=수거중 등 제외)
+    // quote_confirmed(견적확정) + confirmed(일정확정) 모두 배차 가능
     // 좌표 없는 주문(lat=0 또는 lng=0)은 별도 unassigned 처리 (0,0 = 아프리카 근해)
-    const dispatchableStatuses = ["quote_confirmed"];
+    const dispatchableStatuses = ["quote_confirmed", "confirmed"];
     const unassignedBookings = allBookings.filter(
       (b) =>
         !b.driverId &&

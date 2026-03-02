@@ -177,7 +177,12 @@ export function useDispatchState() {
     if (filterDriverId !== "all" && filterDriverId !== "unassigned") {
       return [...filtered].sort((a, b) => (a.routeOrder ?? 9999) - (b.routeOrder ?? 9999));
     }
-    return filtered;
+    // 전체/미배차 뷰: 시간대 순(오전→오후→저녁) 정렬
+    return [...filtered].sort((a, b) => {
+      const ai = SLOT_ORDER.indexOf(a.timeSlot || "");
+      const bi = SLOT_ORDER.indexOf(b.timeSlot || "");
+      return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+    });
   }, [activeBookings, filterDriverId, filterSlot]);
   // 최신값 ref 동기화 (scrollToNextUnassigned stale closure 방어)
   filteredBookingsRef.current = filteredBookings;
