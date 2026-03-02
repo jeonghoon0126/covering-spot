@@ -149,25 +149,28 @@ function GanttBlock({
   const cube = booking.totalLoadingCube ?? 0;
 
   if (isUnloading) {
+    const point = unloadingPoints?.find(p => p.id === booking.unloadingStopAfter);
+    const pointName = point?.name ?? "하차지";
+
     return (
       <div
-        className="absolute inset-y-1 flex items-center justify-between px-1.5 overflow-visible rounded z-[1] group"
+        className="absolute inset-y-1 flex items-center justify-between px-1.5 overflow-visible rounded z-[1] group cursor-default"
         style={{
           left: `${leftPercent}%`,
           width: `${Math.max(clampedWidth, 5)}%`,
           backgroundColor: "#EEF2F6",
           borderLeft: "3px solid #8A96A8",
         }}
-        title="하차지"
+        title={pointName}
       >
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" className="text-[#6B7280]">
-          <path d="M8 3V13M8 13L12.5 8.5M8 13L3.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <span className="text-[9px] font-bold text-[#374151] truncate">
+          {pointName.slice(0, 4)}
+        </span>
         {onRemoveUnloadingStop && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
             disabled={isUpdating}
-            className="ml-0.5 flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-[#6B7280]"
+            className="ml-0.5 flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-40 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-[#6B7280]"
             title="하차지 제거"
           >
             <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
@@ -266,10 +269,17 @@ export default function GanttView({
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ driverId: string | null; time: string } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [localBookings, setLocalBookings] = useState<Booking[]>(() => bookings);
   const [activeAddMenu, setActiveAddMenu] = useState<ActiveAddMenuState | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside(addMenuRef, () => setActiveAddMenu(null));
+
+  useEffect(() => {
+    if (updating === null) {
+      setLocalBookings(bookings);
+    }
+  }, [bookings, updating]);
 
   useEffect(() => {
     if (activeAddMenu && updatingUnloadingIds.has(activeAddMenu.bookingId)) {
@@ -293,19 +303,19 @@ export default function GanttView({
   const driverBookingsMap = useMemo(() => {
     const map: Record<string, Booking[]> = {};
     for (const d of drivers) {
-      map[d.id] = bookings.filter((b) => b.driverId === d.id);
+      map[d.id] = localBookings.filter((b) => b.driverId === d.id);
     }
-    map["__unassigned__"] = bookings.filter((b) => !b.driverId);
+    map["__unassigned__"] = localBookings.filter((b) => !b.driverId);
     return map;
-  }, [drivers, bookings]);
+  }, [drivers, localBookings]);
 
   const unloadingTargetIds = useMemo(() => {
     const set = new Set<string>();
-    for (const b of bookings) {
+    for (const b of localBookings) {
       if (b.unloadingStopAfter) set.add(b.id);
     }
     return set;
-  }, [bookings]);
+  }, [localBookings]);
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, bookingId: string, driverId: string | null, time: string | null) => {
@@ -331,38 +341,50 @@ export default function GanttView({
     async (e: React.DragEvent, targetDriverId: string | null) => {
       e.preventDefault();
       if (!dragState) return;
-
+  
+      const { bookingId, originalDriverId, originalTime } = dragState;
+  
       const row = (e.currentTarget as HTMLElement).querySelector("[data-gantt-grid]") as HTMLElement | null;
-      let confirmedTime = dragState.originalTime;
+      let confirmedTime = originalTime;
       if (row) {
         const rect = row.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         confirmedTime = pixelOffsetToTime(offsetX, rect.width);
       }
-
-      const { bookingId, originalDriverId, originalTime } = dragState;
-
+  
       if (targetDriverId === originalDriverId && confirmedTime === originalTime) {
         setDragState(null);
         setDropTarget(null);
         return;
       }
-
+  
+      const originalBooking = localBookings.find(b => b.id === bookingId);
+      if (!originalBooking) return;
+  
+      const targetDriverName = targetDriverId
+        ? drivers.find((d) => d.id === targetDriverId)?.name ?? null
+        : null;
+  
+      const updatedBooking: Booking = {
+        ...originalBooking,
+        driverId: targetDriverId,
+        confirmedTime,
+      };
+  
+      setLocalBookings(prevBookings => 
+        prevBookings.map(b => b.id === bookingId ? updatedBooking : b)
+      );
       setUpdating(bookingId);
       setDragState(null);
       setDropTarget(null);
-
+  
       try {
-        const targetDriverName = targetDriverId
-          ? drivers.find((d) => d.id === targetDriverId)?.name ?? null
-          : null;
-
         const body: Record<string, unknown> = { confirmedTime };
         if (targetDriverId !== originalDriverId) {
           body.driverId = targetDriverId ?? null;
           body.driverName = targetDriverName;
         }
-
+  
         const res = await fetch(`/api/admin/bookings/${bookingId}`, {
           method: "PUT",
           headers: {
@@ -371,19 +393,21 @@ export default function GanttView({
           },
           body: JSON.stringify(body),
         });
-
+  
         if (!res.ok) {
-          console.error("[GanttView] 배차 업데이트 실패", await res.text());
+          throw new Error(await res.text());
         }
         onBookingUpdated();
       } catch (err) {
-        console.error("[GanttView] 배차 업데이트 오류", err);
-        onBookingUpdated();
+        console.error("[GanttView] 배차 업데이트 오류, 롤백", err);
+        setLocalBookings(prevBookings => 
+          prevBookings.map(b => b.id === bookingId ? originalBooking : b)
+        );
       } finally {
         setUpdating(null);
       }
     },
-    [dragState, drivers, token, onBookingUpdated],
+    [dragState, drivers, token, onBookingUpdated, localBookings],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -394,8 +418,8 @@ export default function GanttView({
   const hours = Array.from({ length: GANTT_HOURS + 1 }, (_, i) => GANTT_START_HOUR + i);
 
   const activeMenuBooking = useMemo(
-    () => (activeAddMenu ? bookings.find((b) => b.id === activeAddMenu.bookingId) : null),
-    [activeAddMenu, bookings],
+    () => (activeAddMenu ? localBookings.find((b) => b.id === activeAddMenu.bookingId) : null),
+    [activeAddMenu, localBookings],
   );
 
   const renderRow = (driverId: string | null, driver: Driver | null) => {
@@ -471,16 +495,17 @@ export default function GanttView({
                   key={`${b.id}-unloading`}
                   booking={fakeUnloading as Booking}
                   isUnloading={true}
+                  unloadingPoints={unloadingPoints}
                   isUpdating={updatingUnloadingIds.has(b.id)}
                   driverColorMap={driverColorMap}
                   onDragStart={() => {}} // 하차지 블록은 드래그 불가
-                  onClick={() => onBookingClick(b.id)}
+                  onClick={() => {}} // 하차지 블록은 클릭 불가
                   onRemoveUnloadingStop={onUpdateUnloadingStop ? (bookingId) => onUpdateUnloadingStop(bookingId, null) : undefined}
                 />
               );
             })}
 
-          {rowBookings.some((b) => b.id === updating) && (
+          {updating && rowBookings.some((b) => b.id === updating) && (
             <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/60">
               <span className="text-[11px] text-primary">저장 중...</span>
             </div>
