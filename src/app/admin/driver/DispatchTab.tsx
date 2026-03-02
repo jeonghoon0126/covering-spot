@@ -6,8 +6,20 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { Booking } from "@/types/booking";
 import type { Driver, Vehicle, Assignment, BlockedSlot } from "./types";
 import { addDays, getToday, formatDate, SLOT_MGMT_HOURS } from "./constants";
-import GanttView, { GANTT_BLOCK_BG, GANTT_BLOCK_BORDER, GANTT_STATUS_LABELS } from "./GanttView";
+import GanttView from "./GanttView";
 import type { UnloadingPoint } from "@/types/booking";
+
+// 기사별 색상 팔레트
+const DRIVER_COLORS = [
+  "#3B82F6", // blue-500
+  "#10B981", // emerald-500
+  "#EF4444", // red-500
+  "#F59E0B", // amber-500
+  "#8B5CF6", // violet-500
+  "#EC4899", // pink-500
+  "#6366F1", // indigo-500
+  "#14B8A6", // teal-500
+];
 
 export interface DispatchTabProps {
   // Date
@@ -83,6 +95,14 @@ export default function DispatchTab({
 }: DispatchTabProps) {
   const router = useRouter();
   const isAssignToday = assignDate === getToday();
+
+  const driverColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    ganttDrivers.forEach((driver, index) => {
+      map.set(driver.id, DRIVER_COLORS[index % DRIVER_COLORS.length]);
+    });
+    return map;
+  }, [ganttDrivers]);
 
   const slotBookingCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -282,24 +302,28 @@ export default function DispatchTab({
           ) : (
             <div style={{ minWidth: "700px" }}>
               {/* 범례 */}
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                {(["pending", "quote_confirmed", "user_confirmed", "in_progress", "completed"] as const).map((s) => (
-                  <div key={s} className="flex items-center gap-1">
+              <div className="flex items-center gap-x-3 gap-y-1.5 mb-2 flex-wrap">
+                {ganttDrivers.map((driver) => (
+                  <div key={driver.id} className="flex items-center gap-1.5">
                     <div
                       style={{
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "2px",
-                        backgroundColor: GANTT_BLOCK_BG[s],
-                        borderLeft: `3px solid ${GANTT_BLOCK_BORDER[s]}`,
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "3px",
+                        backgroundColor: `${driverColorMap.get(driver.id)}4D`,
+                        borderLeft: `3px solid ${driverColorMap.get(driver.id)}`,
                       }}
                     />
-                    <span className="text-[10px] text-text-muted">{GANTT_STATUS_LABELS[s]}</span>
+                    <span className="text-[10px] text-text-muted">{driver.name}</span>
                   </div>
                 ))}
-                <div className="flex items-center gap-1">
-                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", backgroundColor: "#EEF2F6", borderLeft: "3px solid #8A96A8" }} />
+                <div className="flex items-center gap-1.5">
+                  <div style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#EEF2F6", borderLeft: "3px solid #8A96A8" }} />
                   <span className="text-[10px] text-text-muted">하차지</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#E5E7EB", borderLeft: "3px solid #9CA3AF" }} />
+                  <span className="text-[10px] text-text-muted">미배차</span>
                 </div>
                 <span className="text-[10px] text-text-muted ml-auto">드래그로 기사/시간 변경 가능</span>
               </div>
@@ -308,6 +332,7 @@ export default function DispatchTab({
                 drivers={ganttDrivers}
                 bookings={ganttBookings}
                 token={token}
+                driverColorMap={driverColorMap}
                 onBookingUpdated={onGanttRefresh}
                 onBookingClick={(id) => router.push(`/admin/bookings/${id}`)}
                 unloadingPoints={unloadingPoints}

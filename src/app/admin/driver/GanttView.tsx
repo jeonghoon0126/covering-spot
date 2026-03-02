@@ -57,6 +57,11 @@ interface DragState {
   originalTime: string | null;
 }
 
+interface ActiveAddMenuState {
+  bookingId: string;
+  rect: DOMRect;
+}
+
 /* ── 유틸리티 훅 ── */
 
 function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -112,10 +117,11 @@ interface GanttBlockProps {
   isUnloading?: boolean;
   unloadingPoints?: UnloadingPoint[];
   isUpdating?: boolean;
+  driverColorMap: Map<string, string>;
   onDragStart: (e: React.DragEvent, bookingId: string, driverId: string | null, time: string | null) => void;
   onClick: (bookingId: string) => void;
   onRemoveUnloadingStop?: (bookingId: string) => void;
-  onAddUnloadingStop?: (bookingId: string, pointId: string) => void;
+  onToggleAddUnloadingMenu?: (e: React.MouseEvent, bookingId: string) => void;
 }
 
 function GanttBlock({
@@ -123,21 +129,12 @@ function GanttBlock({
   isUnloading = false,
   unloadingPoints,
   isUpdating,
+  driverColorMap,
   onDragStart,
   onClick,
   onRemoveUnloadingStop,
-  onAddUnloadingStop,
+  onToggleAddUnloadingMenu,
 }: GanttBlockProps) {
-  const [showAddMenu, setShowAddMenu] = useState(false);
-  const addMenuRef = useRef<HTMLDivElement>(null);
-
-  useOnClickOutside(addMenuRef, () => setShowAddMenu(false));
-
-  // isUpdating 시작되면 메뉴 자동 닫기
-  useEffect(() => {
-    if (isUpdating) setShowAddMenu(false);
-  }, [isUpdating]);
-
   const time = booking.confirmedTime || booking.timeSlot;
   if (!time) return null;
 
@@ -163,7 +160,9 @@ function GanttBlock({
         }}
         title="하차지"
       >
-        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub truncate">하차</span>
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" className="text-[#6B7280]">
+          <path d="M8 3V13M8 13L12.5 8.5M8 13L3.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
         {onRemoveUnloadingStop && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
@@ -180,8 +179,13 @@ function GanttBlock({
     );
   }
 
-  const bg = GANTT_BLOCK_BG[booking.status] || "#F5F5F5";
-  const border = GANTT_BLOCK_BORDER[booking.status] || "#9E9E9E";
+  const UNASSIGNED_BG = "#E5E7EB";
+  const UNASSIGNED_BORDER = "#9CA3AF";
+
+  const color = booking.driverId ? driverColorMap.get(booking.driverId) : undefined;
+  const bg = color ? `${color}4D` : UNASSIGNED_BG;
+  const border = color || UNASSIGNED_BORDER;
+
   const hasUnloadingPoints = unloadingPoints && unloadingPoints.length > 0;
   const hasUnloadingStop = !!booking.unloadingStopAfter;
 
@@ -213,11 +217,11 @@ function GanttBlock({
       </div>
 
       {/* 하차지 추가 버튼 — 하차지 없고 unloadingPoints 있을 때 hover 시 노출 */}
-      {!hasUnloadingStop && hasUnloadingPoints && onAddUnloadingStop && (
+      {!hasUnloadingStop && hasUnloadingPoints && onToggleAddUnloadingMenu && (
         <div className="absolute -right-0.5 top-1/2 -translate-y-1/2 z-[5]">
-          <div ref={addMenuRef} className="relative">
+          <div className="relative">
             <button
-              onClick={(e) => { e.stopPropagation(); setShowAddMenu((v) => !v); }}
+              onClick={(e) => { e.stopPropagation(); onToggleAddUnloadingMenu(e, booking.id); }}
               disabled={isUpdating}
               className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white shadow disabled:opacity-30 hover:bg-primary-dark"
               title="하차지 추가"
@@ -226,23 +230,6 @@ function GanttBlock({
                 <path d="M4 1v6M1 4h6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
             </button>
-            {showAddMenu && (
-              <div
-                className="absolute top-full mt-1 right-0 bg-bg border border-border-light rounded-lg shadow-lg z-50 min-w-[140px] py-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="px-2 py-1 text-[10px] font-semibold text-text-muted border-b border-border-light mb-0.5">하차지 선택</div>
-                {unloadingPoints!.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { onAddUnloadingStop(booking.id, p.id); setShowAddMenu(false); }}
-                    className="w-full text-left px-3 py-1.5 text-[11px] text-text-primary hover:bg-bg-warm transition-colors"
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -256,6 +243,7 @@ export interface GanttViewProps {
   drivers: Driver[];
   bookings: Booking[];
   token: string;
+  driverColorMap: Map<string, string>;
   onBookingUpdated: () => void;
   onBookingClick: (id: string) => void;
   unloadingPoints?: UnloadingPoint[];
@@ -267,6 +255,7 @@ export default function GanttView({
   drivers,
   bookings,
   token,
+  driverColorMap,
   onBookingUpdated,
   onBookingClick,
   unloadingPoints = [],
@@ -277,6 +266,29 @@ export default function GanttView({
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ driverId: string | null; time: string } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [activeAddMenu, setActiveAddMenu] = useState<ActiveAddMenuState | null>(null);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(addMenuRef, () => setActiveAddMenu(null));
+
+  useEffect(() => {
+    if (activeAddMenu && updatingUnloadingIds.has(activeAddMenu.bookingId)) {
+      setActiveAddMenu(null);
+    }
+  }, [updatingUnloadingIds, activeAddMenu]);
+
+  const handleToggleAddMenu = useCallback(
+    (e: React.MouseEvent, bookingId: string) => {
+      e.stopPropagation();
+      if (activeAddMenu?.bookingId === bookingId) {
+        setActiveAddMenu(null);
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setActiveAddMenu({ bookingId, rect });
+      }
+    },
+    [activeAddMenu],
+  );
 
   const driverBookingsMap = useMemo(() => {
     const map: Record<string, Booking[]> = {};
@@ -381,6 +393,11 @@ export default function GanttView({
 
   const hours = Array.from({ length: GANTT_HOURS + 1 }, (_, i) => GANTT_START_HOUR + i);
 
+  const activeMenuBooking = useMemo(
+    () => (activeAddMenu ? bookings.find((b) => b.id === activeAddMenu.bookingId) : null),
+    [activeAddMenu, bookings],
+  );
+
   const renderRow = (driverId: string | null, driver: Driver | null) => {
     const rowBookings = driverBookingsMap[driverId ?? "__unassigned__"] || [];
     const isDropTarget = dropTarget?.driverId === driverId;
@@ -436,9 +453,10 @@ export default function GanttView({
               isUnloading={false}
               unloadingPoints={unloadingPoints}
               isUpdating={updatingUnloadingIds.has(b.id) || updating === b.id}
+              driverColorMap={driverColorMap}
               onDragStart={handleDragStart}
               onClick={onBookingClick}
-              onAddUnloadingStop={onUpdateUnloadingStop ? (bookingId, pointId) => onUpdateUnloadingStop(bookingId, pointId) : undefined}
+              onToggleAddUnloadingMenu={onUpdateUnloadingStop ? handleToggleAddMenu : undefined}
             />
           ))}
 
@@ -454,6 +472,7 @@ export default function GanttView({
                   booking={fakeUnloading as Booking}
                   isUnloading={true}
                   isUpdating={updatingUnloadingIds.has(b.id)}
+                  driverColorMap={driverColorMap}
                   onDragStart={() => {}} // 하차지 블록은 드래그 불가
                   onClick={() => onBookingClick(b.id)}
                   onRemoveUnloadingStop={onUpdateUnloadingStop ? (bookingId) => onUpdateUnloadingStop(bookingId, null) : undefined}
@@ -496,6 +515,38 @@ export default function GanttView({
 
       {/* 미배차 행 */}
       {(driverBookingsMap["__unassigned__"]?.length ?? 0) > 0 && renderRow(null, null)}
+
+      {/* 하차지 추가 메뉴 (Portal-like) */}
+      {activeAddMenu && activeMenuBooking && onUpdateUnloadingStop && (
+        <div
+          ref={addMenuRef}
+          className="bg-bg border border-border-light rounded-lg shadow-lg z-[200] min-w-[140px] py-1"
+          style={{
+            position: "fixed",
+            top: `${activeAddMenu.rect.bottom + 4}px`,
+            left: `${activeAddMenu.rect.right}px`,
+            transform: "translateX(-100%)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-2 py-1 text-[10px] font-semibold text-text-muted border-b border-border-light mb-0.5">
+            하차지 선택
+          </div>
+          {unloadingPoints.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                onUpdateUnloadingStop(activeMenuBooking.id, p.id);
+                setActiveAddMenu(null);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-text-primary hover:bg-bg-warm transition-colors"
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
