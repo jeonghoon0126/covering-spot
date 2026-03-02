@@ -6,15 +6,34 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      VERCEL_ORG_ID: team_EyB9AZd0p5WrrY8og8951AY1
-      VERCEL_PROJECT_ID: prj_KCWVWdYmkH7gMyee4CkoD3RMhGJa
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-      - run: npm install -g vercel
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy via Vercel REST API (gitSource — no file upload)
+        run: |
+          REPO_ID=$(curl -s "https://api.github.com/repos/${{ github.repository }}" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+          RESPONSE=$(curl -s -X POST \
+            "https://api.vercel.com/v13/deployments?teamId=team_EyB9AZd0p5WrrY8og8951AY1" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"coveringspot\",\"project\":\"prj_KCWVWdYmkH7gMyee4CkoD3RMhGJa\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":${REPO_ID},\"ref\":\"main\"}}")
+
+          DEPLOY_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url',''))")
+          echo "Deployment: $DEPLOY_URL"
+
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "Failed to create deployment: $RESPONSE"
+            exit 1
+          fi
+
+          for i in $(seq 1 24); do
+            sleep 15
+            STATE=$(curl -s "https://api.vercel.com/v13/deployments/$DEPLOY_URL?teamId=team_EyB9AZd0p5WrrY8og8951AY1" \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('readyState',''))")
+            echo "($i) $STATE"
+            if [[ "$STATE" == "READY" ]]; then exit 0; fi
+            if [[ "$STATE" == "ERROR" ]]; then echo "Build failed"; exit 1; fi
+          done
+          echo "Timeout"; exit 1
