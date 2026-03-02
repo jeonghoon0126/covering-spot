@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
-import type { Booking } from "@/types/booking";
+import type { Booking, UnloadingPoint } from "@/types/booking";
 
 import type { Driver, Vehicle, Assignment, BlockedSlot } from "../types";
 import { getToday, nextHour } from "../constants";
@@ -37,6 +37,11 @@ export default function AdminDispatchPage() {
   // 기사별 배차 Gantt 상태
   const [ganttBookings, setGanttBookings] = useState<Booking[]>([]);
   const [ganttLoading, setGanttLoading] = useState(false);
+
+  // 하차지 목록
+  const [unloadingPoints, setUnloadingPoints] = useState<UnloadingPoint[]>([]);
+  // 하차지 수동 업데이트 중인 bookingId 집합
+  const [updatingUnloadingIds, setUpdatingUnloadingIds] = useState<Set<string>>(new Set());
 
   // 토스트
   const [toast, setToast] = useState<string | null>(null);
@@ -225,6 +230,73 @@ export default function AdminDispatchPage() {
     fetchGanttBookings();
   }, [fetchGanttBookings]);
 
+  /* ── 하차지 fetch ── */
+
+  const fetchUnloadingPoints = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch("/api/admin/unloading-points", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUnloadingPoints((data.points || []).filter((p: UnloadingPoint) => p.active));
+      }
+    } catch {
+      // ignore
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchUnloadingPoints();
+  }, [fetchUnloadingPoints]);
+
+  /* ── 하차지 수동 업데이트 (Optimistic Update) ── */
+
+  async function handleUpdateUnloadingStop(bookingId: string, unloadingPointId: string | null) {
+    if (!token) return;
+    const originalBooking = ganttBookings.find((b) => b.id === bookingId);
+    if (!originalBooking) return;
+    const prevUnloadingStopAfter = originalBooking.unloadingStopAfter;
+
+    setGanttBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, unloadingStopAfter: unloadingPointId } : b)),
+    );
+    setUpdatingUnloadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(bookingId);
+      return next;
+    });
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ unloadingStopAfter: unloadingPointId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "API 요청 실패");
+      }
+      fetchGanttBookings();
+    } catch {
+      // 롤백
+      setGanttBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, unloadingStopAfter: prevUnloadingStopAfter } : b)),
+      );
+      showToast("하차지 업데이트 실패");
+    } finally {
+      setUpdatingUnloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(bookingId);
+        return next;
+      });
+    }
+  }
+
   async function handleBlockSlot(timeStart: string) {
     const timeEnd = nextHour(timeStart);
     const driverId = selectedDriverId !== "all" ? selectedDriverId : undefined;
@@ -309,6 +381,9 @@ export default function AdminDispatchPage() {
           ganttLoading={ganttLoading}
           token={token}
           onGanttRefresh={fetchGanttBookings}
+          unloadingPoints={unloadingPoints}
+          onUpdateUnloadingStop={handleUpdateUnloadingStop}
+          updatingUnloadingIds={updatingUnloadingIds}
           blockedSlots={blockedSlots}
           selectedDriverId={selectedDriverId}
           setSelectedDriverId={setSelectedDriverId}

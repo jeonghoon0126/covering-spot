@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import type { Booking } from "@/types/booking";
+import type { Booking, UnloadingPoint } from "@/types/booking";
 import type { Driver } from "./types";
 
 /* ── Gantt 상수 ── */
@@ -82,11 +82,26 @@ function pixelOffsetToTime(offsetPx: number, totalWidth: number): string {
 interface GanttBlockProps {
   booking: Booking;
   isUnloading?: boolean;
+  unloadingPoints?: UnloadingPoint[];
+  isUpdating?: boolean;
   onDragStart: (e: React.DragEvent, bookingId: string, driverId: string | null, time: string | null) => void;
   onClick: (bookingId: string) => void;
+  onRemoveUnloadingStop?: (bookingId: string) => void;
+  onAddUnloadingStop?: (bookingId: string, pointId: string) => void;
 }
 
-function GanttBlock({ booking, isUnloading = false, onDragStart, onClick }: GanttBlockProps) {
+function GanttBlock({
+  booking,
+  isUnloading = false,
+  unloadingPoints,
+  isUpdating,
+  onDragStart,
+  onClick,
+  onRemoveUnloadingStop,
+  onAddUnloadingStop,
+}: GanttBlockProps) {
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
   const time = booking.confirmedTime || booking.timeSlot;
   if (!time) return null;
 
@@ -103,7 +118,7 @@ function GanttBlock({ booking, isUnloading = false, onDragStart, onClick }: Gant
   if (isUnloading) {
     return (
       <div
-        className="absolute inset-y-1 flex items-center px-1.5 overflow-hidden rounded z-[1]"
+        className="absolute inset-y-1 flex items-center justify-between px-1.5 overflow-visible rounded z-[1] group"
         style={{
           left: `${leftPercent}%`,
           width: `${Math.max(clampedWidth, 3)}%`,
@@ -112,36 +127,88 @@ function GanttBlock({ booking, isUnloading = false, onDragStart, onClick }: Gant
         }}
         title="하차지"
       >
-        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub">하차지</span>
+        <span className="text-[10px] font-semibold whitespace-nowrap text-text-sub truncate">하차지</span>
+        {onRemoveUnloadingStop && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemoveUnloadingStop(booking.id); }}
+            disabled={isUpdating}
+            className="ml-0.5 flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#8A96A8] text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-[#6B7280]"
+            title="하차지 제거"
+          >
+            <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
+              <path d="M1 1L7 7M1 7L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
       </div>
     );
   }
 
   const bg = GANTT_BLOCK_BG[booking.status] || "#F5F5F5";
   const border = GANTT_BLOCK_BORDER[booking.status] || "#9E9E9E";
+  const hasUnloadingPoints = unloadingPoints && unloadingPoints.length > 0;
+  const hasUnloadingStop = !!booking.unloadingStopAfter;
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, booking.id, booking.driverId ?? null, time)}
-      onClick={() => onClick(booking.id)}
-      className="absolute inset-y-1 flex flex-col justify-center px-1.5 py-0.5 overflow-hidden rounded cursor-grab z-[2] shadow-sm"
+      className="absolute inset-y-1 group z-[2]"
       style={{
         left: `${leftPercent}%`,
         width: `${Math.max(clampedWidth, 3)}%`,
-        backgroundColor: bg,
-        borderLeft: `3px solid ${border}`,
       }}
-      title={`${booking.customerName} | ${booking.address} | ${cube}m³`}
     >
-      <span className="text-[10px] font-bold whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
-        {booking.customerName}
-      </span>
-      <span className="text-[9px] text-text-sub whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
-        {address}
-      </span>
-      {cube > 0 && (
-        <span className="text-[9px] text-text-primary font-semibold leading-[1.3]">{cube}m³</span>
+      <div
+        draggable
+        onDragStart={(e) => onDragStart(e, booking.id, booking.driverId ?? null, time)}
+        onClick={() => onClick(booking.id)}
+        className="w-full h-full flex flex-col justify-center px-1.5 py-0.5 overflow-hidden rounded cursor-grab shadow-sm"
+        style={{ backgroundColor: bg, borderLeft: `3px solid ${border}` }}
+        title={`${booking.customerName} | ${booking.address} | ${cube}m³`}
+      >
+        <span className="text-[10px] font-bold whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
+          {booking.customerName}
+        </span>
+        <span className="text-[9px] text-text-sub whitespace-nowrap overflow-hidden text-ellipsis leading-[1.3]">
+          {address}
+        </span>
+        {cube > 0 && (
+          <span className="text-[9px] text-text-primary font-semibold leading-[1.3]">{cube}m³</span>
+        )}
+      </div>
+
+      {/* 하차지 추가 버튼 — 하차지 없고 unloadingPoints 있을 때 hover 시 노출 */}
+      {!hasUnloadingStop && hasUnloadingPoints && onAddUnloadingStop && (
+        <div className="absolute -right-0.5 top-1/2 -translate-y-1/2 z-[5]">
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAddMenu((v) => !v); }}
+              disabled={isUpdating}
+              className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white shadow disabled:opacity-30 hover:bg-primary-dark"
+              title="하차지 추가"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                <path d="M4 1v6M1 4h6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+            {showAddMenu && (
+              <div
+                className="absolute top-full mt-1 right-0 bg-bg border border-border-light rounded-lg shadow-lg z-50 min-w-[140px] py-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-2 py-1 text-[10px] font-semibold text-text-muted border-b border-border-light mb-0.5">하차지 선택</div>
+                {unloadingPoints!.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { onAddUnloadingStop(booking.id, p.id); setShowAddMenu(false); }}
+                    className="w-full text-left px-3 py-1.5 text-[11px] text-text-primary hover:bg-bg-warm transition-colors"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -155,9 +222,21 @@ export interface GanttViewProps {
   token: string;
   onBookingUpdated: () => void;
   onBookingClick: (id: string) => void;
+  unloadingPoints?: UnloadingPoint[];
+  onUpdateUnloadingStop?: (bookingId: string, unloadingPointId: string | null) => Promise<void>;
+  updatingUnloadingIds?: Set<string>;
 }
 
-export default function GanttView({ drivers, bookings, token, onBookingUpdated, onBookingClick }: GanttViewProps) {
+export default function GanttView({
+  drivers,
+  bookings,
+  token,
+  onBookingUpdated,
+  onBookingClick,
+  unloadingPoints = [],
+  onUpdateUnloadingStop,
+  updatingUnloadingIds = new Set(),
+}: GanttViewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ driverId: string | null; time: string } | null>(null);
@@ -319,8 +398,11 @@ export default function GanttView({ drivers, bookings, token, onBookingUpdated, 
               key={b.id}
               booking={b}
               isUnloading={false}
+              unloadingPoints={unloadingPoints}
+              isUpdating={updatingUnloadingIds.has(b.id)}
               onDragStart={handleDragStart}
               onClick={onBookingClick}
+              onAddUnloadingStop={onUpdateUnloadingStop ? (bookingId, pointId) => onUpdateUnloadingStop(bookingId, pointId) : undefined}
             />
           ))}
 
@@ -339,8 +421,10 @@ export default function GanttView({ drivers, bookings, token, onBookingUpdated, 
                   key={`${b.id}-unloading`}
                   booking={fakeUnloading as Booking}
                   isUnloading={true}
+                  isUpdating={updatingUnloadingIds.has(b.id)}
                   onDragStart={handleDragStart}
                   onClick={onBookingClick}
+                  onRemoveUnloadingStop={onUpdateUnloadingStop ? (bookingId) => onUpdateUnloadingStop(bookingId, null) : undefined}
                 />
               );
             })}

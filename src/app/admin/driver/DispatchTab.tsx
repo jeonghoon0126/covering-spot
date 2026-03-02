@@ -7,6 +7,7 @@ import type { Booking } from "@/types/booking";
 import type { Driver, Vehicle, Assignment, BlockedSlot } from "./types";
 import { addDays, getToday, formatDate, SLOT_MGMT_HOURS } from "./constants";
 import GanttView, { GANTT_BLOCK_BG, GANTT_BLOCK_BORDER, GANTT_STATUS_LABELS } from "./GanttView";
+import type { UnloadingPoint } from "@/types/booking";
 
 export interface DispatchTabProps {
   // Date
@@ -33,6 +34,9 @@ export interface DispatchTabProps {
   ganttLoading: boolean;
   token: string;
   onGanttRefresh: () => void;
+  unloadingPoints: UnloadingPoint[];
+  onUpdateUnloadingStop: (bookingId: string, unloadingPointId: string | null) => Promise<void>;
+  updatingUnloadingIds: Set<string>;
 
   // Slot blocking
   blockedSlots: BlockedSlot[];
@@ -65,6 +69,9 @@ export default function DispatchTab({
   ganttLoading,
   token,
   onGanttRefresh,
+  unloadingPoints,
+  onUpdateUnloadingStop,
+  updatingUnloadingIds,
   blockedSlots,
   selectedDriverId,
   setSelectedDriverId,
@@ -303,6 +310,9 @@ export default function DispatchTab({
                 token={token}
                 onBookingUpdated={onGanttRefresh}
                 onBookingClick={(id) => router.push(`/admin/bookings/${id}`)}
+                unloadingPoints={unloadingPoints}
+                onUpdateUnloadingStop={onUpdateUnloadingStop}
+                updatingUnloadingIds={updatingUnloadingIds}
               />
             </div>
           )}
