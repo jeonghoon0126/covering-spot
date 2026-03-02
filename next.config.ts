@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     // 타입 오류는 VS Code IntelliSense + npm run typecheck 로 확인
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // ESLint는 별도 lint 스크립트로 확인 (next build 속도 최적화)
+    ignoreDuringBuilds: true,
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
