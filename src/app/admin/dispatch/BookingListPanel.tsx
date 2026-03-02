@@ -79,6 +79,13 @@ interface BookingListPanelProps {
   onShowUnloadingModal: () => void;
   onNavigateDriver: () => void;
   cardRefs: React.RefObject<Map<string, HTMLDivElement>>;
+
+  // 하차지 컨트롤
+  onUpdateUnloadingStop: (bookingId: string, unloadingPointId: string | null) => Promise<void>;
+  updatingUnloadingIds: Set<string>;
+
+  // 방문 예상 시간
+  estimatedVisitTimes?: Map<string, string>;
 }
 
 export default function BookingListPanel({
@@ -127,6 +134,9 @@ export default function BookingListPanel({
   onShowUnloadingModal,
   onNavigateDriver,
   cardRefs,
+  onUpdateUnloadingStop,
+  updatingUnloadingIds,
+  estimatedVisitTimes,
 }: BookingListPanelProps) {
   return (
     <div className={`lg:w-[400px] lg:flex-shrink-0 lg:border-r border-border-light bg-bg flex flex-col overflow-hidden ${
@@ -262,6 +272,7 @@ export default function BookingListPanel({
                         driverColor={b.driverId ? (driverColorMap.get(b.driverId) || "#10B981") : undefined}
                         driverStats={driverStats}
                         dispatching={dispatching}
+                        estimatedVisitTime={estimatedVisitTimes?.get(b.id)}
                         onCheck={() => onToggleCheck(b.id)}
                         onClick={() => onCardClick(b)}
                         onDispatch={(dId) => onDispatch(b.id, dId)}
@@ -276,6 +287,8 @@ export default function BookingListPanel({
                         booking={b}
                         nextBooking={filteredBookings[idx + 1]}
                         unloadingPoints={unloadingPoints}
+                        onUpdateUnloadingStop={onUpdateUnloadingStop}
+                        isUpdating={updatingUnloadingIds.has(b.id)}
                       />,
                     ])}
               </SortableContext>

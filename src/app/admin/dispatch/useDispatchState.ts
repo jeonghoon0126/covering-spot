@@ -9,6 +9,7 @@ import {
   SLOT_MAX_PER_DRIVER,
   UNASSIGNED_COLOR,
   mapTimeToSlotGroup,
+  calcEstimatedVisitTimes,
 } from "./dispatch-utils";
 import { useDispatchData } from "./useDispatchData";
 import { useAutoDispatch } from "./useAutoDispatch";
@@ -62,6 +63,8 @@ export function useDispatchState() {
 
   // 하차지 모달
   const [showUnloadingModal, setShowUnloadingModal] = useState(false);
+  // 하차지 수동 업데이트 중인 bookingId 집합
+  const [updatingUnloadingIds, setUpdatingUnloadingIds] = useState<Set<string>>(new Set());
 
   // 토스트 (alert 대체)
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "warning" } | null>(null);
@@ -193,6 +196,12 @@ export function useDispatchState() {
   }, [activeBookings, filterDriverId, filterSlot]);
   // 최신값 ref 동기화 (scrollToNextUnassigned stale closure 방어)
   filteredBookingsRef.current = filteredBookings;
+
+  // 기사별 예상 방문 시간 (특정 기사 필터 시에만 계산)
+  const estimatedVisitTimes = useMemo(() => {
+    if (filterDriverId === "all" || filterDriverId === "unassigned") return new Map<string, string>();
+    return calcEstimatedVisitTimes(filteredBookings, unloadingPoints);
+  }, [filteredBookings, filterDriverId, unloadingPoints]);
 
   // ── 서브 훅: DnD 정렬 + 경로 최적화 ──
   const {
@@ -592,6 +601,51 @@ export function useDispatchState() {
     }
   }
 
+  // 하차지 수동 업데이트 (옵티미스틱 업데이트)
+  async function handleUpdateUnloadingStop(bookingId: string, unloadingPointId: string | null) {
+    if (!token) return;
+    const originalBooking = bookings.find((b) => b.id === bookingId);
+    if (!originalBooking) return;
+    const prevUnloadingStopAfter = originalBooking.unloadingStopAfter;
+
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, unloadingStopAfter: unloadingPointId } : b)),
+    );
+    setUpdatingUnloadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(bookingId);
+      return next;
+    });
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ unloadingStopAfter: unloadingPointId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "API 요청 실패");
+      }
+      fetchData({ silent: true });
+    } catch {
+      // 롤백
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, unloadingStopAfter: prevUnloadingStopAfter } : b)),
+      );
+      showToast("하차지 업데이트 실패", "error");
+    } finally {
+      setUpdatingUnloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(bookingId);
+        return next;
+      });
+    }
+  }
+
   // 날짜 이동 (시간대 무관 순수 날짜 산술)
   function moveDate(delta: number) {
     const [y, m, d] = selectedDate.split("-").map(Number);
@@ -668,6 +722,7 @@ export function useDispatchState() {
     filteredBookings,
     groupedBySlot,
     slotOverload,
+    estimatedVisitTimes,
 
     // 기사 관련
     driverColorMap,
@@ -712,10 +767,12 @@ export function useDispatchState() {
     handleAutoCancel,
     handleAutoReorder,
 
-    // 하차지 모달
+    // 하차지
     showUnloadingModal,
     setShowUnloadingModal,
     fetchUnloadingPoints,
+    handleUpdateUnloadingStop,
+    updatingUnloadingIds,
 
     // 토스트
     toast,

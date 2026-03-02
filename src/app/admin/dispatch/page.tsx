@@ -114,6 +114,9 @@ export default function AdminDispatchPage() {
               onShowUnloadingModal={() => s.setShowUnloadingModal(true)}
               onNavigateDriver={() => s.router.push("/admin/driver")}
               cardRefs={s.cardRefs}
+              onUpdateUnloadingStop={s.handleUpdateUnloadingStop}
+              updatingUnloadingIds={s.updatingUnloadingIds}
+              estimatedVisitTimes={s.estimatedVisitTimes}
             />
 
             {/* ── 오른쪽: 지도 ── */}

@@ -76,6 +76,7 @@ export const BookingUpdateSchema = z.object({
       }),
     )
     .optional(),
+  unloadingStopAfter: z.string().uuid().nullable().optional(),
 });
 
 export const PhoneSchema = z.string().regex(/^01[0-9]\d{7,8}$/);

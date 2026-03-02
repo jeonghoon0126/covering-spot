@@ -112,10 +112,11 @@ export async function PUT(
     if (data.confirmedDuration !== undefined) allowedUpdates.confirmedDuration = data.confirmedDuration;
     if (data.completionPhotos !== undefined) allowedUpdates.completionPhotos = data.completionPhotos;
     if (data.crewSize !== undefined) allowedUpdates.crewSize = data.crewSize;
+    if (data.unloadingStopAfter !== undefined) allowedUpdates.unloadingStopAfter = data.unloadingStopAfter;
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName, crewSize)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName, crewSize, unloadingStopAfter)" },
         { status: 400 },
       );
     }

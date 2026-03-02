@@ -21,6 +21,7 @@ export default function SortableFlatBookingCard({
   driverColor,
   driverStats,
   dispatching,
+  estimatedVisitTime,
   onCheck,
   onClick,
   onDispatch,
@@ -66,6 +67,7 @@ export default function SortableFlatBookingCard({
           driverColor={driverColor}
           driverStats={driverStats}
           dispatching={dispatching}
+          estimatedVisitTime={estimatedVisitTime}
           onCheck={onCheck}
           onClick={onClick}
           onDispatch={onDispatch}

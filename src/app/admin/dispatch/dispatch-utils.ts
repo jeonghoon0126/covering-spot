@@ -1,6 +1,6 @@
 import { STATUS_LABELS_SHORT } from "@/lib/constants";
 import { haversine } from "@/lib/optimizer/haversine";
-import type { BookingItem } from "@/types/booking";
+import type { Booking, UnloadingPoint, BookingItem } from "@/types/booking";
 
 /* ── 타입 ── */
 
@@ -68,6 +68,7 @@ export const ROUTE_ROAD_FACTOR = 1.4;   // 직선거리 → 도로거리 보정�
 export const ROUTE_AVG_SPEED_KMH = 20;  // 서울 시내 평균 이동속도 (km/h)
 export const BASE_SERVICE_MINS = 5;     // 수거지당 기본 수거 시간 (분)
 export const CUBE_MINS_PER_M3 = 7;      // 적재량 1m³당 추가 수거 시간 (분)
+export const DRIVER_START_HOUR = 9;     // 기사 출발 시각 (09:00)
 
 /* ── 유틸 함수 ── */
 
@@ -114,4 +115,50 @@ export function itemsSummary(items: BookingItem[] | undefined | null): string {
   if (!first) return "-";
   const label = `${first.category || ""} ${first.name || ""}`.trim() || "품목";
   return items.length > 1 ? `${label} 외 ${items.length - 1}종` : label;
+}
+
+/** 기사별 flat list에서 예상 방문 시간 계산 (09:00 출발 기준) */
+export function calcEstimatedVisitTimes(
+  bookings: Booking[], // 이미 routeOrder 순 정렬된 배열
+  unloadingPoints: UnloadingPoint[],
+): Map<string, string> {
+  const visitTimes = new Map<string, string>();
+  if (bookings.length === 0) return visitTimes;
+
+  let currentTimeInMins = DRIVER_START_HOUR * 60;
+
+  for (let i = 0; i < bookings.length; i++) {
+    const currentBooking = bookings[i];
+
+    if (i > 0) {
+      const prevBooking = bookings[i - 1];
+
+      // 이전 수거지 서비스 시간 추가
+      currentTimeInMins += calcServiceMins(prevBooking.totalLoadingCube);
+
+      // 이전 수거지 → (하차지 경유 시 하차지, 없으면 이전 수거지) → 현재 수거지 이동시간
+      const unloadingPoint = prevBooking.unloadingStopAfter
+        ? unloadingPoints.find((p) => p.id === prevBooking.unloadingStopAfter)
+        : null;
+      const fromLat = unloadingPoint ? unloadingPoint.latitude : prevBooking.latitude;
+      const fromLng = unloadingPoint ? unloadingPoint.longitude : prevBooking.longitude;
+      const toLat = currentBooking.latitude;
+      const toLng = currentBooking.longitude;
+
+      if (fromLat && fromLng && toLat && toLng) {
+        currentTimeInMins += calcTravelMins(fromLat, fromLng, toLat, toLng);
+      }
+    }
+
+    if (currentBooking.id) {
+      const hours = Math.floor(currentTimeInMins / 60);
+      const mins = Math.round(currentTimeInMins % 60);
+      visitTimes.set(
+        currentBooking.id,
+        `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`,
+      );
+    }
+  }
+
+  return visitTimes;
 }

@@ -14,6 +14,7 @@ export interface BookingCardProps {
   driverColor?: string;
   driverStats: DriverStats[];
   dispatching: boolean;
+  estimatedVisitTime?: string;
   onCheck: () => void;
   onClick: () => void;
   onDispatch: (driverId: string) => void;
@@ -23,7 +24,7 @@ export interface BookingCardProps {
 /* ── 주문 카드 (리스트용) ── */
 
 const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function BookingCard(
-  { booking, isSelected, isChecked, driverColor, driverStats, dispatching, onCheck, onClick, onDispatch, onUnassign },
+  { booking, isSelected, isChecked, driverColor, driverStats, dispatching, estimatedVisitTime, onCheck, onClick, onDispatch, onUnassign },
   ref,
 ) {
   const cube = (booking.totalLoadingCube || 0).toFixed(1);
@@ -64,6 +65,9 @@ const BookingCard = forwardRef<HTMLDivElement, BookingCardProps>(function Bookin
               style={{ background: booking.driverId ? (driverColor || "#10B981") : UNASSIGNED_COLOR }}>
               {SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
             </span>
+            {estimatedVisitTime && (
+              <span className="text-[10px] text-text-muted font-mono flex-shrink-0">예상 {estimatedVisitTime}</span>
+            )}
             <span className="text-sm font-semibold truncate">{booking.customerName}</span>
             {booking.driverId && booking.driverName && (
               <span className="text-[11px] font-medium px-1.5 py-0.5 rounded ml-auto flex-shrink-0"
