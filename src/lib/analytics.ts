@@ -15,8 +15,11 @@ type EventName =
   | "[CLICK] SpotBookingScreen_submit"
   | "[CLICK] SpotBookingEditScreen_submit"
   | "[CLICK] SpotBookingManageScreen_cancel"
+  | "[CLICK] SpotBookingManageScreen_edit"
+  | "[CLICK] SpotBookingManageScreen_reschedule"
   // VIEW - 노출
   | "[VIEW] SpotBookingScreen_quotePreview"
+  | "[VIEW] SpotBookingScreen_step"
   | "[VIEW] SpotScrollDepth"
   | "[VIEW] SpotHomeScreen_compareSection"
   // EVENT - 결과
@@ -35,7 +38,10 @@ interface EventProps {
   "[CLICK] SpotBookingScreen_submit": { itemCount: number; estimatedTotal: number };
   "[CLICK] SpotBookingEditScreen_submit": { itemCount: number; estimatedTotal: number };
   "[CLICK] SpotBookingManageScreen_cancel": { bookingId: string; reason?: string };
+  "[CLICK] SpotBookingManageScreen_edit": { bookingId: string };
+  "[CLICK] SpotBookingManageScreen_reschedule": { bookingId: string };
   "[VIEW] SpotBookingScreen_quotePreview": { itemCount: number; total: number };
+  "[VIEW] SpotBookingScreen_step": { step: number; stepName: string };
   "[VIEW] SpotScrollDepth": { depth: 25 | 50 | 75 | 100 };
   "[EVENT] SpotBookingComplete": { bookingId: string };
   "[EVENT] SpotBookingCancel": { bookingId: string; reason?: string };

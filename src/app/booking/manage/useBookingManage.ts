@@ -184,6 +184,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   }
 
   function startEdit(b: Booking) {
+    track("[CLICK] SpotBookingManageScreen_edit", { bookingId: b.id });
     setEditingId(b.id);
     setEditForm({
       date: b.date,
@@ -244,6 +245,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   }
 
   function startReschedule(b: Booking) {
+    track("[CLICK] SpotBookingManageScreen_reschedule", { bookingId: b.id });
     setReschedulingId(b.id);
     setRescheduleForm({ date: b.date, timeSlot: b.timeSlot || "" });
     fetchSlots(b.date, b.id);

@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { compareCards, compareReasons } from "@/data/compare-data";
+import { track } from "@/lib/analytics";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
@@ -201,6 +202,7 @@ export function Compare() {
       ([entry]) => {
         if (entry.isIntersecting) {
           setBarAnimated(true);
+          track("[VIEW] SpotHomeScreen_compareSection");
           observer.unobserve(el);
         }
       },
