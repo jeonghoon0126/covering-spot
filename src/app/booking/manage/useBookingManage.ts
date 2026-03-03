@@ -156,6 +156,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   }
 
   async function handleCancel(id: string) {
+    track("[CLICK] SpotBookingManageScreen_cancel", { bookingId: id });
     if (!confirm("정말 신청을 취소하시겠습니까?")) return;
     track("[EVENT] SpotBookingCancel", { bookingId: id });
     setCancelling(id);

@@ -188,6 +188,10 @@ function BookingPageContent() {
     }
   }, [step]);
 
+  useEffect(() => {
+    track("[VIEW] SpotBookingScreen_step", { step, stepName: STEPS[step] });
+  }, [step]);
+
   // 데이터 로드
   useEffect(() => {
     fetch("/api/items")

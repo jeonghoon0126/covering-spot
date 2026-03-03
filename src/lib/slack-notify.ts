@@ -10,7 +10,7 @@ import {
 } from "@/lib/slack-blocks";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://coveringspot.vercel.app";
+  process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr";
 
 /** Slack 알림 전용 라벨 (constants 기본값 + Slack 워딩 오버라이드) */
 const SLACK_STATUS_LABELS: Record<string, string> = {

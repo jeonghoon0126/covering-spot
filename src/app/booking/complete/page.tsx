@@ -59,14 +59,19 @@ function BookingCompleteContent() {
       .catch(() => setError("조회 실패"));
   }, [id]);
 
-  // 예약 완료 트래킹
+  // 예약 완료 트래킹 (즉시)
   useEffect(() => {
     if (id) {
       track("[EVENT] SpotBookingComplete", { bookingId: id });
-      // bookingId로 identify (폰번호는 complete 페이지에서 알 수 없으므로 bookingId 사용)
-      identify(id);
     }
   }, [id]);
+
+  // 사용자 식별 (booking 데이터 로드 후 phone 기반으로)
+  useEffect(() => {
+    if (booking) {
+      identify(booking.phone, { phone: booking.phone, name: booking.customerName });
+    }
+  }, [booking]);
 
   if (error) {
     return (

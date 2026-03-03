@@ -13,7 +13,8 @@
  * @see https://flarelane-api-docs.readme.io/reference/send-notifications
  */
 
-const STATUS_LINK = "\n조회: https://coveringspot.vercel.app/booking/manage";
+const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr";
+const STATUS_LINK = `\n조회: ${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
