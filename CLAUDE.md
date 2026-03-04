@@ -67,12 +67,18 @@
 
 위반 시: 한 번이라도 누락되면 반드시 이 정책을 다시 읽고 추가 수정 후 재빌드
 
-## 배포 후 필수 체크리스트 (git push 직후 자동으로, 별도 요청 없이, 생략 금지)
+## 배포 후 필수 QA (git push 직후 자동 실행, 생략 절대 금지)
 
+PostToolUse hook(covering-push-qa.sh)이 자동 실행됨. 추가로 Claude가 직접 수행:
 1. 배포 브리핑: 배포 트리거 방식 + 배포 URL + 롤백 커밋 명시
-2. GitHub Actions 실행 결과 모니터링 → success/failure 보고 (curl GitHub API로 확인)
-3. 서비스 헬스체크 (API 엔드포인트 curl로 정상 응답 확인)
-4. 테스트 체크리스트 (수동 검증 항목 명시)
+2. GitHub Actions success 확인 (curl GitHub API — per_page=1으로 최신 run 조회)
+3. API 엔드포인트 응답 검증 (HTTP 상태 + JSON 구조 — 목록 제시 아닌 실행 결과 보고)
+   - GET / → 200
+   - GET /api/items → 200 + categories 키 존재
+   - GET /api/slots?date=YYYY-MM-DD → 200 + slots 키 존재
+   - GET /api/admin/bookings → 401 (인증 보호 확인)
+4. 변경된 기능별 코드 패턴 grep 검증 → ✅/❌ 보고
+FAIL 항목 존재 시: 재배포 없이 DONE 선언 금지
 
 ## 데이터 파이프라인 (Apps Script)
 - 에어브릿지 광고비: 1dgfG3NvzF1RQWnCCRR6vnA_2DqxSMgQWmTJfn4hcS6GZDjHD4L4v8UZj

@@ -4,6 +4,7 @@ import type { Driver, FilterTab } from "./types";
 import DriverAddForm from "./DriverAddForm";
 import type { DriverAddFormProps } from "./DriverAddForm";
 import DriverCard from "./DriverCard";
+import CapacityTab from "./CapacityTab";
 
 export interface DriverListTabProps {
   // Filter state
@@ -55,6 +56,9 @@ export interface DriverListTabProps {
   statsMonth: string;
   setStatsMonth: (m: string) => void;
   statsLoading: boolean;
+
+  // 인증 토큰 (CapacityTab용)
+  token: string;
 }
 
 export default function DriverListTab({
@@ -98,12 +102,14 @@ export default function DriverListTab({
   statsMonth,
   setStatsMonth,
   statsLoading,
+  token,
 }: DriverListTabProps) {
   const TABS: { key: FilterTab; label: string; count?: number }[] = [
     { key: "all", label: "전체", count: allDrivers.length },
     { key: "active", label: "활성", count: activeCount },
     { key: "inactive", label: "비활성", count: inactiveCount },
     { key: "stats", label: "월간 통계" },
+    { key: "capacity", label: "적재량 현황" },
   ];
 
   return (
@@ -193,8 +199,11 @@ export default function DriverListTab({
         </div>
       )}
 
+      {/* 적재량 현황 탭 */}
+      {filterTab === "capacity" && <CapacityTab token={token} />}
+
       {/* 기사 목록 */}
-      {filterTab !== "stats" && (loading ? (
+      {filterTab !== "stats" && filterTab !== "capacity" && (loading ? (
         <div className="text-center py-12 text-text-muted text-sm">불러오는 중...</div>
       ) : filteredDrivers.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">

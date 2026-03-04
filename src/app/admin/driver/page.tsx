@@ -349,6 +349,7 @@ export default function AdminDriverListPage() {
           statsMonth={statsMonth}
           setStatsMonth={setStatsMonth}
           statsLoading={statsLoading}
+          token={token}
         />
       </div>
 

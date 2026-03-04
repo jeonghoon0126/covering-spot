@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookings, getBlockedSlots, getDriversForDate } from "@/lib/db";
+import { getBookings, getBlockedSlots } from "@/lib/db";
+import { getDriversWithVehicleForDate } from "@/lib/db-vehicles";
 import { isDateBookable } from "@/lib/booking-utils";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
@@ -126,7 +127,7 @@ export async function GET(req: NextRequest) {
 
       // 기사별 잔여 적재량 기반 로직 (항상 시도)
       try {
-        const drivers = await getDriversForDate(date);
+        const drivers = await getDriversWithVehicleForDate(date);
         if (drivers.length > 0) {
           useDriverLogic = true;
 
@@ -153,7 +154,7 @@ export async function GET(req: NextRequest) {
                 if (!allowedSlots.includes(slot)) continue;
               }
               const remaining =
-                d.vehicleCapacity - d.initialLoadCube - (usedCubePerDriver[d.id] ?? 0);
+                d.effectiveCapacity - d.initialLoadCube - (usedCubePerDriver[d.id] ?? 0);
               driverCapacityMap[slot][d.id] = remaining;
             }
           }

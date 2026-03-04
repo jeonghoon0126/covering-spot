@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getDriversForDate } from "@/lib/db-drivers";
 
 export interface Vehicle {
   id: string;
@@ -202,4 +203,47 @@ export async function deleteDriverVehicleAssignment(id: string): Promise<boolean
     .select("id");
   if (error) throw error;
   return (data?.length ?? 0) > 0;
+}
+
+/* ── 날짜별 기사 + 배정 차량 통합 조회 ── */
+
+export interface DriverWithEffectiveVehicle {
+  id: string;
+  name: string;
+  vehicleType: string;
+  vehicleCapacity: number;
+  effectiveCapacity: number;        // 배정 차량 우선, 없으면 vehicleCapacity
+  effectiveVehicleId: string | null;
+  effectiveVehicleName: string | null;
+  isAssignedVehicle: boolean;
+  initialLoadCube: number;
+  workDays: string;
+  workSlots: string;
+}
+
+/** 해당 날짜 근무 기사 + 배정 차량 capacity를 통합 반환. 배정 없으면 driver 기본값 사용. */
+export async function getDriversWithVehicleForDate(date: string): Promise<DriverWithEffectiveVehicle[]> {
+  const [drivers, assignments] = await Promise.all([
+    getDriversForDate(date),
+    getDriverVehicleAssignments(date),
+  ]);
+  const assignmentMap = new Map(assignments.map((a) => [a.driverId, a]));
+
+  return drivers.map((d) => {
+    const assignment = assignmentMap.get(d.id);
+    const assignedVehicle = assignment?.vehicle;
+    return {
+      id: d.id,
+      name: d.name,
+      vehicleType: assignedVehicle?.type ?? d.vehicleType,
+      vehicleCapacity: d.vehicleCapacity,
+      effectiveCapacity: assignedVehicle?.capacity ?? d.vehicleCapacity,
+      effectiveVehicleId: assignedVehicle?.id ?? null,
+      effectiveVehicleName: assignedVehicle?.name ?? null,
+      isAssignedVehicle: !!assignedVehicle,
+      initialLoadCube: d.initialLoadCube,
+      workDays: d.workDays,
+      workSlots: d.workSlots,
+    };
+  });
 }
