@@ -71,8 +71,8 @@ export const priceCategories: PriceCategory[] = [
     subtitle: "김치냉장고부터 양문형까지",
     rows: [
       { label: "김치냉장고 (스탠드/뚜껑형)", value: "25,500 ~ 29,000원", barPercent: 45 },
-      { label: "중형 냉장고", value: "38,500원", barPercent: 59 },
-      { label: "양문형 냉장고", value: "65,000원", barPercent: 100 },
+      { label: "중형 냉장고", value: "35,000원", barPercent: 58 },
+      { label: "양문형 냉장고", value: "60,000원", barPercent: 100 },
       { label: "와인냉장고 / 와인셀러", value: "27,000원", barPercent: 42 },
     ],
   },
@@ -82,10 +82,10 @@ export const priceCategories: PriceCategory[] = [
     title: "세탁기 / 건조기",
     subtitle: "트럼세탁기부터 스타일러까지",
     rows: [
-      { label: "세탁기 (트럼/일반)", value: "16,500 ~ 18,000원", barPercent: 49 },
-      { label: "건조기", value: "16,500원", barPercent: 49 },
-      { label: "의류관리기", value: "21,500원", barPercent: 64 },
-      { label: "스타일러", value: "33,500원", barPercent: 100 },
+      { label: "세탁기 (일반)", value: "30,000원", barPercent: 100 },
+      { label: "세탁기 (드럼)", value: "30,000원", barPercent: 100 },
+      { label: "건조기", value: "30,000원", barPercent: 100 },
+      { label: "스타일러", value: "30,000원", barPercent: 100 },
     ],
   },
   {
@@ -95,8 +95,8 @@ export const priceCategories: PriceCategory[] = [
     subtitle: "벽걸이부터 2in1까지",
     rows: [
       { label: "벽걸이", value: "3,000원", barPercent: 10 },
-      { label: "스탠드", value: "7,000원", barPercent: 24 },
-      { label: "2in1 (스탠드+벽걸이)", value: "29,000원", barPercent: 100 },
+      { label: "스탠드", value: "30,000원", barPercent: 100 },
+      { label: "2in1 (스탠드+벽걸이)", value: "30,000원", barPercent: 100 },
     ],
   },
   {
@@ -106,7 +106,7 @@ export const priceCategories: PriceCategory[] = [
     subtitle: "모니터부터 75인치 TV까지",
     rows: [
       { label: "모니터 (24~27인치)", value: "500원", barPercent: 6 },
-      { label: "TV 32~50인치", value: "1,000 ~ 3,000원", barPercent: 35 },
+      { label: "TV 32~50인치", value: "3,000 ~ 10,000원", barPercent: 35 },
       { label: "TV 65~75인치", value: "5,000 ~ 8,500원", barPercent: 100 },
       { label: "컴퓨터 본체 / 프린터", value: "1,500 ~ 5,000원", barPercent: 59 },
     ],

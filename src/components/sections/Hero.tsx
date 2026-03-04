@@ -303,7 +303,7 @@ export function Hero() {
                   </div>
                   <div className="text-[11px] text-semantic-green font-medium mt-0.5 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-semantic-green" />
-                    10:00~22:30 주 7일 응답
+                    10:00~22:00 주 7일 응답
                   </div>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export function Hero() {
                     <div className="space-y-0.5">
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">침대 싱글 SET</span>
-                        <span className="font-medium tabular-nums">45,000원</span>
+                        <span className="font-medium tabular-nums">50,000원</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">책상</span>
@@ -346,16 +346,16 @@ export function Hero() {
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">세탁기</span>
-                        <span className="font-medium tabular-nums">15,000원</span>
+                        <span className="font-medium tabular-nums">30,000원</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-text-sub">출장비</span>
-                        <span className="font-medium tabular-nums">35,000원</span>
+                        <span className="font-medium tabular-nums">45,000원</span>
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-border/50 flex justify-between gap-4">
                       <span className="font-bold">합계</span>
-                      <span className="font-bold text-primary tabular-nums">162,000원</span>
+                      <span className="font-bold text-primary tabular-nums">192,000원</span>
                     </div>
                   </div>
                   <span className="text-[11px] text-text-muted shrink-0">오후 2:05</span>

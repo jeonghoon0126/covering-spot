@@ -36,7 +36,7 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "washer",
     title: "세탁기/건조기",
-    price: "16,500원~",
+    price: "30,000원~",
     image:
       "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=640&h=400&fit=crop&q=80",
     alt: "세탁기 수거",
@@ -60,7 +60,7 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "dining-table",
     title: "식탁/의자",
-    price: "9,000원~",
+    price: "42,000원~",
     image:
       "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=640&h=400&fit=crop&q=80",
     alt: "식탁 의자 수거",
