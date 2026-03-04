@@ -207,21 +207,6 @@ export function QuoteConfirmStep({
         <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5">
           <h3 className="font-semibold mb-3">견적 금액</h3>
           <div className="space-y-2 text-sm">
-            {quote.breakdown.map((b, i) => {
-              // displayName에서 category - name 부분만 추출 (크기/무게/가격 제거)
-              const parts = b.name.split(" - ");
-              const shortName = parts.length >= 2 ? `${parts[0]} - ${parts[1]}` : b.name;
-              return (
-                <div key={i} className="flex justify-between">
-                  <span className="text-text-sub">
-                    {shortName} <span className="text-text-muted">x{b.quantity}</span>
-                  </span>
-                  <span className="font-medium">
-                    {b.unitPrice === 0 ? "가격 미정" : `${formatPrice(b.subtotal)}원`}
-                  </span>
-                </div>
-              );
-            })}
             <div className="border-t border-border-light pt-2 flex justify-between">
               <span className="text-text-sub">품목 합계</span>
               <span className="font-medium">

@@ -14,7 +14,7 @@
  */
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr";
-const STATUS_LINK = `\n\n예약 현황 조회\n${BASE}/booking/manage`;
+const STATUS_LINK = `\n\n${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";

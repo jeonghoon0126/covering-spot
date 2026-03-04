@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/booking";
 import { formatPhoneNumber } from "@/lib/format";
@@ -93,8 +93,6 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const initialSearchDone = useRef(false);
-
   // 오늘 날짜 (KST 기준, date input min 값용)
   const todayKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const today = `${todayKST.getFullYear()}-${String(todayKST.getMonth() + 1).padStart(2, "0")}-${String(todayKST.getDate()).padStart(2, "0")}`;
@@ -108,23 +106,6 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
       return null;
     }
   }
-
-  // 새로고침 시 저장된 전화번호로 자동 조회
-  useEffect(() => {
-    if (initialSearchDone.current) return;
-    const saved = phone.trim();
-    if (!saved) return;
-    initialSearchDone.current = true;
-    setLoading(true);
-    setSearched(true);
-    const token = getBookingToken();
-    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
-    fetch(`/api/bookings?phone=${encodeURIComponent(saved)}${tokenParam}`)
-      .then((res) => res.json())
-      .then((data) => setBookings(data.bookings || []))
-      .catch(() => setBookings([]))
-      .finally(() => setLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
