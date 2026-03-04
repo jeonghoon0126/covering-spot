@@ -14,7 +14,7 @@
  */
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr";
-const STATUS_LINK = `\n조회: ${BASE}/booking/manage`;
+const STATUS_LINK = `\n\n예약 현황 조회\n${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
@@ -34,7 +34,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   quote_confirmed: (finalPrice) =>
     `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n★ 수거일 3일 전까지 확정하지 않으시면 예약이 자동 취소돼요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
   in_progress: () =>
-    "[커버링 방문수거] 수거 팀이 출발했어요!\n\n도착 예정 시간에 맞춰 문 앞에 품목을 준비해 주시면 더 빠르게 진행돼요.\n감사합니다!",
+    "[커버링 방문수거] 수거 일정이 확정되었어요!\n\n수거 당일 기사님이 출발 시 안내 문자를 다시 드릴게요.\n감사합니다!",
   completed: () =>
     "[커버링 방문수거] 수거가 완료되었어요!\n\n이용해 주셔서 감사합니다.\n다음에도 필요하시면 편하게 신청해 주세요.",
   payment_requested: (_finalPrice, paymentUrl) =>
@@ -50,6 +50,12 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     "[커버링 방문수거] 죄송합니다. 해당 건은 수거가 어려운 상황이에요.\n\n자세한 사유가 궁금하시면 카카오톡 채널로 문의해 주세요.\n불편을 드려 죄송합니다.",
   quote_expired: () =>
     "[커버링 방문수거] 견적 확인 기간이 지나 예약이 자동 취소되었습니다.\n(수거 3일 전까지 미확정 또는 견적 발송 후 7일 초과)\n\n다시 신청하실 수 있어요.",
+  user_confirmed: () =>
+    "[커버링 방문수거] 견적을 확인해 주셨습니다!\n\n빠르게 수거 일정을 확정해 드릴게요.\n감사합니다!",
+  change_requested: () =>
+    "[커버링 방문수거] 일정 변경 요청이 접수되었어요.\n\n담당자가 확인 후 연락드릴게요.\n감사합니다!",
+  payment_completed: () =>
+    "[커버링 방문수거] 정산이 완료되었습니다.\n\n이용해 주셔서 감사합니다. 또 필요하실 때 편하게 신청해 주세요!",
 };
 
 /**

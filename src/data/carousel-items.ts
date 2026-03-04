@@ -44,9 +44,9 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "aircon",
     title: "에어컨",
-    price: "3,000원~",
+    price: "30,000원~",
     image:
-      "https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1761330440311-16e160cad236?w=640&h=400&fit=crop&q=80",
     alt: "에어컨 수거",
   },
   {
@@ -100,7 +100,7 @@ export const carouselItems: CarouselItem[] = [
   {
     id: "piano",
     title: "피아노/악기",
-    price: "3,000원~",
+    price: "30,000원~",
     image:
       "https://images.unsplash.com/photo-1552422535-c45813c61732?w=640&h=400&fit=crop&q=80",
     alt: "피아노 악기 수거",
@@ -110,7 +110,7 @@ export const carouselItems: CarouselItem[] = [
     title: "안마의자",
     price: "57,500원~",
     image:
-      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=640&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1653840930195-883ed17af14c?w=640&h=400&fit=crop&q=80",
     alt: "안마의자 수거",
   },
   {

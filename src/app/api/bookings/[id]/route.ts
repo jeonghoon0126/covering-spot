@@ -13,6 +13,7 @@ import {
   sendRescheduleNotify,
   sendStatusChanged,
 } from "@/lib/slack-notify";
+import { sendStatusSms } from "@/lib/sms-notify";
 import { validateBookingToken } from "@/lib/booking-token";
 import { getCustomerDeadline } from "@/lib/booking-utils";
 import { enforceServerItems } from "@/lib/server-price";
@@ -125,6 +126,9 @@ export async function PUT(
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
       }
       sendStatusChanged(updated, "user_confirmed").catch((err) => console.error("[Slack] user_confirmed 알림 실패:", err?.message));
+      if (updated.phone) {
+        sendStatusSms(updated.phone, "user_confirmed", id).catch((err) => console.error("[SMS] user_confirmed 발송 실패:", err?.message));
+      }
       return NextResponse.json({ booking: updated });
     }
 
@@ -182,6 +186,9 @@ export async function PUT(
       sendRescheduleNotify(updated, existing.date, existing.timeSlot).catch((err) =>
         console.error("[reschedule-notify] Slack 알림 실패:", err?.message),
       );
+      if (updated.phone) {
+        sendStatusSms(updated.phone, "change_requested", id).catch((err) => console.error("[SMS] change_requested 발송 실패:", err?.message));
+      }
       // 백오피스 알림 생성 (일정 변경 요청)
       createAdminNotification({
         bookingId: id,

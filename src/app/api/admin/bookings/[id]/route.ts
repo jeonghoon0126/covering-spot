@@ -19,7 +19,7 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   quote_confirmed: ["user_confirmed", "in_progress", "cancelled"],
   user_confirmed: ["in_progress", "cancelled", "rejected"],
   change_requested: ["quote_confirmed", "cancelled"],
-  in_progress: ["completed"],
+  in_progress: ["completed", "cancelled"],
   completed: ["payment_requested"],
   payment_requested: ["payment_completed"],
 };
@@ -215,7 +215,7 @@ export async function PUT(
       // 백오피스 알림 생성
       const STATUS_LABEL: Record<string, string> = {
         pending: "접수", quote_confirmed: "견적확정", user_confirmed: "견적확인완료",
-        change_requested: "일정변경요청", in_progress: "수거진행", completed: "수거완료",
+        change_requested: "일정변경요청", in_progress: "일정확정", completed: "수거완료",
         payment_requested: "정산요청", payment_completed: "정산완료",
         cancelled: "취소", rejected: "수거불가",
       };
@@ -242,7 +242,7 @@ export async function PUT(
       // 푸시 알림 (fire-and-forget)
       const STATUS_MSG: Record<string, string> = {
         quote_confirmed: `견적이 확정되었어요! ${updated.finalPrice ? `최종 견적: ${updated.finalPrice.toLocaleString("ko-KR")}원` : "자세한 내용을 확인해 주세요."}`,
-        in_progress: "수거 팀이 출발했어요! 도착 예정 시간에 맞춰 준비 부탁드려요.",
+        in_progress: "수거 일정이 확정되었어요! 당일 기사님이 출발 시 다시 안내드릴게요.",
         completed: "수거가 완료되었어요! 이용해 주셔서 감사합니다.",
         payment_completed: "정산이 완료되었습니다. 감사합니다!",
       };
