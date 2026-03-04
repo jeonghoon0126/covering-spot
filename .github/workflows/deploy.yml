@@ -44,6 +44,7 @@ jobs:
 
       - name: Notify Slack (success)
         if: success()
+        continue-on-error: true
         run: |
           SHORT_SHA="${{ github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
@@ -78,6 +79,7 @@ jobs:
 
       - name: Notify Slack (failure)
         if: failure()
+        continue-on-error: true
         run: |
           MSG="${{ github.event.head_commit.message }}"
           SHORT_SHA="${{ github.sha }}"
