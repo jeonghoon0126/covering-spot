@@ -351,13 +351,31 @@ export function ItemSelectionStep({
       )}
 
       {/* 사진 업로드 */}
-      <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
-        <div>
-          <h3 className="font-semibold mb-1">품목 사진 첨부 <span className="text-xs font-normal text-text-muted">(선택)</span></h3>
-          <p className="text-sm text-text-sub">
-            사진을 첨부하시면 더 정확한 견적을 받으실 수 있습니다
-          </p>
-        </div>
+      {(() => {
+        const hasRequiredPhotoItem = selectedItems.some((selItem) => {
+          const cat = categories.find((c) => c.name === selItem.category);
+          const item = cat?.items.find((i) => i.name === selItem.name);
+          return item?.requiresPhoto === true;
+        });
+        return (
+          <>
+            {hasRequiredPhotoItem && (
+              <div className="rounded-md bg-semantic-red-tint border border-semantic-red/30 px-4 py-3 text-sm text-semantic-red font-medium">
+                선택하신 품목은 정확한 견적을 위해 사진이 필요합니다 (필수)
+              </div>
+            )}
+            <div className="bg-bg rounded-lg shadow-md border border-border-light p-7 max-sm:p-5 space-y-4">
+              <div>
+                <h3 className="font-semibold mb-1">
+                  품목 사진 첨부{" "}
+                  <span className={`text-xs font-normal ${hasRequiredPhotoItem ? "text-semantic-red" : "text-text-muted"}`}>
+                    ({hasRequiredPhotoItem ? "필수" : "선택"})
+                  </span>
+                </h3>
+                <p className="text-sm text-text-sub">
+                  사진을 첨부하시면 더 정확한 견적을 받으실 수 있습니다
+                </p>
+              </div>
 
         {/* 미리보기 그리드 */}
         {photoPreviews.length > 0 && (
@@ -399,6 +417,9 @@ export function ItemSelectionStep({
           className="hidden"
         />
       </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

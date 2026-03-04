@@ -13,7 +13,7 @@
  * @see https://flarelane-api-docs.readme.io/reference/send-notifications
  */
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr";
+const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://coveringspot.vercel.app").trim();
 const STATUS_LINK = `\n\n${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {

@@ -267,9 +267,9 @@ function BookingPageContent() {
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if ((step !== 2 && step !== 4) || selectedItems.length === 0 || !selectedArea) {
+    if ((step !== 1 && step !== 4) || selectedItems.length === 0 || !selectedArea) {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-      if (step !== 2 && step !== 4) setPreviewQuote(null);
+      if (step !== 1 && step !== 4) setPreviewQuote(null);
       return;
     }
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
@@ -519,10 +519,13 @@ function BookingPageContent() {
   }
 
   // 스텝별 완료 조건
+  const hasRequiredPhotoItem = selectedItems.some(
+    (item) => categories.find((c) => c.name === item.category)?.items.find((i) => i.name === item.name)?.requiresPhoto === true,
+  );
   const canNext = [
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
-    selectedDate && selectedTimes.length > 0,            // Step 1: 날짜/시간
-    selectedItems.length > 0,                            // Step 2: 품목 (사진은 선택)
+    selectedItems.length > 0 && (!hasRequiredPhotoItem || photos.length > 0),  // Step 1: 품목/사진 (필수 사진 품목 있으면 사진 필수)
+    selectedDate && selectedTimes.length > 0,            // Step 2: 날짜/시간
     hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 3: 작업 환경
     true,                                                 // Step 4: 사다리차
     !!quote && agreedToTerms && agreedToPrivacy,          // Step 5: 견적 확인 + 필수 약관 동의
@@ -560,7 +563,7 @@ function BookingPageContent() {
         />
       )}
 
-      {step === 1 && (
+      {step === 2 && (
         <DateTimeStep
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
@@ -577,7 +580,7 @@ function BookingPageContent() {
         />
       )}
 
-      {step === 2 && (
+      {step === 1 && (
         <ItemSelectionStep
           categories={categories}
           openCat={openCat}

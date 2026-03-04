@@ -4,6 +4,7 @@ export interface SpotItem {
   displayName: string;
   price: number;
   loadingCube: number; // 적재큐브 (m³)
+  requiresPhoto?: boolean; // 사진 필수 여부 (담당자 목록 수령 후 해당 품목에 true 마킹)
 }
 
 export interface SpotCategory {

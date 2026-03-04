@@ -136,9 +136,6 @@ export function QuoteConfirmStep({
                   </span>
                   <span className="text-text-muted text-xs ml-1.5">x{item.quantity}</span>
                 </div>
-                <span className="text-sm font-semibold text-text-primary shrink-0 ml-3">
-                  {item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}
-                </span>
               </div>
             ))}
           </div>

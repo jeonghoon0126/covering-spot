@@ -82,15 +82,13 @@ export function Nav() {
               </a>
             ),
           )}
-          {/* 신청 조회: bookingToken 있을 때만 */}
-          {hasBooking && (
-            <Link
-              href="/booking/manage"
-              className="ml-1 inline-flex items-center gap-1.5 bg-bg-warm text-text-primary text-[13px] font-semibold px-4 py-2.5 rounded-md no-underline transition-all hover:bg-bg-warm2 active:scale-[0.97] border border-border-light max-md:hidden"
-            >
-              신청 조회
-            </Link>
-          )}
+          {/* 신청 조회: 상시 노출 */}
+          <Link
+            href="/booking/manage"
+            className="ml-1 inline-flex items-center gap-1.5 bg-bg-warm text-text-primary text-[13px] font-semibold px-4 py-2.5 rounded-md no-underline transition-all hover:bg-bg-warm2 active:scale-[0.97] border border-border-light max-md:hidden"
+          >
+            신청 조회
+          </Link>
           {/* 앱 설치 버튼 — 유저 대상 비활성화 (어드민/매니저만 사용)
           {canInstall && (
             <button
@@ -172,15 +170,13 @@ export function Nav() {
               </a>
             ),
           )}
-          {hasBooking && (
-            <Link
-              href="/booking/manage"
-              onClick={() => setMenuOpen(false)}
-              className="text-text-sub no-underline text-[14px] font-medium px-3 py-2.5 rounded-md transition-all hover:text-text-primary hover:bg-black/[0.04] active:bg-black/[0.06]"
-            >
-              신청 조회
-            </Link>
-          )}
+          <Link
+            href="/booking/manage"
+            onClick={() => setMenuOpen(false)}
+            className="text-text-sub no-underline text-[14px] font-medium px-3 py-2.5 rounded-md transition-all hover:text-text-primary hover:bg-black/[0.04] active:bg-black/[0.06]"
+          >
+            신청 조회
+          </Link>
         </div>
       </div>
     </nav>

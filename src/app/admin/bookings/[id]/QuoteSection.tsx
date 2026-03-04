@@ -71,11 +71,14 @@ export function QuoteSection({
                     min={1}
                     max={10}
                     value={crewSizeInput ?? booking.crewSize}
-                    onChange={(e) =>
-                      setCrewSizeInput(
-                        Math.max(1, parseInt(e.target.value) || 1)
-                      )
-                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setCrewSizeInput(null);
+                      } else {
+                        setCrewSizeInput(Math.max(1, parseInt(raw) || 1));
+                      }
+                    }}
                     className="w-10 h-7 px-1 text-center text-sm rounded border border-border-light bg-bg-warm focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
                   />
                   <span className="text-sm text-text-muted">명)</span>

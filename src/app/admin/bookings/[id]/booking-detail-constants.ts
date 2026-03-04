@@ -31,7 +31,10 @@ export const NEXT_STATUS: Record<string, { status: string; label: string }[]> = 
     { status: "quote_confirmed", label: "변경 확인 완료" },
     { status: "cancelled", label: "취소" },
   ],
-  in_progress: [{ status: "completed", label: "수거 완료" }],
+  in_progress: [
+    { status: "completed", label: "수거 완료" },
+    { status: "cancelled", label: "취소" },
+  ],
   completed: [{ status: "payment_requested", label: "정산 요청" }],
   payment_requested: [{ status: "payment_completed", label: "정산 완료" }],
 };

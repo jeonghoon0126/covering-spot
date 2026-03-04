@@ -1,4 +1,4 @@
-export const STEPS = ["고객 정보", "날짜/시간", "품목/사진", "작업 환경", "사다리차", "견적 확인"];
+export const STEPS = ["고객 정보", "품목/사진", "날짜/시간", "작업 환경", "사다리차", "견적 확인"];
 export const VAGUE_ITEM_KEYWORDS = ["잡동사니", "쓰레기", "박스들", "박스류", "물건들", "짐", "기타등등", "여러가지", "잡것", "잡아이"];
 
 export const CONSENT_CONTENTS: Record<string, { title: string; body: string }> = {
