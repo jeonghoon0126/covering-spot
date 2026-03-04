@@ -45,43 +45,41 @@ jobs:
       - name: Notify Slack (success)
         if: success()
         continue-on-error: true
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_SHA: ${{ github.sha }}
         run: |
-          SHORT_SHA="${{ github.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
-
-          # 이번 push에 포함된 커밋만 추출 (before → current)
-          BEFORE="${{ github.event.before }}"
-          AFTER="${{ github.sha }}"
-
-          # 첫 push(before=0000...)인 경우 최신 커밋 1개만
-          if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
-            COMMITS=$(git log --oneline -1)
-          else
-            COMMITS=$(git log --oneline "${BEFORE}..${AFTER}" 2>/dev/null || git log --oneline -3)
+          # 오늘 UTC 기준 커밋만 (최대 10개 상한)
+          export SLACK_COMMITS="$(git log --oneline --since="24 hours ago" | head -10)"
+          # 하나도 없으면 최신 3개 fallback
+          if [ -z "$SLACK_COMMITS" ]; then
+            export SLACK_COMMITS="$(git log --oneline -3)"
           fi
 
-          python3 - <<PYEOF
-          import json, urllib.request, subprocess
+          python3 - <<'PYEOF'
+import json, urllib.request, os
 
-          short_sha = "$SHORT_SHA"
-          commits = """$COMMITS"""
+short_sha = os.environ["SLACK_SHA"][:7]
+commits   = os.environ.get("SLACK_COMMITS", "")
 
-          lines = [l.strip() for l in commits.strip().splitlines() if l.strip()]
-          if len(lines) == 1:
-              commit_text = lines[0]
-          else:
-              commit_text = "\n".join(f"• {l}" for l in lines)
+lines = [l.strip() for l in commits.strip().splitlines() if l.strip()]
+if len(lines) == 1:
+    commit_text = lines[0]
+elif lines:
+    commit_text = "\n".join(f"• {l}" for l in lines)
+else:
+    commit_text = short_sha
 
-          text = f"✅ *프로덕션 배포 완료* (`{short_sha}`)\nhttps://coveringspot.vercel.app\n\n{commit_text}"
+text = f"✅ *프로덕션 배포 완료* (`{short_sha}`)\nhttps://coveringspot.vercel.app\n\n{commit_text}"
 
-          payload = json.dumps({"channel": "U09PTJ5PBDK", "text": text}).encode()
-          req = urllib.request.Request(
-              "https://slack.com/api/chat.postMessage",
-              data=payload,
-              headers={"Authorization": "Bearer ${{ secrets.SLACK_BOT_TOKEN }}", "Content-Type": "application/json"}
-          )
-          urllib.request.urlopen(req)
-          PYEOF
+payload = json.dumps({"channel": "U09PTJ5PBDK", "text": text}).encode()
+req = urllib.request.Request(
+    "https://slack.com/api/chat.postMessage",
+    data=payload,
+    headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}", "Content-Type": "application/json"}
+)
+urllib.request.urlopen(req)
+PYEOF
 
       - name: Notify Slack (failure)
         if: failure()
