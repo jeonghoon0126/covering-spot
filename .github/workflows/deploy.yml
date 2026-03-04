@@ -47,39 +47,26 @@ jobs:
         continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_SHA: ${{ github.sha }}
         run: |
-          # 오늘 UTC 기준 커밋만 (최대 10개 상한)
-          export SLACK_COMMITS="$(git log --oneline --since="24 hours ago" | head -10)"
-          # 하나도 없으면 최신 3개 fallback
-          if [ -z "$SLACK_COMMITS" ]; then
-            export SLACK_COMMITS="$(git log --oneline -3)"
-          fi
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
 
-          python3 - <<'PYEOF'
-import json, urllib.request, os
+          # 24시간 내 커밋, 없으면 최근 3개 fallback
+          COMMITS="$(git log --oneline --since='24 hours ago' | head -10)"
+          if [ -z "$COMMITS" ]; then COMMITS="$(git log --oneline -3)"; fi
 
-short_sha = os.environ["SLACK_SHA"][:7]
-commits   = os.environ.get("SLACK_COMMITS", "")
+          # 커밋 목록을 bullet 형식으로 변환 (줄바꿈 → \n 이스케이프)
+          COMMIT_TEXT=""
+          while IFS= read -r line; do
+            [ -n "$line" ] && COMMIT_TEXT="${COMMIT_TEXT}• ${line}\n"
+          done <<< "$COMMITS"
 
-lines = [l.strip() for l in commits.strip().splitlines() if l.strip()]
-if len(lines) == 1:
-    commit_text = lines[0]
-elif lines:
-    commit_text = "\n".join(f"• {l}" for l in lines)
-else:
-    commit_text = short_sha
-
-text = f"✅ *프로덕션 배포 완료* (`{short_sha}`)\nhttps://coveringspot.vercel.app\n\n{commit_text}"
-
-payload = json.dumps({"channel": "U09PTJ5PBDK", "text": text}).encode()
-req = urllib.request.Request(
-    "https://slack.com/api/chat.postMessage",
-    data=payload,
-    headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}", "Content-Type": "application/json"}
-)
-urllib.request.urlopen(req)
-PYEOF
+          TEXT="$(printf '✅ *프로덕션 배포 완료* (`%s`)\nhttps://coveringspot.vercel.app\n\n%b' "$SHORT_SHA" "$COMMIT_TEXT")"
+          PAYLOAD="$(jq -n --arg ch "U09PTJ5PBDK" --arg txt "$TEXT" '{channel:$ch,text:$txt}')"
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
 
       - name: Notify Slack (failure)
         if: failure()
