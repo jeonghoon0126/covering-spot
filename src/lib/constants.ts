@@ -12,7 +12,6 @@ export const SITE_DESC =
 export const STATUS_LABELS: Record<string, string> = {
   pending: "견적 산정 중",
   quote_confirmed: "견적 확정",
-  user_confirmed: "견적 확인 완료",
   change_requested: "일정 변경 요청",
   in_progress: "일정 확정",
   completed: "수거 완료",
@@ -26,7 +25,6 @@ export const STATUS_LABELS: Record<string, string> = {
 export const STATUS_LABELS_SHORT: Record<string, string> = {
   pending: "접수",
   quote_confirmed: "견적확정",
-  user_confirmed: "견적확인완료",
   change_requested: "일정변경",
   in_progress: "일정확정",
   completed: "수거완료",
@@ -40,7 +38,6 @@ export const STATUS_LABELS_SHORT: Record<string, string> = {
 export const STATUS_COLORS: Record<string, string> = {
   pending: "bg-semantic-orange-tint text-semantic-orange",
   quote_confirmed: "bg-primary-tint text-primary",
-  user_confirmed: "bg-semantic-green-tint text-semantic-green",
   change_requested: "bg-semantic-orange-tint text-semantic-orange",
   in_progress: "bg-primary-tint text-primary-dark",
   completed: "bg-semantic-green-tint text-semantic-green",
@@ -54,7 +51,6 @@ export const STATUS_COLORS: Record<string, string> = {
 export const STATUS_MESSAGES: Record<string, string> = {
   pending: "담당자가 견적을 확인 중입니다",
   quote_confirmed: "최종 견적이 확정되었습니다",
-  user_confirmed: "견적을 확인하셨습니다. 수거 일정이 확정됩니다",
   change_requested: "일정 변경을 요청하셨습니다. 담당자가 확인 중입니다",
   in_progress: "수거 일정이 확정되었습니다. 당일 기사님이 출발 시 다시 안내드릴게요.",
   completed: "수거가 완료되었습니다",

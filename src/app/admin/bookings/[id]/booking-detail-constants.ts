@@ -23,11 +23,6 @@ export const NEXT_STATUS: Record<string, { status: string; label: string }[]> = 
     { status: "in_progress", label: "일정 확정" },
     { status: "cancelled", label: "취소" },
   ],
-  user_confirmed: [
-    { status: "in_progress", label: "수거 시작" },
-    { status: "cancelled", label: "취소" },
-    { status: "rejected", label: "수거 불가" },
-  ],
   change_requested: [
     { status: "quote_confirmed", label: "변경 확인 완료" },
     { status: "cancelled", label: "취소" },
@@ -41,7 +36,7 @@ export const NEXT_STATUS: Record<string, { status: string; label: string }[]> = 
 };
 
 /** 수거 시작(in_progress) 이후 상태에서는 견적/시간/품목 수정 불가 */
-export const EDITABLE_STATUSES = ["pending", "quote_confirmed", "user_confirmed", "change_requested"];
+export const EDITABLE_STATUSES = ["pending", "quote_confirmed", "change_requested"];
 
 /** 품목 카테고리 목록 */
 export const ITEM_CATEGORIES = [

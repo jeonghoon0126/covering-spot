@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     for (const b of data) {
       if (b.phone) {
-        sendStatusSms(b.phone, "remind_confirm", b.id, null, null, b.date).catch((err) =>
+        sendStatusSms(b.phone, "remind_pickup", b.id, null, null, b.date).catch((err) =>
           console.error("[cron/remind-confirm] SMS 실패:", b.id, err?.message),
         );
       }

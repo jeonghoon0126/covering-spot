@@ -217,8 +217,12 @@ export function ItemPrices({ categories }: Props) {
               <button
                 key={cat.id}
                 onClick={() => {
-                  setActiveId(cat.id);
-                  track("[CLICK] SpotHomeScreen_priceTab", { item: cat.id });
+                  if (activeId === cat.id) {
+                    setActiveId(null);
+                  } else {
+                    setActiveId(cat.id);
+                    track("[CLICK] SpotHomeScreen_priceTab", { item: cat.id });
+                  }
                 }}
                 className={`group flex items-center gap-2 py-3 px-5 rounded-full font-semibold text-sm border cursor-pointer transition-all duration-300 ease-out whitespace-nowrap shrink-0 hover:-translate-y-0.5 active:scale-[0.97] ${
                   cat.id === activeId
@@ -283,7 +287,9 @@ export function ItemPrices({ categories }: Props) {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-col items-center gap-3">
+            <p className="text-xs text-text-muted mt-6 text-center">부가세 포함 기준 가격입니다</p>
+
+            <div className="mt-4 flex flex-col items-center gap-3">
               <CTALink
                 location="price"
                 className="flex items-center justify-center gap-2 w-full bg-kakao text-text-primary text-base font-bold py-4 rounded-lg hover:bg-kakao-hover hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(250,225,0,0.2)] active:scale-[0.98] transition-all duration-300 ease-out"

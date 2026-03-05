@@ -234,7 +234,7 @@ export function QuoteConfirmStep({
                 </span>
               </div>
               <p className="text-xs text-text-muted mt-2">
-                수거 신청 후 즉시 매니저가 확인하여 일정과 견적을 확정합니다
+                부가세 포함 금액이며, 최종 견적은 매니저 확인 후 확정됩니다
               </p>
             </div>
           </div>

@@ -40,7 +40,6 @@ export default function BookingManagePage() {
     cancelReschedule,
     handleReschedule,
     setRescheduleForm,
-    handleUserConfirm,
     fetchSlots,
     formatPhoneNumber,
     router,
@@ -418,15 +417,6 @@ export default function BookingManagePage() {
                                 취소
                               </Button>
                             </div>
-                          </div>
-                        )}
-
-                        {/* 견적 확인 완료 버튼 (quote_confirmed 상태일 때만) */}
-                        {b.status === "quote_confirmed" && (
-                          <div className="mt-3">
-                            <Button variant="primary" size="md" fullWidth onClick={() => handleUserConfirm(b.id)} disabled={saving}>
-                              견적 및 일정 확인 완료
-                            </Button>
                           </div>
                         )}
 

@@ -42,7 +42,7 @@ export function QuoteSection({
         <div className="space-y-0 text-sm">
           {booking.estimateMin != null && booking.estimateMax != null && (
             <div className="flex justify-between py-2.5 border-b border-border-light">
-              <span className="text-text-sub">예상 견적</span>
+              <span className="text-text-sub">예상 견적 <span className="text-xs text-text-muted">(부가세 포함)</span></span>
               <span className="font-medium">
                 {formatManWon(booking.estimateMin)} ~{" "}
                 {formatManWon(booking.estimateMax)}원

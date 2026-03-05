@@ -17,12 +17,11 @@ export function canReschedule(b: Booking): boolean {
   return b.status === "quote_confirmed" && isBeforeDeadline(b.date, b.timeSlot);
 }
 
-/** 취소 가능 여부: pending, quote_confirmed, user_confirmed, change_requested + 수거 시각 24시간 전 이전 */
+/** 취소 가능 여부: pending, quote_confirmed, change_requested + 수거 시각 24시간 전 이전 */
 export function canCancel(b: Booking): boolean {
   return (
     b.status === "pending" ||
     b.status === "quote_confirmed" ||
-    b.status === "user_confirmed" ||
     b.status === "change_requested"
   ) && isBeforeDeadline(b.date, b.timeSlot);
 }
@@ -68,7 +67,6 @@ export interface BookingManageHandlers {
   cancelReschedule: () => void;
   handleReschedule: (id: string) => Promise<void>;
   setRescheduleForm: (form: { date: string; timeSlot: string } | null) => void;
-  handleUserConfirm: (id: string) => Promise<void>;
   fetchSlots: (date: string, excludeId: string) => Promise<void>;
   formatPhoneNumber: typeof formatPhoneNumber;
   router: ReturnType<typeof useRouter>;
@@ -238,33 +236,6 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     setAvailableSlots([]);
   }
 
-  async function handleUserConfirm(id: string) {
-    if (saving) return;
-    setSaving(true);
-    try {
-      const token = getBookingToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["x-booking-token"] = token;
-      const res = await fetch(`/api/bookings/${id}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ action: "user_confirm" }),
-      });
-      if (res.ok) {
-        setBookings((prev) =>
-          prev.map((b) => b.id === id ? { ...b, status: "user_confirmed" as const } : b),
-        );
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || "확인 처리 실패");
-      }
-    } catch {
-      alert("네트워크 오류");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleReschedule(id: string) {
     if (!rescheduleForm) return;
     setRescheduleSaving(true);
@@ -323,7 +294,6 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     cancelReschedule,
     handleReschedule,
     setRescheduleForm,
-    handleUserConfirm,
     fetchSlots,
     formatPhoneNumber,
     router,
