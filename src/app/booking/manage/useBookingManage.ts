@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/booking";
 import { formatPhoneNumber } from "@/lib/format";
@@ -105,15 +105,14 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     }
   }
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!phone.trim()) return;
+  async function doSearch(phoneValue: string) {
+    if (!phoneValue.trim()) return;
     setLoading(true);
     setSearched(true);
     try {
       const token = getBookingToken();
       const tokenParam = token ? `&token=${encodeURIComponent(token)}` : "";
-      const res = await fetch(`/api/bookings?phone=${encodeURIComponent(phone.trim())}${tokenParam}`);
+      const res = await fetch(`/api/bookings?phone=${encodeURIComponent(phoneValue.trim())}${tokenParam}`);
       const data = await res.json();
       const found = data.bookings || [];
       setBookings(found);
@@ -125,7 +124,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
           }
         } catch { /* ignore */ }
       }
-      try { sessionStorage.setItem("covering_manage_phone", phone.trim()); } catch { /* ignore */ }
+      try { sessionStorage.setItem("covering_manage_phone", phoneValue.trim()); } catch { /* ignore */ }
       track("[EVENT] SpotBookingSearchResult", { found: found.length });
     } catch {
       setBookings([]);
@@ -133,6 +132,21 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
       setLoading(false);
     }
   }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    doSearch(phone);
+  }
+
+  // sessionStorage에 전화번호 저장되어 있으면 자동 조회
+  const autoSearched = useRef(false);
+  useEffect(() => {
+    if (autoSearched.current) return;
+    if (phone.trim()) {
+      autoSearched.current = true;
+      doSearch(phone);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCancel(id: string) {
     track("[CLICK] SpotBookingManageScreen_cancel", { bookingId: id });

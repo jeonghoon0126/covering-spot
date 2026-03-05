@@ -46,7 +46,7 @@ export default function BookingManagePage() {
     router,
   } = useBookingManage();
 
-  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [filterDate, setFilterDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
   const filteredBookings = bookings.filter((b: Booking) => {

@@ -223,7 +223,6 @@ export async function getBookingsByPhone(
     .from("bookings")
     .select("*")
     .in("phone", phoneVariants)
-    .neq("status", "cancelled")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
