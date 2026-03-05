@@ -567,13 +567,17 @@ function BookingPageContent() {
       {step === 2 && (
         <DateTimeStep
           selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
+          setSelectedDate={(date) => {
+            setSelectedDate(date);
+            if (date) track("[EVENT] SpotBookingDateSelected", { date });
+          }}
           selectedTimes={selectedTimes}
-          onToggleTime={(time) =>
+          onToggleTime={(time) => {
             setSelectedTimes((prev) =>
               prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time],
-            )
-          }
+            );
+            track("[EVENT] SpotBookingTimeSelected", { time, date: selectedDate });
+          }}
           calMonth={calMonth}
           setCalMonth={setCalMonth}
           timeSlotCounts={timeSlotCounts}

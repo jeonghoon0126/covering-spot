@@ -374,6 +374,9 @@ export function ItemSelectionStep({
                 <p className="text-sm text-text-sub">
                   사진을 첨부하시면 더 정확한 견적을 받으실 수 있습니다
                 </p>
+                <p className="text-xs text-text-muted mt-1">
+                  장당 최대 5MB · 최대 5장 · JPG · PNG · WebP · HEIC 지원
+                </p>
               </div>
 
         {/* 미리보기 그리드 */}

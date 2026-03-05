@@ -25,7 +25,10 @@ type EventName =
   // EVENT - 결과
   | "[EVENT] SpotBookingComplete"
   | "[EVENT] SpotBookingCancel"
-  | "[EVENT] SpotBookingSearchResult";
+  | "[EVENT] SpotBookingSearchResult"
+  // EVENT - 날짜/시간 선택
+  | "[EVENT] SpotBookingDateSelected"
+  | "[EVENT] SpotBookingTimeSelected";
 
 interface EventProps {
   "[CLICK] SpotHomeScreen_cta": { location: "hero" | "price" | "floating" | "bottom" | "nav" };
@@ -46,6 +49,8 @@ interface EventProps {
   "[EVENT] SpotBookingComplete": { bookingId: string };
   "[EVENT] SpotBookingCancel": { bookingId: string; reason?: string };
   "[EVENT] SpotBookingSearchResult": { found: number };
+  "[EVENT] SpotBookingDateSelected": { date: string };
+  "[EVENT] SpotBookingTimeSelected": { time: string; date: string };
 }
 
 declare global {
@@ -105,6 +110,31 @@ export function track<T extends EventName>(
       window.gtag("event", event, props);
     }
   } catch { /* GA4 오류 무시 */ }
+}
+
+/** 서버 사이드 Mixpanel HTTP API 이벤트 전송 (fire-and-forget) */
+export async function trackServer(
+  event: string,
+  properties: Record<string, unknown>,
+): Promise<void> {
+  const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
+  if (!token) return;
+  try {
+    await fetch("https://api.mixpanel.com/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([{
+        event,
+        properties: {
+          token,
+          time: Math.floor(Date.now() / 1000),
+          ...properties,
+        },
+      }]),
+    });
+  } catch {
+    // fire-and-forget: 실패 무시
+  }
 }
 
 export function identify(userId: string, props?: { phone?: string; name?: string }) {

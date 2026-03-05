@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { trackServer } from "@/lib/analytics";
 import { v4 as uuidv4 } from "uuid";
 import {
   getBookingsByPhone,
@@ -203,6 +204,14 @@ export async function POST(req: NextRequest) {
       title: `[신규접수] ${booking.customerName}`,
       body: `${booking.date} ${booking.timeSlot} | ${booking.area} | ${booking.address}`,
     }).catch((err) => console.error("[알림] 신규접수 알림 생성 실패:", err?.message));
+
+    // Mixpanel 서버 이벤트 (fire-and-forget)
+    trackServer("[EVENT] SpotBookingComplete", {
+      booking_id: booking.id,
+      district: booking.area,
+      item_count: booking.items.length,
+      total_price: booking.totalPrice,
+    }).catch(() => {});
 
     // Slack 알림만 fire-and-forget (지연 무관)
     sendBookingCreated(booking).then((threadTs) => {

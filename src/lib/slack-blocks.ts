@@ -36,11 +36,13 @@ export function actionButtonBlock(
   buttons: Array<{ text: string; url: string; primary?: boolean }>,
 ) {
   return {
-    type: "section",
-    text: {
-      type: "mrkdwn",
-      text: buttons.map((btn) => `*<${btn.url}|${btn.text}>*`).join("  "),
-    },
+    type: "actions",
+    elements: buttons.map((btn) => ({
+      type: "button",
+      text: { type: "plain_text", text: btn.text, emoji: true },
+      url: btn.url,
+      ...(btn.primary ? { style: "primary" } : {}),
+    })),
   };
 }
 

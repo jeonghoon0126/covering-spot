@@ -1,4 +1,5 @@
 const services = [
+  { name: "커버링", href: "https://www.covering.app/" },
   { name: "런치", href: "https://www.covering.app/lunch" },
   { name: "빌딩", href: "https://www.covering.app/building" },
   { name: "오피스", href: "https://www.covering.app/office" },

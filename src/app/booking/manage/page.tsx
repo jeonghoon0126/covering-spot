@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
@@ -45,6 +46,15 @@ export default function BookingManagePage() {
     router,
   } = useBookingManage();
 
+  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const filteredBookings = bookings.filter((b: Booking) => {
+    const dateMatch = filterDate ? b.date === filterDate : true;
+    const statusMatch = filterStatus === "all" ? true : b.status === filterStatus;
+    return dateMatch && statusMatch;
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,6 +85,36 @@ export default function BookingManagePage() {
         </Button>
       </form>
 
+      {/* 날짜·상태 필터 */}
+      {bookings.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="border border-border-light rounded-lg px-3 py-2 text-sm bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border border-border-light rounded-lg px-3 py-2 text-sm bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="all">전체 상태</option>
+            {Object.entries(STATUS_LABELS).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+          {(filterDate || filterStatus !== "all") && (
+            <button
+              onClick={() => { setFilterDate(""); setFilterStatus("all"); }}
+              className="text-xs text-text-muted underline px-2"
+            >
+              필터 초기화
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 결과 없음 */}
       {searched && !loading && bookings.length === 0 && (
         <div className="text-center py-12">
@@ -88,7 +128,10 @@ export default function BookingManagePage() {
       {/* 예약 목록 */}
       {bookings.length > 0 && (
         <div className="space-y-4">
-          {bookings.map((b: Booking) => {
+          {filteredBookings.length === 0 && (
+            <p className="text-text-muted text-sm py-6 text-center">해당 조건의 예약이 없습니다</p>
+          )}
+          {filteredBookings.map((b: Booking) => {
             const isExpanded = expandedId === b.id;
             const isEditing = editingId === b.id;
             const editable = canEdit(b);

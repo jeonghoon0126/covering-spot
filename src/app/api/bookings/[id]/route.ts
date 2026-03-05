@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { trackServer } from "@/lib/analytics";
 import { z } from "zod";
 import {
   getBookingById,
@@ -129,6 +130,11 @@ export async function PUT(
       if (updated.phone) {
         sendStatusSms(updated.phone, "user_confirmed", id).catch((err) => console.error("[SMS] user_confirmed 발송 실패:", err?.message));
       }
+      trackServer("[EVENT] SpotBookingUserConfirmed", {
+        booking_id: id,
+        district: updated.area,
+        final_price: updated.finalPrice,
+      }).catch(() => {});
       return NextResponse.json({ booking: updated });
     }
 

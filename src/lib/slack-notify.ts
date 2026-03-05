@@ -9,9 +9,7 @@ import {
   bookingContextBlock,
 } from "@/lib/slack-blocks";
 
-const BASE_URL = (
-  process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr"
-).trim();
+const BASE_URL = "https://coveringspot.vercel.app";
 
 /** Slack 알림 전용 라벨 (constants 기본값 + Slack 워딩 오버라이드) */
 const SLACK_STATUS_LABELS: Record<string, string> = {
@@ -40,9 +38,10 @@ function getDayName(dateStr: string): string {
 async function postSlack(
   blocks: unknown[],
   threadTs?: string,
+  channelOverride?: string,
 ): Promise<string | null> {
   const token = process.env.SLACK_BOT_TOKEN;
-  const channel = process.env.SLACK_CHANNEL_ID;
+  const channel = channelOverride ?? process.env.SLACK_CHANNEL_ID;
   if (!token || !channel) return null;
 
   try {
