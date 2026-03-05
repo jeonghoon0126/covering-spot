@@ -110,6 +110,15 @@ export function track<T extends EventName>(
       window.gtag("event", event, props);
     }
   } catch { /* GA4 오류 무시 */ }
+
+  // 서버 이벤트 로깅 (Supabase spot_events → Grafana 대시보드용)
+  try {
+    fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, properties: props }),
+    }).catch(() => {});
+  } catch { /* fire-and-forget */ }
 }
 
 /** 서버 사이드 Mixpanel HTTP API 이벤트 전송 (fire-and-forget) */
