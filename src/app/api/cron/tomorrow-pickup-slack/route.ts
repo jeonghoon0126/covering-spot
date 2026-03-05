@@ -141,7 +141,6 @@ export async function GET(req: NextRequest) {
       await postSlack(detailBlocks, summaryTs ?? undefined, pickupChannel);
     }
 
-    console.info(`[cron/tomorrow-pickup-slack] ${data.length}건 슬랙 알림 발송`);
     return NextResponse.json({ sent: data.length });
   } catch (e) {
     console.error("[cron/tomorrow-pickup-slack]", e);
