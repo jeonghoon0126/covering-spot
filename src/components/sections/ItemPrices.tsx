@@ -168,7 +168,7 @@ interface Props {
 }
 
 export function ItemPrices({ categories }: Props) {
-  const [activeId, setActiveId] = useState(categories[0].id);
+  const [activeId, setActiveId] = useState<string | null>(categories[0].id);
   const cardRef = useRef<HTMLDivElement>(null);
   const [barsAnimated, setBarsAnimated] = useState(false);
 
@@ -240,7 +240,7 @@ export function ItemPrices({ categories }: Props) {
         </ScrollReveal>
 
         {/* Price card */}
-        <ScrollReveal>
+        {activeId !== null && <ScrollReveal>
           <div
             ref={cardRef}
             className="max-w-[640px] mx-auto bg-bg rounded-lg p-10 border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] max-md:p-7"
@@ -306,7 +306,7 @@ export function ItemPrices({ categories }: Props) {
               </Link>
             </div>
           </div>
-        </ScrollReveal>
+        </ScrollReveal>}
       </div>
     </section>
   );
