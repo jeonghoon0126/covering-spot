@@ -346,7 +346,7 @@ export function ItemSelectionStep({
             </p>
           </div>
           <p className="text-xs text-text-muted mt-1">
-            품목 기준 예상 금액이며, 최종 견적은 매니저 확인 후 확정됩니다
+            부가세 포함 금액이며, 최종 견적은 매니저 확인 후 확정됩니다
           </p>
         </div>
       )}

@@ -147,11 +147,11 @@ export async function PUT(
       );
     }
 
-    // 수정 가능 조건: 수거일 전날 22시(KST) 이전까지만
+    // 수정 가능 조건: 수거 시각 24시간 전까지만
     const now = new Date();
-    if (now >= getCustomerDeadline(existing.date)) {
+    if (now >= getCustomerDeadline(existing.date, existing.timeSlot)) {
       return NextResponse.json(
-        { error: "수거일 전날 22시 이후에는 수정할 수 없습니다" },
+        { error: "수거 시각 24시간 전 이후에는 수정할 수 없습니다" },
         { status: 400 },
       );
     }
@@ -268,10 +268,10 @@ export async function DELETE(
       );
     }
 
-    // 수거일 전날 22시(KST) 이후에는 취소 불가
-    if (new Date() >= getCustomerDeadline(booking.date)) {
+    // 수거 시각 24시간 전 이후에는 취소 불가
+    if (new Date() >= getCustomerDeadline(booking.date, booking.timeSlot)) {
       return NextResponse.json(
-        { error: "수거일 전날 22시 이후에는 취소할 수 없습니다. 취소가 필요하시면 고객센터로 문의해 주세요." },
+        { error: "수거 시각 24시간 전 이후에는 취소할 수 없습니다. 취소가 필요하시면 고객센터로 문의해 주세요." },
         { status: 400 },
       );
     }

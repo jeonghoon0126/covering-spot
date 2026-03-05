@@ -28,14 +28,15 @@ export function isDateBookable(dateStr: string): boolean {
 
 /**
  * 수거일 기준 고객 수정/취소 마감 시각
- * 정책: 수거일 전날 22시(KST) — 당일 00:00 기준 -2시간
+ * 정책: 수거 날짜 + time_slot 기준 24시간 전
+ * 예) 03/07 14:00 수거 → 03/06 14:00까지 취소 가능
  */
-export function getCustomerDeadline(bookingDate: string): Date {
-  const pickupDate = new Date(bookingDate + "T00:00:00+09:00");
-  return new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+export function getCustomerDeadline(bookingDate: string, timeSlot: string): Date {
+  const pickupDatetime = new Date(`${bookingDate}T${timeSlot}:00+09:00`);
+  return new Date(pickupDatetime.getTime() - 24 * 60 * 60 * 1000);
 }
 
 /** 수정/취소 가능 여부 */
-export function isBeforeDeadline(bookingDate: string): boolean {
-  return new Date() < getCustomerDeadline(bookingDate);
+export function isBeforeDeadline(bookingDate: string, timeSlot: string): boolean {
+  return new Date() < getCustomerDeadline(bookingDate, timeSlot);
 }

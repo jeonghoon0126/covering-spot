@@ -7,24 +7,24 @@ import { formatPhoneNumber } from "@/lib/format";
 import { isBeforeDeadline } from "@/lib/booking-utils";
 import { track } from "@/lib/analytics";
 
-/** 수정 가능 여부: pending 상태 + 수거일 전날 22시 이전 */
+/** 수정 가능 여부: pending 상태 + 수거 시각 24시간 전 이전 */
 export function canEdit(b: Booking): boolean {
-  return b.status === "pending" && isBeforeDeadline(b.date);
+  return b.status === "pending" && isBeforeDeadline(b.date, b.timeSlot);
 }
 
-/** 일정 변경 가능 여부: quote_confirmed 상태 + 수거일 전날 22시 이전 */
+/** 일정 변경 가능 여부: quote_confirmed 상태 + 수거 시각 24시간 전 이전 */
 export function canReschedule(b: Booking): boolean {
-  return b.status === "quote_confirmed" && isBeforeDeadline(b.date);
+  return b.status === "quote_confirmed" && isBeforeDeadline(b.date, b.timeSlot);
 }
 
-/** 취소 가능 여부: pending, quote_confirmed, user_confirmed, change_requested + 수거일 전날 22시 이전 */
+/** 취소 가능 여부: pending, quote_confirmed, user_confirmed, change_requested + 수거 시각 24시간 전 이전 */
 export function canCancel(b: Booking): boolean {
   return (
     b.status === "pending" ||
     b.status === "quote_confirmed" ||
     b.status === "user_confirmed" ||
     b.status === "change_requested"
-  ) && isBeforeDeadline(b.date);
+  ) && isBeforeDeadline(b.date, b.timeSlot);
 }
 
 export interface EditForm {

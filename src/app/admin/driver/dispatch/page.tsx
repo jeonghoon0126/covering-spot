@@ -184,8 +184,7 @@ export default function AdminDispatchPage() {
           (data.bookings || []).filter(
             (b: { date: string; status: string }) =>
               b.date === assignDate &&
-              b.status !== "cancelled" &&
-              b.status !== "rejected",
+              (b.status === "user_confirmed" || b.status === "in_progress"),
           ),
         );
       }
@@ -214,8 +213,7 @@ export default function AdminDispatchPage() {
           (data.bookings || []).filter(
             (b: { date: string; status: string }) =>
               b.date === assignDate &&
-              b.status !== "cancelled" &&
-              b.status !== "rejected",
+              (b.status === "user_confirmed" || b.status === "in_progress"),
           ),
         );
       }
