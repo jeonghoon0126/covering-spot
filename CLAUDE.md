@@ -3,7 +3,12 @@
 ## 프로젝트 정보
 - GitHub: https://github.com/jeonghoon0126/covering-spot
 - 로컬: /Users/wjh/covering-spot
-- 배포: Vercel 자동배포 (main push 시)
+- 배포 프로세스 (필수):
+  1. dev 브랜치에서 작업 → commit → push (Dev 자동 배포, preview)
+  2. Dev 환경에서 QA 완료
+  3. `bash scripts/deploy-prod.sh` 실행 (dev → main 머지 → Prod 배포)
+  - main 직접 push 금지 (pre-push hook으로 차단됨)
+  - deploy-prod.sh는 반드시 dev 브랜치에서 실행
 - Supabase: ref=agqynwvbswolmrktjsbw, Token: sbp_2d9bd53a4d9d657642598b0cdbf1b4ff79f92b8c
   주의: PostgREST만 사용 (Vercel Lambda IPv6 미지원)
 
@@ -38,6 +43,11 @@
 - 데이터소스: BigQuery (uid: ff6963jbsw35sd)
 - BQ 주의: GROUP BY/ORDER BY에 alias 금지(숫자 1,2,3) / timeseries는 TIMESTAMP() 변환 / format 필드 제거
 - 워크플로우: BQ 테스트 후 패널 생성 (테스트 없이 만들기 금지)
+
+### FlareLane (SMS 발송)
+- API Key: O5amDOb1eVsUfky9wy2gf
+- Project ID: 879586de-4a32-480d-ba27-73dbf275f888
+- Vercel 환경변수: FLARELANE_API_KEY, FLARELANE_PROJECT_ID (Production+Preview)
 
 ### Slack (커바니_방문수거)
 - 웹훅: https://hooks.slack.com/services/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

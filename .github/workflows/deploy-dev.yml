@@ -7,6 +7,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy via Vercel REST API (gitSource — no file upload)
         run: |
           REPO_ID=$(curl -s "https://api.github.com/repos/${{ github.repository }}" \
@@ -27,6 +29,8 @@ jobs:
             exit 1
           fi
 
+          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+
           for i in $(seq 1 24); do
             sleep 15
             STATE=$(curl -s "https://api.vercel.com/v13/deployments/$DEPLOY_URL?teamId=team_EyB9AZd0p5WrrY8og8951AY1" \
@@ -37,3 +41,39 @@ jobs:
             if [[ "$STATE" == "ERROR" ]]; then echo "Build failed"; exit 1; fi
           done
           echo "Timeout"; exit 1
+
+      - name: Notify Slack (success)
+        if: success()
+        continue-on-error: true
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+
+          COMMITS="$(git log --oneline --since='24 hours ago' | head -10)"
+          if [ -z "$COMMITS" ]; then COMMITS="$(git log --oneline -3)"; fi
+
+          COMMIT_TEXT=""
+          while IFS= read -r line; do
+            [ -n "$line" ] && COMMIT_TEXT="${COMMIT_TEXT}• ${line}\n"
+          done <<< "$COMMITS"
+
+          TEXT="$(printf '🧪 *Dev 배포 완료* (`%s`)\nhttps://%s\n\nQA 후 `bash scripts/deploy-prod.sh`로 Prod 배포\n\n%b' "$SHORT_SHA" "$DEPLOY_URL" "$COMMIT_TEXT")"
+          PAYLOAD="$(jq -n --arg ch "U09PTJ5PBDK" --arg txt "$TEXT" '{channel:$ch,text:$txt}')"
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
+
+      - name: Notify Slack (failure)
+        if: failure()
+        continue-on-error: true
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\":\"U09PTJ5PBDK\",\"text\":\"❌ *Dev 배포 실패*\n\`${SHORT_SHA}\` ${MSG}\nhttps://github.com/${{ github.repository }}/actions\"}"
