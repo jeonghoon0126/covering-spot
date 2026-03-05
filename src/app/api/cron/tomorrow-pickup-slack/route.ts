@@ -82,11 +82,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ sent: 0 });
     }
 
-    const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID;
-    if (!pickupChannel) {
-      console.error("[cron/tomorrow-pickup-slack] SLACK_PICKUP_CHANNEL_ID 미설정");
-      return NextResponse.json({ error: "SLACK_PICKUP_CHANNEL_ID 미설정" }, { status: 500 });
-    }
+    // C0AENH7JW2Y = #pj_대형대량폐기물-수거-완료공유
+    const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AENH7JW2Y";
 
     // 예상 매출 합계
     const totalRevenue = data.reduce((s, b) => s + (b.final_price ?? 0), 0);
