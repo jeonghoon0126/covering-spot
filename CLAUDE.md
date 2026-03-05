@@ -9,7 +9,7 @@
   3. `bash scripts/deploy-prod.sh` 실행 (dev → main 머지 → Prod 배포)
   - main 직접 push 금지 (pre-push hook으로 차단됨)
   - deploy-prod.sh는 반드시 dev 브랜치에서 실행
-- Supabase: ref=agqynwvbswolmrktjsbw, Token: sbp_2d9bd53a4d9d657642598b0cdbf1b4ff79f92b8c
+- Supabase: ref=agqynwvbswolmrktjsbw (DB 접속 정보 → memory/covering-secrets.md 참조)
   주의: PostgREST만 사용 (Vercel Lambda IPv6 미지원)
 
 ### 노션 문서 (API 변경 시 반드시 업데이트)
