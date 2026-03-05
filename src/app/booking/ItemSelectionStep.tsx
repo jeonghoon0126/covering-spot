@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { BookingItem } from "@/types/booking";
 import type { SpotCategory } from "@/data/spot-items";
 import { REQUIRES_PHOTO_CATEGORIES } from "@/data/spot-items";
@@ -53,51 +54,10 @@ export function ItemSelectionStep({
   previewQuote,
   onVagueItem,
 }: ItemSelectionStepProps) {
+  const [customAddedModal, setCustomAddedModal] = useState(false);
+
   return (
     <div className="space-y-3">
-      {/* 선택된 품목 요약 */}
-      {selectedItems.length > 0 && (
-        <div className="bg-primary-bg rounded-lg p-4 mb-1">
-          <p className="text-sm font-semibold text-primary mb-2">
-            선택된 품목 ({selectedItems.length}종,{" "}
-            {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
-          </p>
-          {selectedItems.map((item) => (
-            <div
-              key={`${item.category}-${item.name}`}
-              className="flex items-center justify-between text-sm py-1.5"
-            >
-              <span className="truncate max-w-[50%]">
-                {item.category} - {item.name}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
-                  className="w-10 h-10 rounded-sm bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
-                >
-                  −
-                </button>
-                <span className="w-5 text-center font-semibold text-xs">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
-                  className="w-10 h-10 rounded-sm bg-primary text-white text-xs font-bold flex items-center justify-center"
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -item.quantity)}
-                  className="text-text-muted hover:text-semantic-red text-xs ml-1"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* 인기 품목 */}
       <div className="bg-bg rounded-lg shadow-md border border-border-light p-5 max-sm:p-4">
         <h3 className="text-sm font-semibold mb-3">인기 품목</h3>
@@ -321,10 +281,12 @@ export function ItemSelectionStep({
                 onVagueItem(trimmed, () => {
                   updateItemQty("직접입력", trimmed, trimmed, 0, 1);
                   setCustomItemName("");
+                  setCustomAddedModal(true);
                 });
               } else {
                 updateItemQty("직접입력", trimmed, trimmed, 0, 1);
                 setCustomItemName("");
+                setCustomAddedModal(true);
               }
             }}
           >
@@ -335,6 +297,73 @@ export function ItemSelectionStep({
           직접 입력한 품목은 매니저 확인 후 가격이 책정됩니다
         </p>
       </div>
+
+      {/* 선택된 품목 요약 */}
+      {selectedItems.length > 0 && (
+        <div className="bg-primary-bg rounded-lg p-4">
+          <p className="text-sm font-semibold text-primary mb-2">
+            선택된 품목 ({selectedItems.length}종,{" "}
+            {selectedItems.reduce((s, i) => s + i.quantity, 0)}개)
+          </p>
+          {selectedItems.map((item) => (
+            <div
+              key={`${item.category}-${item.name}`}
+              className="flex items-center justify-between text-sm py-1.5"
+            >
+              <span className="truncate max-w-[50%]">
+                {item.category} - {item.name}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -1)}
+                  className="w-10 h-10 rounded-sm bg-white/60 text-text-sub text-xs font-bold flex items-center justify-center"
+                >
+                  −
+                </button>
+                <span className="w-5 text-center font-semibold text-xs">
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, 1)}
+                  className="w-10 h-10 rounded-sm bg-primary text-white text-xs font-bold flex items-center justify-center"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => updateItemQty(item.category, item.name, item.displayName, item.price, -item.quantity)}
+                  className="text-text-muted hover:text-semantic-red text-xs ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 커스텀 품목 추가 알림 모달 */}
+      {customAddedModal && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-scrim p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-lg w-full max-w-[20rem] p-6 space-y-4 text-center">
+            <p className="text-sm text-text-primary leading-relaxed">
+              품목 요청이 추가되었어요.<br />
+              아래 선택된 품목에서 확인해주세요.
+            </p>
+            <Button
+              variant="primary"
+              size="md"
+              fullWidth
+              onClick={() => setCustomAddedModal(false)}
+            >
+              확인
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 견적 미리보기 */}
       {previewQuote && selectedItems.length > 0 && (
