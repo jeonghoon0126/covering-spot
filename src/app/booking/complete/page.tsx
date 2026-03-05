@@ -132,19 +132,43 @@ function BookingCompleteContent() {
         </p>
       </div>
 
-      {/* 상태 표시 */}
-      <div className="bg-semantic-orange-tint rounded-lg p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <circle cx="18" cy="18" r="16" fill="#FFF7E5" />
-            <circle cx="18" cy="18" r="13" fill="#FFEDD5" />
-            <path d="M18 10v8l4.5 2.5" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="18" cy="18" r="1.5" fill="#D97706" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-semantic-orange">견적 산정 중</p>
-          <p className="text-xs text-text-sub mt-0.5">담당자가 품목을 확인하고 있습니다</p>
+      {/* 진행 단계 */}
+      <div className="bg-bg rounded-lg shadow-md border border-border-light p-5">
+        <p className="text-xs font-semibold text-text-muted mb-3">수거 진행 단계</p>
+        <div className="flex items-start">
+          {[
+            { label: "신청\n접수", done: true, current: false },
+            { label: "견적\n산정 중", done: false, current: true },
+            { label: "일정\n확정", done: false, current: false },
+            { label: "수거", done: false, current: false },
+            { label: "완료", done: false, current: false },
+          ].map((stage, i, arr) => (
+            <div key={stage.label} className="flex items-center flex-1">
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
+                  stage.done
+                    ? "bg-primary text-white shadow-[0_2px_8px_rgba(26,163,255,0.3)]"
+                    : stage.current
+                      ? "bg-semantic-orange text-white ring-[3px] ring-semantic-orange/20"
+                      : "bg-bg-warm2 text-text-muted"
+                }`}>
+                  {stage.done ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : i + 1}
+                </div>
+                <span className={`text-[10px] font-medium text-center whitespace-pre-line leading-tight ${
+                  stage.done ? "text-primary" : stage.current ? "text-semantic-orange font-semibold" : "text-text-muted"
+                }`}>
+                  {stage.label}
+                </span>
+              </div>
+              {i < arr.length - 1 && (
+                <div className={`h-[2px] w-full mx-1 mt-[-10px] rounded-full ${stage.done ? "bg-primary" : "bg-bg-warm2"}`} />
+              )}
+            </div>
+          ))}
         </div>
       </div>
 

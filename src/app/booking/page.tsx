@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { BookingItem } from "@/types/booking";
 import { detectAreaFromAddress } from "@/data/spot-areas";
 import type { SpotCategory } from "@/data/spot-items";
+import { REQUIRES_PHOTO_CATEGORIES } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import { track } from "@/lib/analytics";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -520,7 +521,7 @@ function BookingPageContent() {
 
   // 스텝별 완료 조건
   const hasRequiredPhotoItem = selectedItems.some(
-    (item) => categories.find((c) => c.name === item.category)?.items.find((i) => i.name === item.name)?.requiresPhoto === true,
+    (item) => REQUIRES_PHOTO_CATEGORIES.has(item.category),
   );
   const canNext = [
     customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지

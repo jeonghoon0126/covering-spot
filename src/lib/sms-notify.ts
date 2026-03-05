@@ -13,7 +13,7 @@
  * @see https://flarelane-api-docs.readme.io/reference/send-notifications
  */
 
-const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://coveringspot.vercel.app").trim();
+const BASE = "https://coveringspot.vercel.app"; // DNS 전파 완료 후 process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr"으로 복원
 const STATUS_LINK = `\n\n${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {

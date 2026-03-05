@@ -12,6 +12,13 @@ export interface SpotCategory {
   items: SpotItem[];
 }
 
+/** 사진이 필요한 카테고리 (테이블 이상 크기의 대형 가구/가전) */
+export const REQUIRES_PHOTO_CATEGORIES = new Set([
+  "장롱", "소파", "침대", "장식장", "거실장", "식탁", "테이블",
+  "책상", "캐비닛", "화장대", "책장", "신발장", "서랍장", "탁자",
+  "가전", "건강", "운동", "악기",
+]);
+
 export const SPOT_CATEGORIES: SpotCategory[] = [
   {
     name: "장롱",
@@ -274,8 +281,8 @@ export const SPOT_CATEGORIES: SpotCategory[] = [
       { category: "가전", name: "TV 65인치", displayName: "가전 - TV 65인치 - 145X8X85 무게: 25kg 5000원", price: 5000, loadingCube: 0.1 },
       { category: "가전", name: "TV 75인치", displayName: "가전 - TV 75인치 - 170X10X100 무게: 35kg 8500원", price: 8500, loadingCube: 0.17 },
       { category: "가전", name: "컴퓨터 본체", displayName: "가전 - 컴퓨터 본체 - 20X45X45 무게: 8kg 2000원", price: 2000, loadingCube: 0.04 },
-      { category: "가전", name: "모니터 24인치", displayName: "가전 - 모니터 24인치 - 55X5X35 무게: 5kg 3000원", price: 3000, loadingCube: 0.01 },
-      { category: "가전", name: "모니터 27인치", displayName: "가전 - 모니터 27인치 - 65X5X40 무게: 6kg 5000원", price: 5000, loadingCube: 0.01 },
+      { category: "가전", name: "모니터 24인치", displayName: "가전 - 모니터 24인치 - 55X5X35 무게: 5kg 500원", price: 500, loadingCube: 0.01 },
+      { category: "가전", name: "모니터 27인치", displayName: "가전 - 모니터 27인치 - 65X5X40 무게: 6kg 500원", price: 500, loadingCube: 0.01 },
       { category: "가전", name: "프린터(소형)", displayName: "가전 - 프린터(소형) - 40X40X20 무게: 5kg 1500원", price: 1500, loadingCube: 0.03 },
       { category: "가전", name: "프린터(복합기)", displayName: "가전 - 프린터(복합기) - 50X50X40 무게: 15kg 5000원", price: 5000, loadingCube: 0.1 },
       { category: "가전", name: "전기밥솥", displayName: "가전 - 전기밥솥 - 30X35X25 무게: 5kg 1500원", price: 1500, loadingCube: 0.03 },
@@ -466,9 +473,9 @@ export const SPOT_CATEGORIES: SpotCategory[] = [
       { category: "잡동사니", name: "CD/DVD 박스", displayName: "잡동사니 - CD/DVD 박스 - 40X30X30 무게: 8kg 2000원", price: 2000, loadingCube: 0.04 },
       { category: "잡동사니", name: "앨범/사진 박스", displayName: "잡동사니 - 앨범/사진 박스 - 40X30X25 무게: 6kg 1500원", price: 1500, loadingCube: 0.03 },
       { category: "잡동사니", name: "서류/서적 박스", displayName: "잡동사니 - 서류/서적 박스 - 45X35X30 무게: 10kg 2500원", price: 2500, loadingCube: 0.05 },
-      { category: "잡동사니", name: "비품 잡동사니 (80L)", displayName: "잡동사니 - 비품 잡동사니 (80L) - 70X50X50 무게: 15kg 9000원", price: 9000, loadingCube: 0.18 },
-      { category: "잡동사니", name: "비품 잡동사니 (40L)", displayName: "잡동사니 - 비품 잡동사니 (40L) - 50X40X40 무게: 8kg 4000원", price: 4000, loadingCube: 0.08 },
-      { category: "잡동사니", name: "비품 잡동사니 (20L)", displayName: "잡동사니 - 비품 잡동사니 (20L) - 40X30X30 무게: 4kg 2000원", price: 2000, loadingCube: 0.04 },
+      { category: "잡동사니", name: "비품 잡동사니(대)", displayName: "잡동사니 - 비품 잡동사니(대) - 70X50X50 무게: 15kg 9000원", price: 9000, loadingCube: 0.18 },
+      { category: "잡동사니", name: "비품 잡동사니(중)", displayName: "잡동사니 - 비품 잡동사니(중) - 50X40X40 무게: 8kg 4000원", price: 4000, loadingCube: 0.08 },
+      { category: "잡동사니", name: "비품 잡동사니(소)", displayName: "잡동사니 - 비품 잡동사니(소) - 40X30X30 무게: 4kg 2000원", price: 2000, loadingCube: 0.04 },
     ],
   },
 ];

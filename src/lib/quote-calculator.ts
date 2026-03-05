@@ -25,13 +25,17 @@ export function calculateQuote(
         displayName: item.displayName ?? item.name,
       }));
 
-  // 1-1. 품목별 소계 계산
-  const breakdown = secureItems.map((item) => ({
-    name: `${item.category} - ${item.name}`,
-    quantity: item.quantity,
-    unitPrice: item.price,
-    subtotal: item.price * item.quantity,
-  }));
+  // 1-1. 품목별 소계 계산 (최소 단가 5,000원 적용)
+  const MIN_UNIT_PRICE = 5_000;
+  const breakdown = secureItems.map((item) => {
+    const unitPrice = Math.max(item.price, MIN_UNIT_PRICE);
+    return {
+      name: `${item.category} - ${item.name}`,
+      quantity: item.quantity,
+      unitPrice,
+      subtotal: unitPrice * item.quantity,
+    };
+  });
 
   const itemsTotal = breakdown.reduce((sum, b) => sum + b.subtotal, 0);
 

@@ -2,6 +2,7 @@
 
 import type { BookingItem } from "@/types/booking";
 import type { SpotCategory } from "@/data/spot-items";
+import { REQUIRES_PHOTO_CATEGORIES } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -350,13 +351,11 @@ export function ItemSelectionStep({
         </div>
       )}
 
-      {/* 사진 업로드 */}
-      {(() => {
-        const hasRequiredPhotoItem = selectedItems.some((selItem) => {
-          const cat = categories.find((c) => c.name === selItem.category);
-          const item = cat?.items.find((i) => i.name === selItem.name);
-          return item?.requiresPhoto === true;
-        });
+      {/* 사진 업로드: 품목 선택 후에만 표시 */}
+      {selectedItems.length > 0 && (() => {
+        const hasRequiredPhotoItem = selectedItems.some((selItem) =>
+          REQUIRES_PHOTO_CATEGORIES.has(selItem.category)
+        );
         return (
           <>
             {hasRequiredPhotoItem && (
