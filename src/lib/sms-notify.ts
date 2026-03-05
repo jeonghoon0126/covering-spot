@@ -32,7 +32,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   received: (_fp, _pu, date) =>
     `[커버링 방문수거] 수거 신청이 접수되었어요!${date ? `\n수거 희망일: ${date}` : ""}\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
   quote_confirmed: (finalPrice, _pu, date, confirmedTime) =>
-    `[커버링 방문수거] 견적과 수거 일정이 확정되었어요!\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n수거 일정: ${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""}\n\n아래 링크에서 확인 후 견적 및 일정을 확인해 주세요.\n★ 수거일 전날 오후 6시까지 확인 안 하시면 수거가 진행되지 않을 수 있어요.`,
+    `[커버링 방문수거] 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n해당 견적으로 신청해주신 수거 일자(${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""})에 기사님이 방문 예정이에요.\n\n만약 주문 취소를 원하시면 아래 링크 > 전화번호 입력 > 신청 조회 > 주문 취소를 해주세요.\n수거시각으로부터 24시간 이내에 주문 취소가 가능해요. 수거 당일 취소는 불가능하니 이 점 꼭 확인해주세요.`,
   in_progress: () =>
     "[커버링 방문수거] 수거 일정이 확정되었어요!\n\n수거 당일 기사님이 출발 시 안내 문자를 다시 드릴게요.\n감사합니다!",
   completed: () =>
@@ -42,7 +42,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     (paymentUrl ? `\n\n아래 링크에서 결제를 진행해 주세요.\n결제 링크: ${paymentUrl}` : "") +
     "\n\n결제 완료 후 정산이 확정돼요.\n문의사항은 카카오톡 채널로 연락 주세요!",
   remind_confirm: (_fp, _pu, date) =>
-    `[커버링 방문수거] 내일(${date ?? "예정일"}) 수거가 예정되어 있어요!\n\n아직 견적과 일정을 확인하지 않으셨어요.\n확인해 주시지 않으면 수거가 진행되지 않을 수 있어요.\n아래 링크에서 꼭 확인해 주세요.`,
+    `[커버링 방문수거] 내일(${date ?? "예정일"}) 수거가 예정되어 있어요!\n\n해당 견적으로 신청해주신 수거 일자와 시간에 기사님이 방문 예정이에요.\n\n만약 주문 취소를 원하시면 아래 링크 > 전화번호 입력 > 신청 조회 > 주문 취소를 해주세요.\n수거시각으로부터 24시간 이내에 주문 취소가 가능해요. 수거 당일 취소는 불가능하니 이 점 꼭 확인해주세요.`,
   morning_pickup: (_fp, _pu, date) =>
     `[커버링 방문수거] 오늘(${date ?? "오늘"}) 수거가 예정되어 있어요!\n\n담당 기사님이 곧 출발할 예정입니다. 감사합니다!`,
   // "dispatched"는 DB status가 아닌 배차 이벤트 전용 키 (dispatch-auto/route.ts, dispatch/route.ts에서 호출)
@@ -55,7 +55,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   quote_expired: () =>
     "[커버링 방문수거] 견적 확인 기간이 지나 예약이 자동 취소되었습니다.\n(수거 3일 전까지 미확정 또는 견적 발송 후 7일 초과)\n\n다시 신청하실 수 있어요.",
   remind_pickup: (_fp, _pu, date) =>
-    `[커버링 방문수거] 내일(${date ?? "예정일"}) 수거가 예정되어 있어요!\n\n담당 기사님이 곧 방문할 예정이니 준비해 주세요.\n감사합니다!`,
+    `[커버링 방문수거] 내일(${date ?? "예정일"}) 수거가 예정되어 있어요!\n\n해당 견적으로 신청해주신 수거 일자와 시간에 기사님이 방문 예정이에요.\n\n만약 주문 취소를 원하시면 아래 링크 > 전화번호 입력 > 신청 조회 > 주문 취소를 해주세요.\n수거시각으로부터 24시간 이내에 주문 취소가 가능해요. 수거 당일 취소는 불가능하니 이 점 꼭 확인해주세요.`,
   change_requested: () =>
     "[커버링 방문수거] 일정 변경 요청이 접수되었어요.\n\n담당자가 확인 후 연락드릴게요.\n감사합니다!",
   payment_completed: () =>

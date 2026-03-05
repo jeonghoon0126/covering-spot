@@ -87,7 +87,18 @@ export default function BookingManagePage() {
 
       {/* 날짜·상태 필터 */}
       {bookings.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            type="button"
+            onClick={() => setFilterDate("")}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              filterDate === ""
+                ? "bg-primary text-white"
+                : "border border-border-light bg-bg text-text-muted hover:bg-bg-muted"
+            }`}
+          >
+            전체
+          </button>
           <input
             type="date"
             value={filterDate}

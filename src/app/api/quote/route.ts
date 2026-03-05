@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { calculateQuote } from "@/lib/quote-calculator";
+import { extractFloor } from "@/lib/booking-utils";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { getSpotItems, getSpotAreas, getSpotLadder } from "@/lib/db";
 
@@ -17,6 +18,8 @@ const QuoteRequestSchema = z.object({
   needLadder: z.boolean(),
   ladderType: z.string().optional(),
   ladderHours: z.number().int().min(0).max(10).optional(),
+  hasElevator: z.boolean().optional(),
+  addressDetail: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -48,7 +51,11 @@ export async function POST(req: NextRequest) {
       getSpotAreas(true),
       getSpotLadder(),
     ]);
-    const result = calculateQuote(parsed.data, undefined, spotItems, areas, ladderPrices);
+    const floor = parsed.data.addressDetail ? extractFloor(parsed.data.addressDetail) : undefined;
+    const result = calculateQuote(
+      { ...parsed.data, floor, hasElevator: parsed.data.hasElevator },
+      undefined, spotItems, areas, ladderPrices,
+    );
     return NextResponse.json(result);
   } catch (e) {
     console.error("[quote/POST]", e);

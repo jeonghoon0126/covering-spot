@@ -7,7 +7,7 @@ import {
   updateBooking,
 } from "@/lib/db";
 import { sendBookingCreated } from "@/lib/slack-notify";
-import { isDateBookable } from "@/lib/booking-utils";
+import { isDateBookable, extractFloor } from "@/lib/booking-utils";
 import { generateBookingToken, validateBookingToken } from "@/lib/booking-token";
 import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
 import { geocodeAddress } from "@/lib/geocode";
@@ -138,6 +138,9 @@ export async function POST(req: NextRequest) {
       0,
     );
 
+    // 상세주소에서 층수 자동 추출
+    const floor = extractFloor(validData.addressDetail || "");
+
     // 고객이 던진 totalPrice, estimateMin/Max 대신 서버에서 엄격히 재계산한 견적값 적용
     const serverQuote = calculateQuote({
       area: validData.area,
@@ -145,6 +148,8 @@ export async function POST(req: NextRequest) {
       needLadder: validData.needLadder,
       ladderType: validData.ladderType,
       ladderHours: validData.ladderHours,
+      hasElevator: validData.hasElevator,
+      floor,
     }, undefined, spotItems, areas, ladderPrices);
 
     const booking: Booking = {
@@ -155,8 +160,8 @@ export async function POST(req: NextRequest) {
       items,
       totalPrice: serverQuote.totalPrice, // 서버 계산값 적용
       crewSize: validData.crewSize || serverQuote.crewSize, // 고객 요청 우선 또는 자동
-      needLadder: validData.needLadder || false,
-      ladderType: validData.ladderType || "",
+      needLadder: serverQuote.ladderPrice > 0 || validData.needLadder || false,
+      ladderType: validData.ladderType || (serverQuote.ladderPrice > 0 ? (floor < 10 ? "10층 미만" : "10층 이상") : ""),
       ladderHours: validData.ladderHours,
       ladderPrice: serverQuote.ladderPrice, // 서버 계산값 적용
       customerName: validData.customerName,

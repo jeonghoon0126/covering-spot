@@ -86,6 +86,8 @@ export interface QuoteInput {
   needLadder: boolean;
   ladderType?: string;
   ladderHours?: number;
+  hasElevator?: boolean;
+  floor?: number;
 }
 
 export interface QuoteResult {

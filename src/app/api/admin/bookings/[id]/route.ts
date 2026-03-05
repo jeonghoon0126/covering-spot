@@ -12,6 +12,7 @@ import {
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
 import { calculateQuote } from "@/lib/quote-calculator";
+import { extractFloor } from "@/lib/booking-utils";
 import { getSpotItems, getSpotAreas, getSpotLadder, createAdminNotification } from "@/lib/db";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -134,6 +135,7 @@ export async function PUT(
           getSpotAreas(true),
           getSpotLadder(),
         ]);
+        const floor = extractFloor(existing.addressDetail || "");
         const recalculated = calculateQuote(
           {
             area: existing.area,
@@ -141,6 +143,8 @@ export async function PUT(
             needLadder: existing.needLadder,
             ladderType: existing.ladderType,
             ladderHours: existing.ladderHours,
+            hasElevator: existing.hasElevator,
+            floor,
           },
           data.crewSize,
           spotItems,
