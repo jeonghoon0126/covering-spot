@@ -229,8 +229,8 @@ export default function BookingManagePage() {
                       <div className="space-y-0 text-sm">
                         {b.confirmedTime && (
                           <div className="flex justify-between py-2.5 border-b border-border-light">
-                            <span className="text-text-sub">확정 시간</span>
-                            <span className="font-bold text-primary">{b.confirmedTime}</span>
+                            <span className="text-text-sub">확정 수거 일정</span>
+                            <span className="font-semibold text-primary">{b.date} {b.confirmedTime}</span>
                           </div>
                         )}
                         <div className="flex justify-between py-2.5 border-b border-border-light">
@@ -299,11 +299,8 @@ export default function BookingManagePage() {
                         <div className="pt-3">
                           <p className="text-text-sub font-medium mb-2">품목</p>
                           {b.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between py-1.5">
-                              <span className="truncate max-w-[60%]">
-                                {item.category} - {item.name} x{item.quantity}
-                              </span>
-                              <span className="font-medium">{formatPrice(item.price * item.quantity)}원</span>
+                            <div key={idx} className="py-1.5">
+                              <span>{item.category} - {item.name} x{item.quantity}</span>
                             </div>
                           ))}
                         </div>
@@ -385,7 +382,7 @@ export default function BookingManagePage() {
                         {b.status === "quote_confirmed" && (
                           <div className="mt-3">
                             <Button variant="primary" size="md" fullWidth onClick={() => handleUserConfirm(b.id)} disabled={saving}>
-                              견적 확인 완료
+                              견적 및 일정 확인 완료
                             </Button>
                           </div>
                         )}

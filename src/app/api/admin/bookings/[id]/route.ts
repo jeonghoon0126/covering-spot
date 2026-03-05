@@ -236,7 +236,8 @@ export async function PUT(
               sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
             });
         } else {
-          sendStatusSms(updated.phone, newStatus, id, updated.finalPrice).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
+          sendStatusSms(updated.phone, newStatus, id, updated.finalPrice, null,
+            updated.date, updated.confirmedTime).catch((err) => console.error("[SMS 발송 실패]", { status: newStatus, bookingId: id, error: err?.message }));
         }
       }
       // 푸시 알림 (fire-and-forget)

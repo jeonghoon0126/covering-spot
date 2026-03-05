@@ -105,10 +105,10 @@ export const priceCategories: PriceCategory[] = [
     title: "TV / 전자기기",
     subtitle: "모니터부터 75인치 TV까지",
     rows: [
-      { label: "모니터 (24~27인치)", value: "500원", barPercent: 6 },
+      { label: "모니터 (24~27인치)", value: "5,000원", barPercent: 6 },
       { label: "TV 32~50인치", value: "3,000 ~ 10,000원", barPercent: 35 },
       { label: "TV 65~75인치", value: "5,000 ~ 8,500원", barPercent: 100 },
-      { label: "컴퓨터 본체 / 프린터", value: "1,500 ~ 5,000원", barPercent: 59 },
+      { label: "컴퓨터 본체 / 프린터", value: "5,000원", barPercent: 59 },
     ],
   },
   {
@@ -155,7 +155,7 @@ export const priceCategories: PriceCategory[] = [
     title: "악기",
     subtitle: "바이올린부터 그랜드 피아노까지",
     rows: [
-      { label: "바이올린 / 기타 / 키보드", value: "1,000 ~ 3,500원", barPercent: 2 },
+      { label: "바이올린 / 기타 / 키보드", value: "5,000원", barPercent: 2 },
       { label: "전자 / 디지털 피아노", value: "22,500원", barPercent: 15 },
       { label: "업라이트 피아노", value: "58,500원", barPercent: 39 },
       { label: "드럼세트", value: "135,000원", barPercent: 90 },
@@ -169,7 +169,7 @@ export const priceCategories: PriceCategory[] = [
     subtitle: "청소기부터 안마의자까지",
     rows: [
       { label: "청소기 / 로봇청소기", value: "500 ~ 4,000원", barPercent: 6 },
-      { label: "공기청정기 / 제습기 / 선풍기", value: "2,500 ~ 9,500원", barPercent: 15 },
+      { label: "공기청정기 / 제습기 / 선풍기", value: "5,000 ~ 9,500원", barPercent: 15 },
       { label: "욕조 / 세면대", value: "13,000 ~ 42,000원", barPercent: 65 },
       { label: "안마의자", value: "57,500원", barPercent: 89 },
       { label: "워킹머신 / 의료용 안마침대", value: "64,000 ~ 68,500원", barPercent: 100 },
@@ -184,7 +184,7 @@ export const priceCategories: PriceCategory[] = [
       { label: "자전거 (어린이/성인)", value: "24,000 ~ 59,500원", barPercent: 55 },
       { label: "유아 (유모차, 아기침대 등)", value: "8,500 ~ 108,000원", barPercent: 100 },
       { label: "캣타워 / 케이지", value: "7,000 ~ 32,500원", barPercent: 30 },
-      { label: "포장 (박스, 마대, 캐리어 등)", value: "1,500 ~ 48,500원", barPercent: 45 },
+      { label: "포장 (박스, 마대, 캐리어 등)", value: "5,000 ~ 48,500원", barPercent: 45 },
       { label: "조명 / 커튼 / 카펫 등", value: "500 ~ 32,000원", barPercent: 30 },
     ],
   },

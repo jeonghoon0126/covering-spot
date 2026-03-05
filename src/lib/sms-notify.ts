@@ -28,11 +28,11 @@ const STATUS_ALIAS: Record<string, string> = {
   pending: "received",
 };
 
-const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null) => string> = {
+const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null, date?: string | null, confirmedTime?: string | null) => string> = {
   received: () =>
     `[커버링 방문수거] 수거 신청이 접수되었어요!\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
-  quote_confirmed: (finalPrice) =>
-    `[커버링 방문수거] 안녕하세요! 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n견적이 맞지 않으시면 수거 전날까지 변경·취소가 가능해요.\n★ 수거일 3일 전까지 확정하지 않으시면 예약이 자동 취소돼요.\n아래 링크에서 상세 내용을 확인해 주세요.`,
+  quote_confirmed: (finalPrice, _pu, date, confirmedTime) =>
+    `[커버링 방문수거] 견적과 수거 일정이 확정되었어요!\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n수거 일정: ${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""}\n\n아래 링크에서 확인 후 견적 및 일정을 확인해 주세요.\n★ 수거일 전날 오후 6시까지 확인 안 하시면 수거가 진행되지 않을 수 있어요.`,
   in_progress: () =>
     "[커버링 방문수거] 수거 일정이 확정되었어요!\n\n수거 당일 기사님이 출발 시 안내 문자를 다시 드릴게요.\n감사합니다!",
   completed: () =>
@@ -41,6 +41,10 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     "[커버링 방문수거] 정산 안내드려요." +
     (paymentUrl ? `\n\n아래 링크에서 결제를 진행해 주세요.\n결제 링크: ${paymentUrl}` : "") +
     "\n\n결제 완료 후 정산이 확정돼요.\n문의사항은 카카오톡 채널로 연락 주세요!",
+  remind_confirm: (_fp, _pu, date) =>
+    `[커버링 방문수거] 내일(${date ?? "예정일"}) 수거가 예정되어 있어요!\n\n아직 견적과 일정을 확인하지 않으셨어요.\n확인해 주시지 않으면 수거가 진행되지 않을 수 있어요.\n아래 링크에서 꼭 확인해 주세요.`,
+  morning_pickup: (_fp, _pu, date) =>
+    `[커버링 방문수거] 오늘(${date ?? "오늘"}) 수거가 예정되어 있어요!\n\n담당 기사님이 곧 출발할 예정입니다. 감사합니다!`,
   // "dispatched"는 DB status가 아닌 배차 이벤트 전용 키 (dispatch-auto/route.ts, dispatch/route.ts에서 호출)
   dispatched: () =>
     "[커버링 방문수거] 안녕하세요! 수거 담당 기사가 배정되었어요.\n\n수거 당일 기사 출발 시 다시 안내드릴게요. 감사합니다!",
@@ -86,6 +90,8 @@ export async function sendStatusSms(
   bookingId: string,
   finalPrice?: number | null,
   paymentUrl?: string | null,
+  date?: string | null,
+  confirmedTime?: string | null,
 ): Promise<void> {
   try {
     const apiKey = process.env.FLARELANE_API_KEY;
@@ -100,7 +106,7 @@ export async function sendStatusSms(
     const templateFn = STATUS_TEMPLATES[resolvedStatus];
     if (!templateFn) return;
 
-    const text = templateFn(finalPrice, paymentUrl) + STATUS_LINK;
+    const text = templateFn(finalPrice, paymentUrl, date, confirmedTime) + STATUS_LINK;
 
     const res = await fetch(
       `https://api.flarelane.com/v1/projects/${projectId}/sms`,

@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/expire-quotes",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/remind-confirm",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/morning-pickup",
+      "schedule": "0 23 * * *"
     }
   ]
 }

@@ -224,11 +224,10 @@ function BookingCompleteContent() {
         <h2 className="font-semibold mb-3">품목 내역</h2>
         <div className="space-y-2 text-sm">
           {booking.items.map((item, i) => (
-            <div key={i} className="flex justify-between py-1.5">
-              <span className="text-text-sub truncate max-w-[60%]">
+            <div key={i} className="py-1.5">
+              <span className="text-text-sub">
                 {item.category} - {item.name} x{item.quantity}
               </span>
-              <span>{item.price === 0 ? "가격 미정" : `${formatPrice(item.price * item.quantity)}원`}</span>
             </div>
           ))}
         </div>
