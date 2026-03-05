@@ -94,8 +94,8 @@ export async function sendStatusSms(
   confirmedTime?: string | null,
 ): Promise<void> {
   try {
-    const apiKey = process.env.FLARELANE_API_KEY;
-    const projectId = process.env.FLARELANE_PROJECT_ID;
+    const apiKey = process.env.FLARELANE_API_KEY?.trim();
+    const projectId = process.env.FLARELANE_PROJECT_ID?.trim();
 
     if (!apiKey || !projectId) {
       console.warn("[sms-notify] FlareLane 환경변수 미설정 - SMS 발송 스킵");
@@ -148,8 +148,8 @@ export async function sendAlimtalk(
   interpolations?: Record<string, string>,
 ): Promise<void> {
   try {
-    const apiKey = process.env.FLARELANE_API_KEY;
-    const projectId = process.env.FLARELANE_PROJECT_ID;
+    const apiKey = process.env.FLARELANE_API_KEY?.trim();
+    const projectId = process.env.FLARELANE_PROJECT_ID?.trim();
 
     if (!apiKey || !projectId) {
       console.warn("[alimtalk] FlareLane 환경변수 미설정 - 알림톡 발송 스킵");
