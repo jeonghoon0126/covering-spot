@@ -29,8 +29,8 @@ const STATUS_ALIAS: Record<string, string> = {
 };
 
 const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?: string | null, date?: string | null, confirmedTime?: string | null) => string> = {
-  received: () =>
-    `[커버링 방문수거] 수거 신청이 접수되었어요!\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
+  received: (_fp, _pu, date) =>
+    `[커버링 방문수거] 수거 신청이 접수되었어요!${date ? `\n수거 희망일: ${date}` : ""}\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
   quote_confirmed: (finalPrice, _pu, date, confirmedTime) =>
     `[커버링 방문수거] 견적과 수거 일정이 확정되었어요!\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n수거 일정: ${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""}\n\n아래 링크에서 확인 후 견적 및 일정을 확인해 주세요.\n★ 수거일 전날 오후 6시까지 확인 안 하시면 수거가 진행되지 않을 수 있어요.`,
   in_progress: () =>

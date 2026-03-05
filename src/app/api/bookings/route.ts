@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
     await createBooking(booking);
 
     // 수거 신청 접수 SMS (fire-and-forget)
-    sendStatusSms(booking.phone, "received", booking.id).catch((err) => console.error("[SMS] 접수 알림 실패:", err?.message));
+    sendStatusSms(booking.phone, "received", booking.id, null, null, booking.date).catch((err) => console.error("[SMS] 접수 알림 실패:", err?.message));
 
     // 백오피스 알림 (신규 접수)
     createAdminNotification({

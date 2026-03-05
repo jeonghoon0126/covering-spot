@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { formatPrice, formatManWon } from "@/lib/format";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_MESSAGES, TIME_SLOTS, TIME_SLOT_LABELS } from "@/lib/constants";
 import { useBookingManage, canEdit, canReschedule, canCancel } from "./useBookingManage";
+import { isBeforeDeadline } from "@/lib/booking-utils";
 
 export default function BookingManagePage() {
   const {
@@ -454,6 +455,15 @@ export default function BookingManagePage() {
                               {cancelling === b.id ? "" : "신청 취소"}
                             </Button>
                           </div>
+                        )}
+
+                        {/* 취소 가능 상태이나 마감 지남 → 안내 메시지 */}
+                        {!canCancel(b) &&
+                          (b.status === "pending" || b.status === "quote_confirmed" || b.status === "change_requested") &&
+                          !isBeforeDeadline(b.date, b.timeSlot) && (
+                          <p className="text-xs text-red-500 mt-2">
+                            수거 24시간 전이 지나 취소/변경이 불가합니다. 문의는 카카오톡 채널로 연락해 주세요.
+                          </p>
                         )}
                       </div>
                     )}
