@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("bookings")
-      .select("id, customer_name, phone, address, date, time_slot, final_price, items")
+      .select("id, customer_name, phone, address, address_detail, date, time_slot, final_price, items, has_elevator, has_parking, memo")
       .in("status", ["user_confirmed", "in_progress"])
       .eq("date", tomorrowStr)
       .order("time_slot", { ascending: true });
@@ -110,19 +110,33 @@ export async function GET(req: NextRequest) {
             .join(", ")
         : "-";
 
-      const detailBlocks = [
-        sectionBlock(
-          `*${b.customer_name}* | ${b.phone}\n${b.address}\n${b.date} ${b.time_slot}`,
-        ),
-        fieldsBlock([
-          { label: "확정 견적", value: b.final_price != null ? formatPrice(b.final_price) : "미정" },
-          { label: "품목", value: items },
-        ]),
+      const fullAddress = [b.address, b.address_detail].filter(Boolean).join(" ");
+      const envText = [
+        b.has_elevator ? "엘리베이터 O" : "엘리베이터 X",
+        b.has_parking ? "주차 O" : "주차 X",
+      ].join(" | ");
+
+      const mainText = [
+        `*${b.customer_name}* | ${b.phone}`,
+        `수거 날짜: ${b.date.slice(5).replace("-", "/")} ${b.time_slot}`,
+        `수거 장소: ${fullAddress}`,
+        `특이사항: ${items}`,
+        `작업 환경: ${envText}`,
+        `최종정산금액: ${b.final_price != null ? formatPrice(b.final_price) : "미정"}`,
+      ].join("\n");
+
+      const detailBlocks: unknown[] = [sectionBlock(mainText)];
+
+      if (b.memo) {
+        detailBlocks.push(sectionBlock(`요청사항: ${b.memo}`));
+      }
+
+      detailBlocks.push(
         dividerBlock(),
         actionButtonBlock([
           { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
         ]),
-      ];
+      );
 
       await postSlack(detailBlocks, summaryTs ?? undefined, pickupChannel);
     }
