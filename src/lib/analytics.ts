@@ -10,6 +10,7 @@ type EventName =
   | "[CLICK] SpotHomeScreen_priceTab"
   | "[CLICK] SpotHomeScreen_bookingBtn"
   | "[CLICK] SpotHomeScreen_faqOpen"
+  | "[CLICK] SpotBookingScreen_kakaoBtn"
   | "[CLICK] SpotBookingScreen_nextStep"
   | "[CLICK] SpotBookingScreen_selectItem"
   | "[CLICK] SpotBookingScreen_uploadPhoto"
@@ -32,7 +33,8 @@ type EventName =
   | "[EVENT] SpotBookingTimeSelected";
 
 interface EventProps {
-  "[CLICK] SpotHomeScreen_cta": { location: "hero" | "price" | "floating" | "bottom" | "nav" };
+  "[CLICK] SpotHomeScreen_cta": { location: "hero" | "price" | "floating" | "bottom" | "nav" | "funnel" };
+  "[CLICK] SpotBookingScreen_kakaoBtn": { location: "funnel" };
   "[CLICK] SpotHomeScreen_bookingBtn": { location: "hero" | "price" | "floating" | "bottom" };
   "[CLICK] SpotHomeScreen_carousel": { type: "scroll" | "arrow" | "dot"; direction?: "left" | "right" };
   "[CLICK] SpotHomeScreen_priceTab": { item: string };

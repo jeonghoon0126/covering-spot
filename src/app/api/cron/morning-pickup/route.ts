@@ -27,13 +27,15 @@ export async function GET(req: NextRequest) {
       .from("bookings")
       .update({ status: "in_progress" })
       .in("status", ["quote_confirmed", "user_confirmed"])
-      .eq("date", tomorrowStr);
+      .eq("date", tomorrowStr)
+      .neq("source", "sheet");
 
     const { data, error } = await supabase
       .from("bookings")
       .select("id, phone, date")
       .eq("status", "in_progress")
-      .eq("date", tomorrowStr);
+      .eq("date", tomorrowStr)
+      .neq("source", "sheet");
 
     if (error) {
       console.error("[cron/morning-pickup] 조회 실패:", error.message);

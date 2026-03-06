@@ -17,7 +17,12 @@ export function CTALink({ location, children, className }: Props) {
       target="_blank"
       rel="noopener noreferrer"
       className={className}
-      onClick={() => track("[CLICK] SpotHomeScreen_cta", { location })}
+      onClick={() => {
+        track("[CLICK] SpotHomeScreen_cta", { location });
+        if (location === "funnel") {
+          track("[CLICK] SpotBookingScreen_kakaoBtn", { location });
+        }
+      }}
     >
       {children}
     </a>
