@@ -3,12 +3,13 @@ import { supabase } from "@/lib/supabase";
 import { sendDailyEventsReport } from "@/lib/slack-notify";
 
 // 배너 타입별 where 절
-// 방문수거 MVP 배너: 혜택탭/홈탭에 노출, 랜딩 페이지로 이동
-const MVP_BANNER_WHERE = 'properties["banner_title"] == "방문수거_MVP"';
+// 방문수거 랜딩 배너: 혜택탭/홈탭에 노출, 랜딩 페이지로 이동 (MVP + 구 타이틀 포함)
+const MVP_BANNER_TITLES = ["방문수거_MVP", "방문 수거", "방문수거 OPEN"];
+const MVP_BANNER_WHERE = MVP_BANNER_TITLES.map((t) => `properties["banner_title"] == "${t}"`).join(" or ");
 
 // 캐러셀 배너: 홈 화면 캐러셀, 카카오톡 채널로 이동 (Popup/Benefit 제외)
 const NON_CAROUSEL_TITLES = [
-  "방문수거_MVP", "방문수거 OPEN", "방문 수거",
+  ...MVP_BANNER_TITLES,
   "커버링 구독", "커버링 스팟", "친구 초대", "등급제 쿠폰", "기본요금 0원", "5% 쿠폰 지급", "8kg 초과 배출",
   "신규 지역 오픈", "업데이트 노트",
 ];

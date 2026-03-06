@@ -339,7 +339,7 @@ export async function sendDailyEventsReport(
   dateLabel: string,
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
-  mvpBannerClicks = 0,      // 방문수거 MVP 배너 (혜택탭/홈탭 → 랜딩)
+  mvpBannerClicks = 0,      // 방문수거 랜딩 배너 (MVP+구타이틀, 혜택탭/홈탭 → 랜딩)
   carouselBannerClicks = 0, // 캐러셀 배너 → 카카오톡 채널
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
@@ -371,7 +371,7 @@ export async function sendDailyEventsReport(
   const fmt = (n: number) => String(n.toLocaleString()).padStart(6);
   const bannerLines = [
     mvpBannerClicks > 0
-      ? `방문수거MVP배너 ${fmt(mvpBannerClicks)}  (홈전환 ${pct(home, mvpBannerClicks)})`
+      ? `방문수거배너(랜딩) ${fmt(mvpBannerClicks)}  (홈전환 ${pct(home, mvpBannerClicks)})`
       : null,
     carouselBannerClicks > 0
       ? `캐러셀(카톡)    ${fmt(carouselBannerClicks)}`
