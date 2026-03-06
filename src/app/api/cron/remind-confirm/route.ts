@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
       .from("bookings")
       .select("id, phone, date")
       .in("status", ["quote_confirmed", "in_progress"])
-      .eq("date", tomorrowStr);
+      .eq("date", tomorrowStr)
+      .neq("source", "sheet");
 
     if (error) {
       console.error("[cron/remind-confirm] 조회 실패:", error.message);
