@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics";
 import { KAKAO_CHAT_URL } from "@/lib/constants";
 
 interface Props {
-  location: "hero" | "price" | "floating" | "bottom" | "nav";
+  location: "hero" | "price" | "floating" | "bottom" | "nav" | "funnel";
   children: ReactNode;
   className?: string;
 }
