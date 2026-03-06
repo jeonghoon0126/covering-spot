@@ -13,10 +13,6 @@
       "schedule": "0 23 * * *"
     },
     {
-      "path": "/api/cron/tomorrow-pickup-slack",
-      "schedule": "0 12 * * *"
-    },
-    {
       "path": "/api/cron/daily-events-report",
       "schedule": "0 0 * * *"
     }
