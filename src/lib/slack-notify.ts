@@ -336,10 +336,11 @@ function bar(n: number, max: number, width = 15): string {
 
 /** 일일 이벤트 리포트 (방문수거 알림 채널) */
 export async function sendDailyEventsReport(
-  dateLabel: string,  // e.g. "03/06 (목)"
+  dateLabel: string,
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
-  bannerClicks = 0,   // 커버링 앱 방문수거 배너 클릭 (Mixpanel)
+  landingBannerClicks = 0,   // 혜택 배너 "방문 수거" → 랜딩 페이지
+  carouselBannerClicks = 0,  // 캐러셀 배너 → 카카오톡 채널
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
 
@@ -366,10 +367,16 @@ export async function sendDailyEventsReport(
     `${label}  ${String(cnt.toLocaleString()).padStart(6)}  ${bar(cnt, home)}  ${p}`
   ).join("\n");
 
-  // 배너 클릭 수는 하단 참고 라인으로
-  const bannerLine = bannerClicks > 0
-    ? `\n앱 배너 클릭  ${String(bannerClicks.toLocaleString()).padStart(6)}  (홈 전환율 ${pct(home, bannerClicks)})`
-    : "";
+  // 배너 참고 라인 (하단)
+  const bannerLines = [
+    landingBannerClicks > 0
+      ? `혜택배너(랜딩)  ${String(landingBannerClicks.toLocaleString()).padStart(6)}  (홈전환 ${pct(home, landingBannerClicks)})`
+      : null,
+    carouselBannerClicks > 0
+      ? `캐러셀(카톡)    ${String(carouselBannerClicks.toLocaleString()).padStart(6)}`
+      : null,
+  ].filter(Boolean).join("\n");
+  const bannerLine = bannerLines ? `\n${bannerLines}` : "";
 
   // 예약 스텝
   const stepMap = Object.fromEntries(steps.map((s) => [s.step, s.cnt]));

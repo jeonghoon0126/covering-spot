@@ -2,10 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendDailyEventsReport } from "@/lib/slack-notify";
 
-/** Mixpanel Segmentation API로 어제 방문수거 배너 클릭 수 조회 */
-async function getMixpanelBannerClicks(dateStr: string): Promise<{ count: number; debug: string }> {
+// 배너 타입별 where 절 (BigQuery 분류 기준과 동일)
+const BENEFIT_TITLES = ["방문 수거", "커버링 구독", "친구 초대", "등급제 쿠폰", "기본요금 0원", "5% 쿠폰 지급", "8kg 초과 배출"];
+
+/** 혜택 배너 "방문 수거" → 랜딩 페이지 */
+const LANDING_BANNER_WHERE = 'properties["banner_title"] == "방문 수거"';
+
+/** 캐러셀 배너 → 카톡 채널 (Popup/Benefit 제외 전부) */
+const CAROUSEL_BANNER_WHERE = [
+  'not (properties["banner_id"] == "40")',
+  'properties["banner_title"] != "신규 지역 오픈"',
+  ...BENEFIT_TITLES.map((t) => `properties["banner_title"] != "${t}"`),
+].join(" and ");
+
+/** Mixpanel Segmentation API로 배너 클릭 수 조회 */
+async function getMixpanelBannerCount(dateStr: string, where: string): Promise<number> {
   const apiSecret = process.env.MIXPANEL_API_SECRET;
-  if (!apiSecret) return { count: 0, debug: "no_secret" };
+  if (!apiSecret) return 0;
 
   try {
     const auth = Buffer.from(`${apiSecret.trim()}:`).toString("base64");
@@ -14,26 +27,24 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<{ count: number
       event: "[CLICK] Banner_click",
       from_date: dateStr,
       to_date: dateStr,
-      where: 'properties["banner_title"] == "방문 수거"',
+      where,
       type: "general",
     });
-    const url = `https://mixpanel.com/api/2.0/segmentation?${params}`;
 
-    const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } });
-    const body = await res.text();
+    const res = await fetch(`https://mixpanel.com/api/2.0/segmentation?${params}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!res.ok) return 0;
 
-    if (!res.ok) return { count: 0, debug: `http_${res.status}:${body.slice(0, 100)}` };
-
-    const data = JSON.parse(body) as {
+    const data = await res.json() as {
       data?: { values?: Record<string, Record<string, number>> };
     };
     const values = data?.data?.values?.["[CLICK] Banner_click"];
-    if (!values) return { count: 0, debug: `no_values:${body.slice(0, 100)}` };
+    if (!values) return 0;
 
-    const count = Object.values(values).reduce((sum, v) => sum + v, 0);
-    return { count, debug: "ok" };
-  } catch (e) {
-    return { count: 0, debug: `error:${String(e).slice(0, 100)}` };
+    return Object.values(values).reduce((sum, v) => sum + v, 0);
+  } catch {
+    return 0;
   }
 }
 
@@ -64,8 +75,9 @@ export async function GET(req: NextRequest) {
     const dateStr = `${dKST.getUTCFullYear()}-${String(dKST.getUTCMonth() + 1).padStart(2, "0")}-${String(dKST.getUTCDate()).padStart(2, "0")}`;
 
     // Mixpanel 배너 클릭 + Supabase 이벤트 병렬 조회
-    const [bannerResult, eventsResult, stepsResult] = await Promise.all([
-      getMixpanelBannerClicks(dateStr),
+    const [landingBanner, carouselBanner, eventsResult, stepsResult] = await Promise.all([
+      getMixpanelBannerCount(dateStr, LANDING_BANNER_WHERE),
+      getMixpanelBannerCount(dateStr, CAROUSEL_BANNER_WHERE),
       supabase.from("spot_events").select("event_name").gte("created_at", from).lt("created_at", to),
       supabase.from("spot_events").select("properties").eq("event_name", "[VIEW] SpotBookingScreen_step").gte("created_at", from).lt("created_at", to),
     ]);
@@ -90,9 +102,9 @@ export async function GET(req: NextRequest) {
     }
     const steps = Object.entries(stepMap).map(([step, cnt]) => ({ step, cnt }));
 
-    await sendDailyEventsReport(dateLabel, events, steps, bannerResult.count);
+    await sendDailyEventsReport(dateLabel, events, steps, landingBanner, carouselBanner);
 
-    return NextResponse.json({ ok: true, date: dateLabel, eventCount: events.length, bannerClicks: bannerResult.count, mpDebug: bannerResult.debug });
+    return NextResponse.json({ ok: true, date: dateLabel, landingBanner, carouselBanner });
   } catch (e) {
     console.error("[daily-events-report]", e);
     return NextResponse.json({ error: "report failed" }, { status: 500 });
