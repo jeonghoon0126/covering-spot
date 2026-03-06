@@ -339,8 +339,10 @@ export async function sendDailyEventsReport(
   dateLabel: string,
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
-  mvpBannerClicks = 0,      // 방문수거 랜딩 배너 (MVP+구타이틀, 혜택탭/홈탭 → 랜딩)
-  carouselBannerClicks = 0, // 캐러셀 배너 → 카카오톡 채널
+  popupBanner = 0,    // 팝업 배너 (banner_id=40)
+  benefitBanner = 0,  // 혜택배너 랜딩 (banner_id=44,47,48)
+  carouselBanner = 0, // 캐러셀 → 카카오채널 (banner_id=1,2)
+  funnelKakao = 0,    // 예약화면 내 카카오 이탈
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
 
@@ -356,11 +358,12 @@ export async function sendDailyEventsReport(
 
   // 홈 방문 기준으로 퍼널 바 계산
   const funnelRows: [string, number, string][] = [
-    ["홈 방문    ", home,          "100%"],
-    ["└ 카카오  ", kakao,         pct(kakao, home)],
-    ["└ 수거신청", bookingBtn,    pct(bookingBtn, home)],
-    ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
-    ["└ 예약완료", complete,      pct(complete, home)],
+    ["홈 방문      ", home,          "100%"],
+    ["└ 카카오    ", kakao,         pct(kakao, home)],
+    ["└ 수거신청  ", bookingBtn,    pct(bookingBtn, home)],
+    ["└ 예약화면  ", bookingScreen, pct(bookingScreen, home)],
+    ["  └ 카카오이탈", funnelKakao,  `(예약중 ${pct(funnelKakao, bookingScreen)})`],
+    ["└ 예약완료  ", complete,      pct(complete, home)],
   ];
 
   const funnelLines = funnelRows.map(([label, cnt, p]) =>
@@ -369,13 +372,11 @@ export async function sendDailyEventsReport(
 
   // 배너 참고 라인 (하단)
   const fmt = (n: number) => String(n.toLocaleString()).padStart(6);
+  const total = popupBanner + benefitBanner + carouselBanner;
   const bannerLines = [
-    mvpBannerClicks > 0
-      ? `방문수거배너(랜딩) ${fmt(mvpBannerClicks)}  (홈전환 ${pct(home, mvpBannerClicks)})`
-      : null,
-    carouselBannerClicks > 0
-      ? `캐러셀(카톡)    ${fmt(carouselBannerClicks)}`
-      : null,
+    `혜택배너(랜딩) ${fmt(benefitBanner)}  합산 ${fmt(total)}`,
+    `캐러셀(카톡)   ${fmt(carouselBanner)}`,
+    popupBanner > 0 ? `팝업           ${fmt(popupBanner)}` : null,
   ].filter(Boolean).join("\n");
   const bannerLine = bannerLines ? `\n${bannerLines}` : "";
 

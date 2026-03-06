@@ -2,21 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendDailyEventsReport } from "@/lib/slack-notify";
 
-// 배너 타입별 where 절
-// 방문수거 랜딩 배너: 혜택탭/홈탭에 노출, 랜딩 페이지로 이동 (MVP + 구 타이틀 포함)
-const MVP_BANNER_TITLES = ["방문수거_MVP", "방문 수거", "방문수거 OPEN"];
-const MVP_BANNER_WHERE = MVP_BANNER_TITLES.map((t) => `properties["banner_title"] == "${t}"`).join(" or ");
-
-// 캐러셀 배너: 홈 화면 캐러셀, 카카오톡 채널로 이동 (Popup/Benefit 제외)
-const NON_CAROUSEL_TITLES = [
-  ...MVP_BANNER_TITLES,
-  "커버링 구독", "커버링 스팟", "친구 초대", "등급제 쿠폰", "기본요금 0원", "5% 쿠폰 지급", "8kg 초과 배출",
-  "신규 지역 오픈", "업데이트 노트",
-];
-const CAROUSEL_WHERE = [
-  'not (properties["banner_id"] == "40")',
-  ...NON_CAROUSEL_TITLES.map((t) => `properties["banner_title"] != "${t}"`),
-].join(" and ");
+// 배너 타입별 Mixpanel where 절 (banner_id 기반)
+const POPUP_WHERE    = 'properties["banner_id"] == "40"';
+const BENEFIT_WHERE  = ['44','47','48'].map((id) => `properties["banner_id"] == "${id}"`).join(' or ');
+const CAROUSEL_WHERE = ['1','2'].map((id) => `properties["banner_id"] == "${id}"`).join(' or ');
 
 /** Mixpanel Segmentation API로 배너 클릭 수 조회 */
 async function getMixpanelBannerCount(dateStr: string, where: string): Promise<number> {
@@ -77,12 +66,14 @@ export async function GET(req: NextRequest) {
     const dateLabel = `${String(dKST.getUTCMonth() + 1).padStart(2, "0")}/${String(dKST.getUTCDate()).padStart(2, "0")} (${DAYS[dKST.getUTCDay()]})`;
     const dateStr = `${dKST.getUTCFullYear()}-${String(dKST.getUTCMonth() + 1).padStart(2, "0")}-${String(dKST.getUTCDate()).padStart(2, "0")}`;
 
-    // Mixpanel 배너 2종 + Supabase 이벤트 병렬 조회
-    const [mvpBanner, carouselBanner, eventsResult, stepsResult] = await Promise.all([
-      getMixpanelBannerCount(dateStr, MVP_BANNER_WHERE),
+    // Mixpanel 배너 3종 + Supabase 이벤트 병렬 조회
+    const [popupBanner, benefitBanner, carouselBanner, eventsResult, stepsResult, funnelKakaoResult] = await Promise.all([
+      getMixpanelBannerCount(dateStr, POPUP_WHERE),
+      getMixpanelBannerCount(dateStr, BENEFIT_WHERE),
       getMixpanelBannerCount(dateStr, CAROUSEL_WHERE),
       supabase.from("spot_events").select("event_name").gte("created_at", from).lt("created_at", to),
       supabase.from("spot_events").select("properties").eq("event_name", "[VIEW] SpotBookingScreen_step").gte("created_at", from).lt("created_at", to),
+      supabase.from("spot_events").select("id", { count: "exact", head: true }).eq("event_name", "[CLICK] SpotHomeScreen_cta").eq("properties->>location", "funnel").gte("created_at", from).lt("created_at", to),
     ]);
 
     if (eventsResult.error) throw eventsResult.error;
@@ -105,9 +96,11 @@ export async function GET(req: NextRequest) {
     }
     const steps = Object.entries(stepMap).map(([step, cnt]) => ({ step, cnt }));
 
-    await sendDailyEventsReport(dateLabel, events, steps, mvpBanner, carouselBanner);
+    const funnelKakao = funnelKakaoResult.count ?? 0;
 
-    return NextResponse.json({ ok: true, date: dateLabel, mvpBanner, carouselBanner });
+    await sendDailyEventsReport(dateLabel, events, steps, popupBanner, benefitBanner, carouselBanner, funnelKakao);
+
+    return NextResponse.json({ ok: true, date: dateLabel, popupBanner, benefitBanner, carouselBanner, funnelKakao });
   } catch (e) {
     console.error("[daily-events-report]", e);
     return NextResponse.json({ error: "report failed" }, { status: 500 });
