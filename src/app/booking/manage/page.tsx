@@ -9,7 +9,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { formatPrice, formatManWon } from "@/lib/format";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_MESSAGES, TIME_SLOTS, TIME_SLOT_LABELS } from "@/lib/constants";
-import { useBookingManage, canEdit, canReschedule, canCancel } from "./useBookingManage";
+import { useBookingManage, canEdit, canReschedule, canCancel, canConfirm, getQuoteExpiryLabel } from "./useBookingManage";
 import { isBeforeDeadline } from "@/lib/booking-utils";
 
 export default function BookingManagePage() {
@@ -20,6 +20,7 @@ export default function BookingManagePage() {
     loading,
     expandedId,
     cancelling,
+    confirming,
     editingId,
     editForm,
     saving,
@@ -32,6 +33,7 @@ export default function BookingManagePage() {
     setPhone,
     setExpandedId,
     handleSearch,
+    handleConfirm,
     handleCancel,
     startEdit,
     cancelEdit,
@@ -189,7 +191,33 @@ export default function BookingManagePage() {
                           ? `${STATUS_MESSAGES[b.status]} 견적: ${formatPrice(b.finalPrice)}원`
                           : STATUS_MESSAGES[b.status] || "처리 중입니다"}
                       </p>
+                      {b.status === "quote_confirmed" && (() => {
+                        const label = getQuoteExpiryLabel(b);
+                        return label ? (
+                          <p className="mt-1 text-xs opacity-80">수락 마감: {label} 후 자동 취소</p>
+                        ) : null;
+                      })()}
                     </div>
+
+                    {/* 견적 수락 버튼 (quote_confirmed + 6시간 이내) */}
+                    {canConfirm(b) && (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        fullWidth
+                        onClick={() => handleConfirm(b.id)}
+                        disabled={confirming === b.id}
+                        loading={confirming === b.id}
+                        className="mb-3"
+                      >
+                        {confirming === b.id ? "" : "견적 수락"}
+                      </Button>
+                    )}
+                    {b.status === "quote_confirmed" && !canConfirm(b) && b.quoteConfirmedAt && (
+                      <p className="text-xs text-semantic-red mb-3">
+                        견적 수락 기간이 만료되었습니다. 카카오톡 채널로 문의해 주세요.
+                      </p>
+                    )}
 
                     {/* 수정 모드 */}
                     {isEditing && editForm ? (

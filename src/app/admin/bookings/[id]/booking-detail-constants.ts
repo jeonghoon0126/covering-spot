@@ -20,6 +20,11 @@ export const NEXT_STATUS: Record<string, { status: string; label: string }[]> = 
     { status: "cancelled", label: "취소" },
   ],
   quote_confirmed: [
+    { status: "user_confirmed", label: "고객 수락 처리" },
+    { status: "in_progress", label: "일정 확정" },
+    { status: "cancelled", label: "취소" },
+  ],
+  user_confirmed: [
     { status: "in_progress", label: "일정 확정" },
     { status: "cancelled", label: "취소" },
   ],

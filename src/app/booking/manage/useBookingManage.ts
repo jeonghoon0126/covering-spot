@@ -17,6 +17,24 @@ export function canReschedule(b: Booking): boolean {
   return b.status === "quote_confirmed" && isBeforeDeadline(b.date, b.timeSlot);
 }
 
+/** 견적 수락 가능 여부: quote_confirmed + 견적 발송 후 6시간 이내 */
+export function canConfirm(b: Booking): boolean {
+  if (b.status !== "quote_confirmed" || !b.quoteConfirmedAt) return false;
+  const expiry = new Date(new Date(b.quoteConfirmedAt).getTime() + 6 * 60 * 60 * 1000);
+  return new Date() < expiry;
+}
+
+/** 견적 만료까지 남은 시간 문자열 반환 (HH시간 MM분) */
+export function getQuoteExpiryLabel(b: Booking): string | null {
+  if (!b.quoteConfirmedAt) return null;
+  const expiry = new Date(new Date(b.quoteConfirmedAt).getTime() + 6 * 60 * 60 * 1000);
+  const diff = expiry.getTime() - Date.now();
+  if (diff <= 0) return null;
+  const h = Math.floor(diff / (1000 * 60 * 60));
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+}
+
 /** 취소 가능 여부: pending, quote_confirmed, change_requested, in_progress + 수거 시각 24시간 전 이전 */
 export function canCancel(b: Booking): boolean {
   return (
@@ -44,6 +62,7 @@ export interface BookingManageState {
   loading: boolean;
   expandedId: string | null;
   cancelling: string | null;
+  confirming: string | null;
   editingId: string | null;
   editForm: EditForm | null;
   saving: boolean;
@@ -59,6 +78,7 @@ export interface BookingManageHandlers {
   setPhone: (phone: string) => void;
   setExpandedId: (id: string | null) => void;
   handleSearch: (e: React.FormEvent) => Promise<void>;
+  handleConfirm: (id: string) => Promise<void>;
   handleCancel: (id: string) => Promise<void>;
   startEdit: (b: Booking) => void;
   cancelEdit: () => void;
@@ -84,6 +104,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
@@ -148,6 +169,35 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
       doSearch(phone);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleConfirm(id: string) {
+    track("[CLICK] SpotBookingManageScreen_confirm", { bookingId: id });
+    if (!confirm("견적을 수락하시겠습니까?")) return;
+    track("[EVENT] SpotBookingUserConfirm", { bookingId: id });
+    setConfirming(id);
+    try {
+      const token = getBookingToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["x-booking-token"] = token;
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ action: "user_confirm" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookings((prev) => prev.map((b) => (b.id === id ? data.booking : b)));
+        alert("견적을 수락했습니다. 수거 당일 기사님이 출발 시 안내드릴게요.");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "수락 실패");
+      }
+    } catch {
+      alert("네트워크 오류");
+    } finally {
+      setConfirming(null);
+    }
+  }
 
   async function handleCancel(id: string) {
     track("[CLICK] SpotBookingManageScreen_cancel", { bookingId: id });
@@ -287,6 +337,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     loading,
     expandedId,
     cancelling,
+    confirming,
     editingId,
     editForm,
     saving,
@@ -300,6 +351,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     setPhone,
     setExpandedId,
     handleSearch,
+    handleConfirm,
     handleCancel,
     startEdit,
     cancelEdit,

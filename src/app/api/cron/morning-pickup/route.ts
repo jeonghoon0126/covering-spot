@@ -22,11 +22,11 @@ export async function GET(req: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-    // quote_confirmed 건을 in_progress로 자동 전환
+    // quote_confirmed / user_confirmed 건을 in_progress로 자동 전환
     await supabase
       .from("bookings")
       .update({ status: "in_progress" })
-      .eq("status", "quote_confirmed")
+      .in("status", ["quote_confirmed", "user_confirmed"])
       .eq("date", tomorrowStr);
 
     const { data, error } = await supabase

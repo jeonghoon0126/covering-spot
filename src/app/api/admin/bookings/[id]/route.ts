@@ -17,7 +17,8 @@ import { getSpotItems, getSpotAreas, getSpotLadder, createAdminNotification } fr
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
-  quote_confirmed: ["in_progress", "cancelled", "rejected"],
+  quote_confirmed: ["user_confirmed", "in_progress", "cancelled", "rejected"],
+  user_confirmed: ["in_progress", "cancelled"],
   change_requested: ["quote_confirmed", "cancelled"],
   in_progress: ["completed", "cancelled"],
   completed: ["payment_requested"],
