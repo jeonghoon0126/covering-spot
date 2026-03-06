@@ -3,19 +3,21 @@ import { supabase } from "@/lib/supabase";
 import {
   headerBlock,
   sectionBlock,
-  fieldsBlock,
   dividerBlock,
   actionButtonBlock,
 } from "@/lib/slack-blocks";
 
 const BASE_URL = "https://coveringspot.vercel.app";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Y8ztdzT-Y08-XOkKSX-jryLJFT4r1ID4nuzRcN9ddTU";
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
 }
 
-function formatManWon(n: number): string {
-  return Math.round(n / 10000) + "만원";
+function getDayName(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00+09:00");
+  const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  return DAYS[d.getDay()];
 }
 
 async function postSlack(
@@ -50,7 +52,7 @@ async function postSlack(
 /**
  * 익일 수거 건 전일 오후 9시 슬랙 알림 Cron Job
  * - Vercel Cron: 매일 UTC 12:00 (KST 21:00) 실행
- * - status IN (user_confirmed, in_progress) 이고 date = 내일인 건 → 요약 + 스레드 상세
+ * - status IN (quote_confirmed, in_progress) 이고 date = 내일인 건 → 단건시트 포맷으로 요약 + 스레드 상세
  */
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -68,8 +70,8 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("bookings")
-      .select("id, customer_name, phone, address, address_detail, date, time_slot, final_price, items, has_elevator, has_parking, memo")
-      .in("status", ["user_confirmed", "in_progress"])
+      .select("id, customer_name, phone, address, address_detail, date, time_slot, final_price, items, has_elevator, has_parking, memo, driver_name")
+      .in("status", ["quote_confirmed", "in_progress"])
       .eq("date", tomorrowStr)
       .order("time_slot", { ascending: true });
 
@@ -85,17 +87,24 @@ export async function GET(req: NextRequest) {
     // C0AENH7JW2Y = #pj_대형대량폐기물-수거-완료공유
     const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AENH7JW2Y";
 
-    // 예상 매출 합계
     const totalRevenue = data.reduce((s, b) => s + (b.final_price ?? 0), 0);
+    const dateStr = tomorrowStr.slice(5).replace("-", "/");
+    const dow = getDayName(tomorrowStr);
 
-    // 요약 메시지
+    // 번호 목록 텍스트
+    const listText = data.map((b, i) => {
+      const time = b.time_slot ?? "미정";
+      const price = b.final_price != null ? formatPrice(b.final_price) : "미정";
+      return `${i + 1}. ${b.customer_name}  |  ${time}  |  ${price}`;
+    }).join("\n");
+
+    const summaryText = `총 ${data.length}건  |  예상 매출 ${formatPrice(totalRevenue)}\n\n${listText}`;
+
     const summaryBlocks = [
-      headerBlock(`📦 내일(${tomorrowStr}) 수거 예정 ${data.length}건`),
-      fieldsBlock([
-        { label: "수거 건수", value: `${data.length}건` },
-        { label: "예상 매출 합계", value: totalRevenue > 0 ? formatManWon(totalRevenue) : "미정" },
-      ]),
+      headerBlock(`[방문 수거] ${dateStr}(${dow}) 수거 현황`),
+      sectionBlock(summaryText),
       actionButtonBlock([
+        { text: "시트 바로가기", url: SHEET_URL },
         { text: "어드민 바로가기", url: `${BASE_URL}/admin`, primary: true },
       ]),
     ];
@@ -103,40 +112,42 @@ export async function GET(req: NextRequest) {
     const summaryTs = await postSlack(summaryBlocks, undefined, pickupChannel);
 
     // 건별 스레드 상세
-    for (const b of data) {
+    for (const [i, b] of data.entries()) {
       const items = Array.isArray(b.items)
         ? (b.items as Array<{ category: string; name: string; quantity: number }>)
-            .map((i) => `${i.category} ${i.name} x${i.quantity}`)
+            .map((item) => `${item.category} ${item.name} x${item.quantity}`)
             .join(", ")
         : "-";
 
       const fullAddress = [b.address, b.address_detail].filter(Boolean).join(" ");
-      const envText = [
-        b.has_elevator ? "엘리베이터 O" : "엘리베이터 X",
-        b.has_parking ? "주차 O" : "주차 X",
-      ].join(" | ");
-
-      const mainText = [
-        `*${b.customer_name}* | ${b.phone}`,
-        `수거 날짜: ${b.date.slice(5).replace("-", "/")} ${b.time_slot}`,
-        `수거 장소: ${fullAddress}`,
-        `특이사항: ${items}`,
-        `작업 환경: ${envText}`,
-        `최종정산금액: ${b.final_price != null ? formatPrice(b.final_price) : "미정"}`,
+      const envLines = [
+        b.has_elevator ? "엘리베이터 사용가능" : "엘리베이터 사용불가",
+        b.has_parking ? "주차가능" : "주차불가",
       ].join("\n");
 
-      const detailBlocks: unknown[] = [sectionBlock(mainText)];
+      const driverText = b.driver_name ? `@${b.driver_name}` : "미배차";
 
-      if (b.memo) {
-        detailBlocks.push(sectionBlock(`요청사항: ${b.memo}`));
-      }
+      const mainLines = [
+        `*[${i + 1}/${data.length}] ${b.customer_name}*  ${driverText}`,
+        ``,
+        `수거 날짜: ${b.date.slice(5).replace("-", "/")}`,
+        `수거 시간: ${b.time_slot ?? "미정"}`,
+        `수거 장소: ${fullAddress}`,
+        `특이사항: ${items}`,
+        ...(b.memo ? [`메모: ${b.memo}`] : []),
+        ``,
+        envLines,
+        `고객님 전화번호: ${b.phone}`,
+        `최종정산금액: ${b.final_price != null ? formatPrice(b.final_price) : "미정"}`,
+      ];
 
-      detailBlocks.push(
+      const detailBlocks: unknown[] = [
+        sectionBlock(mainLines.join("\n")),
         dividerBlock(),
         actionButtonBlock([
           { text: "상세 보기", url: `${BASE_URL}/admin/bookings/${b.id}`, primary: true },
         ]),
-      );
+      ];
 
       await postSlack(detailBlocks, summaryTs ?? undefined, pickupChannel);
     }

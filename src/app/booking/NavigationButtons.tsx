@@ -2,8 +2,9 @@
 
 import type { BookingItem } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
+import { CTALink } from "@/components/ui/CTALink";
+import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { VAGUE_ITEM_KEYWORDS } from "./booking-constants";
-import { KAKAO_CHAT_URL } from "@/lib/constants";
 
 interface NavigationButtonsProps {
   step: number;
@@ -74,15 +75,14 @@ export function NavigationButtons({
           </Button>
         )}
       </div>
-      <div className="flex justify-center mt-3">
-        <a
-          href={KAKAO_CHAT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-text-muted hover:text-primary transition-colors"
+      <div className="mt-3">
+        <CTALink
+          location="funnel"
+          className="inline-flex items-center justify-center gap-2.5 bg-kakao text-text-primary text-base font-bold py-4 w-full rounded-lg shadow-sm hover:shadow-md hover:bg-kakao-hover hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
         >
-          💬 카톡으로 5분 만에 신청하기
-        </a>
+          <KakaoIcon />
+          <span>카카오톡으로 5분만에 신청하기</span>
+        </CTALink>
       </div>
     </div>
   );
