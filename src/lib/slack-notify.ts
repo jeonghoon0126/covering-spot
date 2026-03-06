@@ -339,8 +339,7 @@ export async function sendDailyEventsReport(
   dateLabel: string,
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
-  popupBannerClicks = 0,    // 팝업 배너 (banner_id=40 / 신규 지역 오픈)
-  benefitBannerClicks = 0,  // 혜택 배너 (방문수거 포함 benefit 전체)
+  mvpBannerClicks = 0,      // 방문수거 MVP 배너 (혜택탭/홈탭 → 랜딩)
   carouselBannerClicks = 0, // 캐러셀 배너 → 카카오톡 채널
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
@@ -368,17 +367,14 @@ export async function sendDailyEventsReport(
     `${label}  ${String(cnt.toLocaleString()).padStart(6)}  ${bar(cnt, home)}  ${p}`
   ).join("\n");
 
-  // 배너 타입별 참고 라인 (하단)
+  // 배너 참고 라인 (하단)
   const fmt = (n: number) => String(n.toLocaleString()).padStart(6);
   const bannerLines = [
-    popupBannerClicks > 0
-      ? `팝업배너    ${fmt(popupBannerClicks)}  (홈전환 ${pct(home, popupBannerClicks)})`
-      : null,
-    benefitBannerClicks > 0
-      ? `혜택배너    ${fmt(benefitBannerClicks)}  (홈전환 ${pct(home, benefitBannerClicks)})`
+    mvpBannerClicks > 0
+      ? `방문수거MVP배너 ${fmt(mvpBannerClicks)}  (홈전환 ${pct(home, mvpBannerClicks)})`
       : null,
     carouselBannerClicks > 0
-      ? `캐러셀(카톡) ${fmt(carouselBannerClicks)}`
+      ? `캐러셀(카톡)    ${fmt(carouselBannerClicks)}`
       : null,
   ].filter(Boolean).join("\n");
   const bannerLine = bannerLines ? `\n${bannerLines}` : "";
