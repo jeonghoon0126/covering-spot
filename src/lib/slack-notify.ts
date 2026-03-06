@@ -327,6 +327,13 @@ export async function sendUploadError(
   ]);
 }
 
+/** 숫자를 기준값 대비 █░ 막대 (길이 15)로 변환 */
+function bar(n: number, max: number, width = 15): string {
+  if (max === 0) return "░".repeat(width);
+  const filled = Math.round((n / max) * width);
+  return "█".repeat(filled) + "░".repeat(width - filled);
+}
+
 /** 일일 이벤트 리포트 (방문수거 알림 채널) */
 export async function sendDailyEventsReport(
   dateLabel: string,  // e.g. "03/06 (목)"
@@ -344,36 +351,50 @@ export async function sendDailyEventsReport(
   const bookingScreen = get("[ROUTE] SpotBookingScreen");
   const complete = get("[EVENT] SpotBookingComplete");
 
-  // 배너→홈 전환율, 홈 기준 하위 전환율
-  const pctOf = (n: number, base: number) => base > 0 ? ` (${(n / base * 100).toFixed(1)}%)` : "";
+  const pct = (n: number, base: number) => base > 0 ? `${(n / base * 100).toFixed(1)}%` : "-";
 
-  const funnelLines = [
-    ...(bannerClicks > 0 ? [
-      `앱 배너 클릭      *${bannerClicks.toLocaleString()}건*`,
-      `홈 방문           ${home.toLocaleString()}건${pctOf(home, bannerClicks)}`,
-    ] : [
-      `홈 방문           *${home.toLocaleString()}건*`,
-    ]),
-    `├ 카카오 클릭     ${kakao.toLocaleString()}건${pctOf(kakao, home)}`,
-    `├ 수거신청 클릭   ${bookingBtn.toLocaleString()}건${pctOf(bookingBtn, home)}`,
-    `├ 예약화면 진입   ${bookingScreen.toLocaleString()}건${pctOf(bookingScreen, home)}`,
-    `└ 예약 완료       *${complete.toLocaleString()}건*${pctOf(complete, home)}`,
-  ].join("\n");
+  // 퍼널 최상단 기준값 (배너 있으면 배너, 없으면 홈방문)
+  const funnelMax = bannerClicks > 0 ? bannerClicks : home;
 
+  const funnelRows: [string, number, string][] = bannerClicks > 0
+    ? [
+        ["앱 배너 클릭", bannerClicks, "100%"],
+        ["홈 방문    ", home,        pct(home, bannerClicks)],
+        ["└ 카카오  ", kakao,       pct(kakao, home)],
+        ["└ 수거신청", bookingBtn,  pct(bookingBtn, home)],
+        ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
+        ["└ 예약완료", complete,    pct(complete, home)],
+      ]
+    : [
+        ["홈 방문    ", home,        "100%"],
+        ["└ 카카오  ", kakao,       pct(kakao, home)],
+        ["└ 수거신청", bookingBtn,  pct(bookingBtn, home)],
+        ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
+        ["└ 예약완료", complete,    pct(complete, home)],
+      ];
+
+  const funnelLines = funnelRows.map(([label, cnt, p]) =>
+    `${label}  ${String(cnt.toLocaleString()).padStart(6)}  ${bar(cnt, funnelMax)}  ${p}`
+  ).join("\n");
+
+  // 예약 스텝
   const stepMap = Object.fromEntries(steps.map((s) => [s.step, s.cnt]));
+  const step0 = stepMap["0"] ?? 0;
   const stepNames: Record<string, string> = { "0": "고객정보", "1": "품목/사진", "2": "날짜/시간", "3": "작업환경", "4": "사다리차", "5": "견적확인" };
+
   const stepLines = [0, 1, 2, 3, 4, 5].map((i) => {
     const cnt = stepMap[String(i)] ?? 0;
     const prev = i > 0 ? (stepMap[String(i - 1)] ?? 0) : null;
-    const drop = prev && prev > 0 ? ` (-${(100 - cnt / prev * 100).toFixed(0)}%)` : "";
-    return `Step${i} ${stepNames[String(i)]}   ${cnt}건${drop}`;
+    const dropTag = prev && prev > 0 ? ` ↓${(100 - cnt / prev * 100).toFixed(0)}%` : "";
+    const pctStr = `${pct(cnt, step0)}${dropTag}`;
+    return `Step${i} ${stepNames[String(i)]}  ${String(cnt.toLocaleString()).padStart(5)}  ${bar(cnt, step0)}  ${pctStr}`;
   }).join("\n");
 
   await postSlack([
     headerBlock(`📊 방문수거 일일 리포트 | ${dateLabel}`),
-    sectionBlock(`*퍼널*\n${funnelLines}`),
+    sectionBlock(`\`\`\`${funnelLines}\`\`\``),
     dividerBlock(),
-    sectionBlock(`*예약 스텝 이탈*\n${stepLines}`),
+    sectionBlock(`*예약 스텝 이탈*\n\`\`\`${stepLines}\`\`\``),
   ], undefined, pickupChannel);
 }
 
