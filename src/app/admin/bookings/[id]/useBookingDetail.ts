@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { Booking } from "@/types/booking";
+import type { SpotItem } from "@/lib/db-misc";
 import { safeSessionSet, safeLocalGet, safeLocalRemove } from "@/lib/storage";
 import { STATUS_LABELS } from "@/lib/constants";
 import { NEXT_STATUS, EDITABLE_STATUSES } from "./booking-detail-constants";
@@ -16,21 +17,33 @@ export function useBookingDetail() {
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Form states
   const [finalPriceInput, setFinalPriceInput] = useState("");
   const [adminMemoInput, setAdminMemoInput] = useState("");
+  const [dateInput, setDateInput] = useState("");
   const [confirmedTimeInput, setConfirmedTimeInput] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [confirmedDurationInput, setConfirmedDurationInput] = useState<number | null>(null);
+  const [crewSizeInput, setCrewSizeInput] = useState<number | null>(null);
+
+  // Item editing states
+  const [editingItems, setEditingItems] = useState(false);
+  const [itemEdits, setItemEdits] = useState<{ price: string; category: string; name: string }[]>([]);
+
+  // Item matching states
+  const [allSpotItems, setAllSpotItems] = useState<SpotItem[]>([]);
+  const [matchingIdx, setMatchingIdx] = useState<number | null>(null);
+  const [matchingSearchQuery, setMatchingSearchQuery] = useState("");
+
+  // Other UI states
   const [slotAvailability, setSlotAvailability] = useState<
     Record<string, { available: boolean; count: number }>
   >({});
-  const [editingItems, setEditingItems] = useState(false);
-  const [itemEdits, setItemEdits] = useState<{ price: string; category: string }[]>([]);
+  const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditOpen, setAuditOpen] = useState(false);
-  const [confirmedDurationInput, setConfirmedDurationInput] = useState<number | null>(null);
-  const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
-  const [crewSizeInput, setCrewSizeInput] = useState<number | null>(null);
-  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   // sessionStorage에서 token 가져오기
   useEffect(() => {
@@ -45,30 +58,19 @@ export function useBookingDetail() {
 
   const applyBookingData = useCallback((data: { booking: Booking }) => {
     setBooking(data.booking);
-    if (data.booking.finalPrice != null) {
-      setFinalPriceInput(String(data.booking.finalPrice));
-    }
-    if (data.booking.adminMemo) {
-      setAdminMemoInput(data.booking.adminMemo);
-    } else {
-      setAdminMemoInput("");
-    }
-    if (data.booking.confirmedTime) {
-      setConfirmedTimeInput(data.booking.confirmedTime);
-    }
-    if (data.booking.confirmedDuration != null) {
-      setConfirmedDurationInput(data.booking.confirmedDuration);
-    }
-    if (data.booking.completionPhotos?.length) {
-      setCompletionPhotos(data.booking.completionPhotos);
-    }
+    setFinalPriceInput(String(data.booking.finalPrice ?? ""));
+    setAdminMemoInput(data.booking.adminMemo || "");
+    setDateInput(data.booking.date);
+    setConfirmedTimeInput(data.booking.confirmedTime || "");
+    setConfirmedDurationInput(data.booking.confirmedDuration ?? null);
+    setCompletionPhotos(data.booking.completionPhotos || []);
     setCrewSizeInput(data.booking.crewSize ?? 1);
   }, []);
 
-  // 슬롯 가용성 조회
+  // 슬롯 가용성 조회 (dateInput 변경 시 재조회)
   useEffect(() => {
-    if (!booking) return;
-    fetch(`/api/slots?date=${booking.date}&excludeId=${booking.id}`)
+    if (!dateInput || !booking) return;
+    fetch(`/api/slots?date=${dateInput}&excludeId=${booking.id}`)
       .then((r) => r.json())
       .then((data) => {
         const map: Record<string, { available: boolean; count: number }> = {};
@@ -78,7 +80,20 @@ export function useBookingDetail() {
         setSlotAvailability(map);
       })
       .catch(() => {});
-  }, [booking]);
+  }, [booking, dateInput]);
+
+  // 모든 단가 품목 조회
+  useEffect(() => {
+    fetch('/api/items')
+      .then(res => res.json())
+      .then(data => {
+        if (data.categories) {
+          const flattenedItems = data.categories.flatMap((cat: { items: SpotItem[] }) => cat.items);
+          setAllSpotItems(flattenedItems);
+        }
+      })
+      .catch(err => console.error("Failed to fetch spot items", err));
+  }, []);
 
   // 예약 상세 조회
   useEffect(() => {
@@ -120,71 +135,41 @@ export function useBookingDetail() {
 
   async function handleStatusChange(newStatus: string) {
     if (!booking || !token) return;
-    const needsPrice =
-      newStatus === "quote_confirmed" && !finalPriceInput.trim();
-    if (needsPrice) {
-      alert("최종 견적을 입력해주세요");
-      return;
-    }
-    const needsTime =
-      newStatus === "quote_confirmed" && !confirmedTimeInput;
-    if (needsTime) {
-      alert("수거 시간을 확정해주세요");
-      return;
-    }
-
-    // 슬롯 충돌 경고: 견적 확정 시 시간대 가용 여부 재확인
-    if (newStatus === "quote_confirmed" && confirmedTimeInput) {
-      try {
-        const slotRes = await fetch(
-          `/api/slots?date=${booking.date}&excludeId=${booking.id}`
-        );
-        const slotData = await slotRes.json();
-        const slotInfo = (slotData.slots || []).find(
-          (s: { time: string; available: boolean }) => s.time === confirmedTimeInput
-        );
-        if (slotInfo && !slotInfo.available) {
-          const proceed = confirm(
-            "선택한 시간대가 이미 마감되었습니다. 그래도 확정하시겠습니까?"
-          );
-          if (!proceed) return;
-        }
-      } catch {
-        // 슬롯 조회 실패 시 그냥 진행
+    if (newStatus === "quote_confirmed") {
+      if (!finalPriceInput.trim()) {
+        alert("최종 견적을 입력해주세요");
+        return;
       }
+      if (!confirmedTimeInput) {
+        alert("수거 시간을 확정해주세요");
+        return;
+      }
+      // 슬롯 충돌 경고
+      try {
+        const slotRes = await fetch(`/api/slots?date=${dateInput}&excludeId=${booking.id}`);
+        const slotData = await slotRes.json();
+        const slotInfo = (slotData.slots || []).find((s: { time: string; available: boolean }) => s.time === confirmedTimeInput);
+        if (slotInfo && !slotInfo.available) {
+          if (!confirm("선택한 시간대가 이미 마감되었습니다. 그래도 확정하시겠습니까?")) return;
+        }
+      } catch { /* ignore */ }
     }
 
-    const confirmMsg = `상태를 "${STATUS_LABELS[newStatus]}"(으)로 변경하시겠습니까?`;
-    if (!confirm(confirmMsg)) return;
+    if (!confirm(`상태를 "${STATUS_LABELS[newStatus]}"(으)로 변경하시겠습니까?`)) return;
 
     setSaving(true);
     try {
-      const body: Record<string, unknown> = {
-        status: newStatus,
-      };
-      if (finalPriceInput.trim()) {
-        body.finalPrice = Number(finalPriceInput.replace(/[^0-9]/g, ""));
-      }
-      if (adminMemoInput.trim()) {
-        body.adminMemo = adminMemoInput;
-      }
-      if (confirmedTimeInput) {
-        body.confirmedTime = confirmedTimeInput;
-      }
-      if (confirmedDurationInput != null) {
-        body.confirmedDuration = confirmedDurationInput;
-      }
-      if (newStatus === "completed" && completionPhotos.length > 0) {
-        body.completionPhotos = completionPhotos;
-      }
-      body.expectedUpdatedAt = booking.updatedAt;
+      const body: Record<string, unknown> = { status: newStatus, expectedUpdatedAt: booking.updatedAt };
+      if (finalPriceInput.trim()) body.finalPrice = Number(finalPriceInput.replace(/[^0-9]/g, ""));
+      if (adminMemoInput.trim()) body.adminMemo = adminMemoInput;
+      if (dateInput && dateInput !== booking.date) body.date = dateInput;
+      if (confirmedTimeInput) body.confirmedTime = confirmedTimeInput;
+      if (confirmedDurationInput != null) body.confirmedDuration = confirmedDurationInput;
+      if (newStatus === "completed" && completionPhotos.length > 0) body.completionPhotos = completionPhotos;
 
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -210,14 +195,8 @@ export function useBookingDetail() {
     try {
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          crewSize: crewSizeInput,
-          expectedUpdatedAt: booking.updatedAt,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ crewSize: crewSizeInput, expectedUpdatedAt: booking.updatedAt }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -239,18 +218,10 @@ export function useBookingDetail() {
     if (!booking || !token) return;
     setSaving(true);
     try {
-      // adminMemo만 저장 — finalPrice/confirmedTime은 견적 확정 플로우에서만 변경
-      const body: Record<string, unknown> = {
-        adminMemo: adminMemoInput,
-        expectedUpdatedAt: booking.updatedAt,
-      };
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ adminMemo: adminMemoInput, expectedUpdatedAt: booking.updatedAt }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -275,19 +246,14 @@ export function useBookingDetail() {
     try {
       const updatedItems = booking.items.map((item, idx) => ({
         ...item,
-        price: Number(itemEdits[idx]?.price || item.price),
-        category: itemEdits[idx]?.category || item.category,
+        price: Number(itemEdits[idx]?.price ?? item.price),
+        category: itemEdits[idx]?.category ?? item.category,
+        name: itemEdits[idx]?.name ?? item.name,
       }));
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          items: updatedItems,
-          expectedUpdatedAt: booking.updatedAt,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ items: updatedItems, expectedUpdatedAt: booking.updatedAt }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -306,13 +272,8 @@ export function useBookingDetail() {
     setUploadingPhotos(true);
     try {
       const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append("photos", files[i]);
-      }
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      for (let i = 0; i < files.length; i++) formData.append("photos", files[i]);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && data.urls) {
         setCompletionPhotos((prev) => [...prev, ...data.urls]);
@@ -332,36 +293,71 @@ export function useBookingDetail() {
 
   function loadAuditLogs() {
     if (!token || !id) return;
-    fetch(`/api/admin/bookings/${id}/audit`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`/api/admin/bookings/${id}/audit`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((data) => {
-        if (data.logs) setAuditLogs(data.logs);
-      })
+      .then((data) => { if (data.logs) setAuditLogs(data.logs); })
       .catch(() => {});
   }
 
   function startEditingItems() {
     if (!booking) return;
     setEditingItems(true);
-    setItemEdits(
-      booking.items.map((i) => ({
-        price: String(i.price),
-        category: i.category,
-      }))
-    );
+    setItemEdits(booking.items.map((i) => ({ price: String(i.price), category: i.category, name: i.name })));
   }
 
   function cancelEditingItems() {
     setEditingItems(false);
     setItemEdits([]);
+    cancelMatchingItem();
   }
 
-  function updateItemEdit(idx: number, field: "price" | "category", value: string) {
+  function updateItemEdit(idx: number, field: "price" | "category" | "name", value: string) {
     const next = [...itemEdits];
-    next[idx] = { ...next[idx], [field]: field === "price" ? value.replace(/[^0-9]/g, "") : value };
+    const current = next[idx] || { price: "", category: "", name: "" };
+    next[idx] = { ...current, [field]: field === "price" ? value.replace(/[^0-9]/g, "") : value };
     setItemEdits(next);
+  }
+
+  // Item Matching Handlers
+  function startMatchingItem(idx: number) {
+    if (!booking) return;
+    setMatchingIdx(idx);
+    setMatchingSearchQuery(booking.items[idx].name);
+  }
+
+  function cancelMatchingItem() {
+    setMatchingIdx(null);
+    setMatchingSearchQuery("");
+  }
+
+  function selectMatchedItem(idx: number, item: SpotItem) {
+    updateItemEdit(idx, 'category', item.category);
+    updateItemEdit(idx, 'name', item.name);
+    updateItemEdit(idx, 'price', String(item.price));
+    cancelMatchingItem();
+  }
+
+  async function registerAndSelectNewItem(idx: number, itemInfo: { category: string; name: string; price: number; loadingCube: number }) {
+    if (!token) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/items", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...itemInfo, displayName: itemInfo.name }),
+      });
+      const data = await res.json();
+      if (res.ok && data.item) {
+        setAllSpotItems(prev => [...prev, data.item]);
+        selectMatchedItem(idx, data.item);
+      } else {
+        alert(data.error || "품목 등록 실패");
+      }
+    } catch {
+      alert("품목 등록 중 오류 발생");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const nextActions = booking ? NEXT_STATUS[booking.status] || [] : [];
@@ -374,51 +370,44 @@ export function useBookingDetail() {
     saving,
     isLocked,
     nextActions,
-
-    // 견적
     finalPriceInput,
     setFinalPriceInput,
-
-    // 메모
     adminMemoInput,
     setAdminMemoInput,
-
-    // 시간
+    dateInput,
+    setDateInput,
     confirmedTimeInput,
     setConfirmedTimeInput,
     slotAvailability,
-
-    // 소요시간
     confirmedDurationInput,
     setConfirmedDurationInput,
-
-    // 인력
     crewSizeInput,
     setCrewSizeInput,
-
-    // 품목 편집
     editingItems,
     itemEdits,
     startEditingItems,
     cancelEditingItems,
     updateItemEdit,
-
-    // 사진
     completionPhotos,
     uploadingPhotos,
     handlePhotoUpload,
     removeCompletionPhoto,
-
-    // 감사 로그
     auditLogs,
     auditOpen,
     setAuditOpen,
     loadAuditLogs,
-
-    // 액션
     handleStatusChange,
     handleSaveCrewSize,
     handleSaveMemo,
     handleSaveItems,
+    // Item matching
+    allSpotItems,
+    matchingIdx,
+    matchingSearchQuery,
+    setMatchingSearchQuery,
+    startMatchingItem,
+    cancelMatchingItem,
+    selectMatchedItem,
+    registerAndSelectNewItem,
   };
 }

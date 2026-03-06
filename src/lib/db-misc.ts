@@ -12,6 +12,14 @@ export interface SpotItem {
   active: boolean;
 }
 
+export interface NewSpotItem {
+  category: string;
+  name: string;
+  displayName: string;
+  price: number;
+  loadingCube: number;
+}
+
 export interface SpotArea {
   id: string;
   name: string;
@@ -52,6 +60,33 @@ export async function getSpotItems(activeOnly = true): Promise<SpotItem[]> {
     loadingCube: Number(r.loading_cube),
     active: r.active,
   }));
+}
+
+export async function insertSpotItem(item: NewSpotItem): Promise<SpotItem> {
+  const { data, error } = await supabase
+    .from("spot_items")
+    .insert({
+      category: item.category,
+      name: item.name,
+      display_name: item.displayName,
+      price: item.price,
+      loading_cube: item.loadingCube,
+      active: true,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    category: data.category,
+    name: data.name,
+    displayName: data.display_name,
+    price: data.price,
+    loadingCube: Number(data.loading_cube),
+    active: data.active,
+  };
 }
 
 export async function getSpotAreas(activeOnly = true): Promise<SpotArea[]> {

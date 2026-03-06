@@ -105,6 +105,7 @@ export async function PUT(
     if (data.status !== undefined) allowedUpdates.status = data.status;
     if (data.finalPrice !== undefined) allowedUpdates.finalPrice = data.finalPrice;
     if (data.adminMemo !== undefined) allowedUpdates.adminMemo = data.adminMemo;
+    if (data.date !== undefined) allowedUpdates.date = data.date;
     if (data.confirmedTime !== undefined) allowedUpdates.confirmedTime = data.confirmedTime;
     if (data.items !== undefined) allowedUpdates.items = data.items;
     if (data.driverId !== undefined) allowedUpdates.driverId = data.driverId;
@@ -116,37 +117,35 @@ export async function PUT(
 
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json(
-        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName, crewSize, unloadingStopAfter)" },
+        { error: "수정할 필드가 없습니다 (status, finalPrice, adminMemo, date, confirmedTime, confirmedDuration, completionPhotos, items, driverId, driverName, crewSize, unloadingStopAfter)" },
         { status: 400 },
       );
     }
 
     const existing = await getBookingByIdAdmin(id);
 
-    // crewSize 변경 시 totalPrice, estimateMin, estimateMax 자동 재계산
-    if (
-      data.crewSize !== undefined &&
-      existing &&
-      data.crewSize !== existing.crewSize
-    ) {
+    // crewSize 또는 items 변경 시 totalPrice, estimateMin, estimateMax 자동 재계산
+    const crewSizeChanged = data.crewSize !== undefined && existing && data.crewSize !== existing.crewSize;
+    const itemsChanged = data.items !== undefined && existing;
+    if (crewSizeChanged || itemsChanged) {
       try {
         const [spotItems, areas, ladderPrices] = await Promise.all([
           getSpotItems(true),
           getSpotAreas(true),
           getSpotLadder(),
         ]);
-        const floor = extractFloor(existing.addressDetail || "");
+        const floor = extractFloor(existing!.addressDetail || "");
         const recalculated = calculateQuote(
           {
-            area: existing.area,
-            items: existing.items,
-            needLadder: existing.needLadder,
-            ladderType: existing.ladderType,
-            ladderHours: existing.ladderHours,
-            hasElevator: existing.hasElevator,
+            area: existing!.area,
+            items: data.items ?? existing!.items,
+            needLadder: existing!.needLadder,
+            ladderType: existing!.ladderType,
+            ladderHours: existing!.ladderHours,
+            hasElevator: existing!.hasElevator,
             floor,
           },
-          data.crewSize,
+          data.crewSize ?? existing!.crewSize,
           spotItems,
           areas,
           ladderPrices,
@@ -155,7 +154,7 @@ export async function PUT(
         allowedUpdates.estimateMin = recalculated.estimateMin;
         allowedUpdates.estimateMax = recalculated.estimateMax;
       } catch (err) {
-        console.error("[admin/bookings] crewSize 변경 시 견적 재계산 실패", { bookingId: id, crewSize: data.crewSize, err });
+        console.error("[admin/bookings] 견적 재계산 실패", { bookingId: id, crewSize: data.crewSize, err });
       }
     }
     if (!existing) {
@@ -290,6 +289,7 @@ export async function PUT(
     if (data.completionPhotos !== undefined) details.completionPhotoCount = data.completionPhotos.length;
     if (data.items !== undefined) details.itemCount = data.items.length;
     if (data.crewSize !== undefined) details.crewSize = data.crewSize;
+    if (data.date !== undefined) details.date = data.date;
 
     // Audit log with retry (최대 3회 재시도 — 감사 기록 손실 방지)
     (async () => {

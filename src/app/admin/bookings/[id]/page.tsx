@@ -1,6 +1,5 @@
 "use client";
 
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/constants";
 import { useBookingDetail } from "./useBookingDetail";
 import { CustomerInfoSection } from "./CustomerInfoSection";
@@ -28,6 +27,8 @@ export default function AdminBookingDetailPage() {
     setFinalPriceInput,
     adminMemoInput,
     setAdminMemoInput,
+    dateInput,
+    setDateInput,
     confirmedTimeInput,
     setConfirmedTimeInput,
     slotAvailability,
@@ -52,6 +53,15 @@ export default function AdminBookingDetailPage() {
     handleSaveCrewSize,
     handleSaveMemo,
     handleSaveItems,
+    // Item matching
+    allSpotItems,
+    matchingIdx,
+    matchingSearchQuery,
+    setMatchingSearchQuery,
+    startMatchingItem,
+    cancelMatchingItem,
+    selectMatchedItem,
+    registerAndSelectNewItem,
   } = useBookingDetail();
 
   if (loading) {
@@ -124,7 +134,17 @@ export default function AdminBookingDetailPage() {
 
         <CustomerInfoSection booking={booking} />
 
-        <CollectionInfoSection booking={booking} />
+        <CollectionInfoSection
+          booking={booking}
+          isLocked={isLocked}
+          dateInput={dateInput}
+          setDateInput={setDateInput}
+          confirmedTimeInput={confirmedTimeInput}
+          setConfirmedTimeInput={setConfirmedTimeInput}
+          slotAvailability={slotAvailability}
+          confirmedDurationInput={confirmedDurationInput}
+          setConfirmedDurationInput={setConfirmedDurationInput}
+        />
 
         <ItemsSection
           booking={booking}
@@ -136,6 +156,14 @@ export default function AdminBookingDetailPage() {
           onCancelEditing={cancelEditingItems}
           onUpdateItemEdit={updateItemEdit}
           onSaveItems={handleSaveItems}
+          allSpotItems={allSpotItems}
+          matchingIdx={matchingIdx}
+          matchingSearchQuery={matchingSearchQuery}
+          onSetMatchingSearchQuery={setMatchingSearchQuery}
+          onStartMatching={startMatchingItem}
+          onCancelMatching={cancelMatchingItem}
+          onSelectMatchedItem={selectMatchedItem}
+          onRegisterAndSelectNewItem={registerAndSelectNewItem}
         />
 
         <PhotosSection booking={booking} />
@@ -149,11 +177,6 @@ export default function AdminBookingDetailPage() {
           crewSizeInput={crewSizeInput}
           setCrewSizeInput={setCrewSizeInput}
           onSaveCrewSize={handleSaveCrewSize}
-          confirmedTimeInput={confirmedTimeInput}
-          setConfirmedTimeInput={setConfirmedTimeInput}
-          slotAvailability={slotAvailability}
-          confirmedDurationInput={confirmedDurationInput}
-          setConfirmedDurationInput={setConfirmedDurationInput}
         />
 
         <AdminMemoSection
