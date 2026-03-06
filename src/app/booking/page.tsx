@@ -126,7 +126,7 @@ function BookingPageContent() {
       if (d.needLadder !== undefined) setNeedLadder(d.needLadder);
       if (d.ladderType) setLadderType(d.ladderType);
       if (d.ladderHours !== undefined) setLadderHours(d.ladderHours);
-      if (typeof d.step === "number" && d.step >= 0 && d.step < STEPS.length) setStep(d.step);
+      // 스텝 순서 변경으로 구버전 draft의 step 값은 무시하고 항상 0으로 시작
     } catch { /* 파싱 실패 무시 */ }
     setDraftLoaded(true);
   }, [editId]);
@@ -268,9 +268,9 @@ function BookingPageContent() {
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if ((step !== 1 && step !== 4) || selectedItems.length === 0 || !selectedArea) {
+    if (step !== 5 || selectedItems.length === 0 || !selectedArea) {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-      if (step !== 1 && step !== 4) setPreviewQuote(null);
+      if (step !== 5) setPreviewQuote(null);
       return;
     }
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
@@ -282,9 +282,9 @@ function BookingPageContent() {
           body: JSON.stringify({
             area: selectedArea,
             items: selectedItems,
-            needLadder: step === 4 ? needLadder : false,
-            ladderType: step === 4 && needLadder ? ladderType : undefined,
-            ladderHours: step === 4 && needLadder ? ladderHours : undefined,
+            needLadder,
+            ladderType: needLadder ? ladderType : undefined,
+            ladderHours: needLadder ? ladderHours : undefined,
           }),
         });
         const data = await res.json();
@@ -524,11 +524,11 @@ function BookingPageContent() {
     (item) => REQUIRES_PHOTO_CATEGORIES.has(item.category),
   );
   const canNext = [
-    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 0: 고객 정보 + 지역 자동감지
-    selectedItems.length > 0 && (!hasRequiredPhotoItem || photos.length > 0),  // Step 1: 품목/사진 (필수 사진 품목 있으면 사진 필수)
-    selectedDate && selectedTimes.length > 0,            // Step 2: 날짜/시간
-    hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 3: 작업 환경
-    true,                                                 // Step 4: 사다리차
+    selectedItems.length > 0 && (!hasRequiredPhotoItem || photos.length > 0),  // Step 0: 품목/사진
+    selectedDate && selectedTimes.length > 0,            // Step 1: 날짜/시간
+    hasElevator !== null && hasParking !== null && hasGroundAccess !== null,  // Step 2: 작업 환경
+    true,                                                 // Step 3: 사다리차
+    customerName.trim().length >= 2 && phone.replace(/-/g, "").length >= 10 && address && !!selectedArea && !areaError,  // Step 4: 고객 정보
     !!quote && agreedToTerms && agreedToPrivacy,          // Step 5: 견적 확인 + 필수 약관 동의
   ];
 
@@ -548,44 +548,6 @@ function BookingPageContent() {
       <StepIndicator step={step} editMode={editMode} />
 
       {step === 0 && (
-        <CustomerInfoStep
-          customerName={customerName}
-          setCustomerName={setCustomerName}
-          phone={phone}
-          setPhone={setPhone}
-          address={address}
-          addressDetail={addressDetail}
-          setAddressDetail={setAddressDetail}
-          memo={memo}
-          setMemo={setMemo}
-          selectedArea={selectedArea}
-          areaError={areaError}
-          onOpenPostcode={() => setShowPostcode(true)}
-        />
-      )}
-
-      {step === 2 && (
-        <DateTimeStep
-          selectedDate={selectedDate}
-          setSelectedDate={(date) => {
-            setSelectedDate(date);
-            if (date) track("[EVENT] SpotBookingDateSelected", { date });
-          }}
-          selectedTimes={selectedTimes}
-          onToggleTime={(time) => {
-            setSelectedTimes((prev) =>
-              prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time],
-            );
-            track("[EVENT] SpotBookingTimeSelected", { time, date: selectedDate });
-          }}
-          calMonth={calMonth}
-          setCalMonth={setCalMonth}
-          timeSlotCounts={timeSlotCounts}
-          slotsLoading={slotsLoading}
-        />
-      )}
-
-      {step === 1 && (
         <ItemSelectionStep
           categories={categories}
           openCat={openCat}
@@ -609,7 +571,28 @@ function BookingPageContent() {
         />
       )}
 
-      {step === 3 && (
+      {step === 1 && (
+        <DateTimeStep
+          selectedDate={selectedDate}
+          setSelectedDate={(date) => {
+            setSelectedDate(date);
+            if (date) track("[EVENT] SpotBookingDateSelected", { date });
+          }}
+          selectedTimes={selectedTimes}
+          onToggleTime={(time) => {
+            setSelectedTimes((prev) =>
+              prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time],
+            );
+            track("[EVENT] SpotBookingTimeSelected", { time, date: selectedDate });
+          }}
+          calMonth={calMonth}
+          setCalMonth={setCalMonth}
+          timeSlotCounts={timeSlotCounts}
+          slotsLoading={slotsLoading}
+        />
+      )}
+
+      {step === 2 && (
         <WorkEnvironmentStep
           hasElevator={hasElevator}
           setHasElevator={setHasElevator}
@@ -620,12 +603,29 @@ function BookingPageContent() {
         />
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <LadderStep
           needLadder={needLadder}
           setNeedLadder={setNeedLadder}
           ladderType={ladderType}
           setLadderType={setLadderType}
+        />
+      )}
+
+      {step === 4 && (
+        <CustomerInfoStep
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          phone={phone}
+          setPhone={setPhone}
+          address={address}
+          addressDetail={addressDetail}
+          setAddressDetail={setAddressDetail}
+          memo={memo}
+          setMemo={setMemo}
+          selectedArea={selectedArea}
+          areaError={areaError}
+          onOpenPostcode={() => setShowPostcode(true)}
         />
       )}
 

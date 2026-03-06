@@ -112,7 +112,7 @@ export function ItemsSection({
             </div>
             {editingItems && (
               <div className="flex flex-col gap-2 mt-1.5 ml-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <input
                     type="text"
                     placeholder="가격"
@@ -131,7 +131,35 @@ export function ItemsSection({
                       </option>
                     ))}
                   </select>
-                  {item.category === "직접입력" && matchingIdx !== idx && (
+                  {(itemEdits[idx]?.category || item.category) !== "직접입력" && (() => {
+                    const currentCategory = itemEdits[idx]?.category || item.category;
+                    const currentName = itemEdits[idx]?.name || item.name;
+                    const categoryItems = allSpotItems.filter((si) => si.category === currentCategory);
+                    const hasCustomName = !categoryItems.find((si) => si.name === currentName);
+                    return (
+                      <select
+                        value={currentName}
+                        onChange={(e) => {
+                          const chosen = categoryItems.find((si) => si.name === e.target.value);
+                          onUpdateItemEdit(idx, "name", e.target.value);
+                          if (chosen) {
+                            onUpdateItemEdit(idx, "price", String(chosen.price));
+                          }
+                        }}
+                        className="px-2 py-1 text-xs rounded-lg border border-border bg-bg-warm min-w-[120px] flex-1"
+                      >
+                        {categoryItems.map((si) => (
+                          <option key={si.name} value={si.name}>
+                            {si.displayName || si.name}
+                          </option>
+                        ))}
+                        {hasCustomName && (
+                          <option value={currentName}>{currentName}</option>
+                        )}
+                      </select>
+                    );
+                  })()}
+                  {(itemEdits[idx]?.category || item.category) === "직접입력" && matchingIdx !== idx && (
                     <Button variant="secondary" size="xs" onClick={() => onStartMatching(idx)}>품목 매칭</Button>
                   )}
                 </div>

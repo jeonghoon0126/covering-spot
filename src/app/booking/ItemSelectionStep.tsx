@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { BookingItem } from "@/types/booking";
 import type { SpotCategory } from "@/data/spot-items";
 import { REQUIRES_PHOTO_CATEGORIES } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { categoryIcons, defaultCategoryIcon } from "@/data/category-icons";
 import { formatManWon } from "@/lib/format";
 import { VAGUE_ITEM_KEYWORDS } from "./booking-constants";
@@ -55,6 +56,25 @@ export function ItemSelectionStep({
   onVagueItem,
 }: ItemSelectionStepProps) {
   const [customAddedModal, setCustomAddedModal] = useState(false);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+
+  // 카테고리 로드 시 첫 번째 카테고리 자동 선택
+  useEffect(() => {
+    if (categories.length > 0 && categoryFilter === null) {
+      setCategoryFilter(categories[0].name);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
+
+  function handleCategoryClick(catName: string) {
+    setCategoryFilter(catName);
+    setOpenCat(catName);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setBottomSheetOpen(true);
+    }
+  }
+
+  const selectedCategoryItems = categories.find((c) => c.name === categoryFilter)?.items ?? [];
 
   return (
     <div className="space-y-3">
@@ -102,33 +122,23 @@ export function ItemSelectionStep({
         />
       </div>
 
-      {/* 카테고리 필터 칩 */}
+      {/* 카테고리 필터 탭 (아이콘 + 텍스트) */}
       {!itemSearch.trim() && categories.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          <button
-            onClick={() => setCategoryFilter(null)}
-            className={`shrink-0 px-3.5 py-2.5 rounded-full text-xs font-medium transition-all duration-200 ${
-              categoryFilter === null
-                ? "bg-primary text-white"
-                : "bg-bg-warm text-text-sub hover:bg-primary-bg border border-border-light"
-            }`}
-          >
-            전체
-          </button>
           {categories.map((cat) => (
             <button
               key={cat.name}
-              onClick={() => {
-                setCategoryFilter(cat.name);
-                setOpenCat(cat.name);
-              }}
-              className={`shrink-0 px-3.5 py-2.5 rounded-full text-xs font-medium transition-all duration-200 ${
+              onClick={() => handleCategoryClick(cat.name)}
+              className={`shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                 categoryFilter === cat.name
                   ? "bg-primary text-white"
                   : "bg-bg-warm text-text-sub hover:bg-primary-bg border border-border-light"
               }`}
             >
-              {cat.name}
+              <div className="w-7 h-7 flex items-center justify-center">
+                {categoryIcons[cat.name] || defaultCategoryIcon}
+              </div>
+              <span className="whitespace-nowrap">{cat.name}</span>
             </button>
           ))}
         </div>
@@ -340,6 +350,50 @@ export function ItemSelectionStep({
           ))}
         </div>
       )}
+
+      {/* 모바일 바텀시트 품목 선택 */}
+      <BottomSheet
+        open={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        title={categoryFilter ?? ""}
+      >
+        <div className="space-y-0">
+          {selectedCategoryItems.map((item) => {
+            const qty = getItemQty(categoryFilter ?? "", item.name);
+            return (
+              <div
+                key={item.name}
+                className="flex items-center justify-between py-3 border-b border-border-light last:border-0"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.name}</p>
+                </div>
+                <div className="flex items-center gap-2 ml-3">
+                  <button
+                    onClick={() => updateItemQty(categoryFilter ?? "", item.name, item.displayName, item.price, -1)}
+                    disabled={qty === 0}
+                    className="w-10 h-10 rounded-sm bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center text-sm font-semibold">{qty}</span>
+                  <button
+                    onClick={() => updateItemQty(categoryFilter ?? "", item.name, item.displayName, item.price, 1)}
+                    className="w-10 h-10 rounded-sm bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="pt-4 pb-2">
+          <Button variant="primary" size="lg" fullWidth onClick={() => setBottomSheetOpen(false)}>
+            완료
+          </Button>
+        </div>
+      </BottomSheet>
 
       {/* 커스텀 품목 추가 알림 모달 */}
       {customAddedModal && (
