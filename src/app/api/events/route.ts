@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { trackServer } from "@/lib/analytics";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
@@ -24,6 +25,9 @@ export async function POST(req: NextRequest) {
       .then(({ error }) => {
         if (error) console.error("[events] insert 실패:", error.message);
       });
+
+    // Mixpanel 이중 안전장치: 클라이언트 초기화 실패 시에도 서버 경유로 전송
+    trackServer(event, properties || {}).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch {
