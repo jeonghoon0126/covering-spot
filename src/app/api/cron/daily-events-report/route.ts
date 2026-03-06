@@ -57,11 +57,11 @@ export async function GET(req: NextRequest) {
     const from = yesterdayKST.toISOString();
     const to = todayKST.toISOString();
 
-    // KST 날짜 레이블 (Mixpanel API용 YYYY-MM-DD 포함)
+    // KST 날짜 레이블 (yesterdayKST는 UTC 기준이므로 +9h 후 날짜 추출)
     const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-    const d = yesterdayKST;
-    const dateLabel = `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")} (${DAYS[d.getUTCDay()]})`;
-    const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const dKST = new Date(yesterdayKST.getTime() + kstOffset);
+    const dateLabel = `${String(dKST.getUTCMonth() + 1).padStart(2, "0")}/${String(dKST.getUTCDate()).padStart(2, "0")} (${DAYS[dKST.getUTCDay()]})`;
+    const dateStr = `${dKST.getUTCFullYear()}-${String(dKST.getUTCMonth() + 1).padStart(2, "0")}-${String(dKST.getUTCDate()).padStart(2, "0")}`;
 
     // Mixpanel 배너 클릭 + Supabase 이벤트 병렬 조회
     const [bannerResult, eventsResult, stepsResult] = await Promise.all([

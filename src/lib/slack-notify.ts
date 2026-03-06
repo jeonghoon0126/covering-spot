@@ -353,29 +353,23 @@ export async function sendDailyEventsReport(
 
   const pct = (n: number, base: number) => base > 0 ? `${(n / base * 100).toFixed(1)}%` : "-";
 
-  // 퍼널 최상단 기준값 (배너 있으면 배너, 없으면 홈방문)
-  const funnelMax = bannerClicks > 0 ? bannerClicks : home;
-
-  const funnelRows: [string, number, string][] = bannerClicks > 0
-    ? [
-        ["앱 배너 클릭", bannerClicks, "100%"],
-        ["홈 방문    ", home,        pct(home, bannerClicks)],
-        ["└ 카카오  ", kakao,       pct(kakao, home)],
-        ["└ 수거신청", bookingBtn,  pct(bookingBtn, home)],
-        ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
-        ["└ 예약완료", complete,    pct(complete, home)],
-      ]
-    : [
-        ["홈 방문    ", home,        "100%"],
-        ["└ 카카오  ", kakao,       pct(kakao, home)],
-        ["└ 수거신청", bookingBtn,  pct(bookingBtn, home)],
-        ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
-        ["└ 예약완료", complete,    pct(complete, home)],
-      ];
+  // 홈 방문 기준으로 퍼널 바 계산
+  const funnelRows: [string, number, string][] = [
+    ["홈 방문    ", home,          "100%"],
+    ["└ 카카오  ", kakao,         pct(kakao, home)],
+    ["└ 수거신청", bookingBtn,    pct(bookingBtn, home)],
+    ["└ 예약화면", bookingScreen, pct(bookingScreen, home)],
+    ["└ 예약완료", complete,      pct(complete, home)],
+  ];
 
   const funnelLines = funnelRows.map(([label, cnt, p]) =>
-    `${label}  ${String(cnt.toLocaleString()).padStart(6)}  ${bar(cnt, funnelMax)}  ${p}`
+    `${label}  ${String(cnt.toLocaleString()).padStart(6)}  ${bar(cnt, home)}  ${p}`
   ).join("\n");
+
+  // 배너 클릭 수는 하단 참고 라인으로
+  const bannerLine = bannerClicks > 0
+    ? `\n앱 배너 클릭  ${String(bannerClicks.toLocaleString()).padStart(6)}  (홈 전환율 ${pct(home, bannerClicks)})`
+    : "";
 
   // 예약 스텝
   const stepMap = Object.fromEntries(steps.map((s) => [s.step, s.cnt]));
@@ -392,7 +386,7 @@ export async function sendDailyEventsReport(
 
   await postSlack([
     headerBlock(`📊 방문수거 일일 리포트 | ${dateLabel}`),
-    sectionBlock(`\`\`\`${funnelLines}\`\`\``),
+    sectionBlock(`\`\`\`${funnelLines}${bannerLine}\`\`\``),
     dividerBlock(),
     sectionBlock(`*예약 스텝 이탈*\n\`\`\`${stepLines}\`\`\``),
   ], undefined, pickupChannel);
