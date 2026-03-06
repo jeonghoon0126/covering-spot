@@ -23,7 +23,10 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<number> {
       { headers: { Authorization: `Basic ${auth}` } },
     );
 
-    if (!res.ok) return 0;
+    if (!res.ok) {
+      console.error("[mixpanel] status:", res.status, await res.text().catch(() => ""));
+      return 0;
+    }
 
     const data = await res.json() as {
       data?: { values?: Record<string, Record<string, number>> };
@@ -32,7 +35,8 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<number> {
     if (!values) return 0;
 
     return Object.values(values).reduce((sum, v) => sum + v, 0);
-  } catch {
+  } catch (e) {
+    console.error("[mixpanel] error:", e);
     return 0;
   }
 }
@@ -92,7 +96,8 @@ export async function GET(req: NextRequest) {
 
     await sendDailyEventsReport(dateLabel, events, steps, bannerClicks);
 
-    return NextResponse.json({ ok: true, date: dateLabel, eventCount: events.length, bannerClicks });
+    const hasApiSecret = !!process.env.MIXPANEL_API_SECRET;
+    return NextResponse.json({ ok: true, date: dateLabel, eventCount: events.length, bannerClicks, hasApiSecret });
   } catch (e) {
     console.error("[daily-events-report]", e);
     return NextResponse.json({ error: "report failed" }, { status: 500 });
