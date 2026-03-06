@@ -35,11 +35,12 @@ export function getQuoteExpiryLabel(b: Booking): string | null {
   return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
 }
 
-/** 취소 가능 여부: pending, quote_confirmed, change_requested, in_progress + 수거 시각 24시간 전 이전 */
+/** 취소 가능 여부: pending, quote_confirmed, user_confirmed, change_requested, in_progress + 수거 시각 24시간 전 이전 */
 export function canCancel(b: Booking): boolean {
   return (
     b.status === "pending" ||
     b.status === "quote_confirmed" ||
+    b.status === "user_confirmed" ||
     b.status === "change_requested" ||
     b.status === "in_progress"
   ) && isBeforeDeadline(b.date, b.confirmedTime || b.timeSlot);
