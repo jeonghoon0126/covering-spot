@@ -19,7 +19,7 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<number> {
     });
 
     const res = await fetch(
-      `https://data.mixpanel.com/api/2.0/segmentation?${params}`,
+      `https://mixpanel.com/api/2.0/segmentation?${params}`,
       { headers: { Authorization: `Basic ${auth}` } },
     );
 
