@@ -8,7 +8,7 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<{ count: number
   if (!apiSecret) return { count: 0, debug: "no_secret" };
 
   try {
-    const auth = Buffer.from(`${apiSecret}:`).toString("base64");
+    const auth = Buffer.from(`${apiSecret.trim()}:`).toString("base64");
     const params = new URLSearchParams({
       project_id: "3160293",
       event: "[CLICK] Banner_click",
