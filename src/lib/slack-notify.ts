@@ -281,6 +281,52 @@ export async function sendRescheduleNotify(
   ]);
 }
 
+/** 예약 제출 서버 에러 알림 */
+export async function sendBookingSubmitError(
+  error: unknown,
+  partialBody: Record<string, unknown>,
+): Promise<void> {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const customer = partialBody?.customerName && partialBody?.phone
+    ? `${partialBody.customerName} / ${partialBody.phone}`
+    : "파싱 불가";
+
+  await postSlack([
+    headerBlock("🚨 예약 제출 실패"),
+    fieldsBlock([
+      { label: "고객", value: customer },
+      { label: "시각", value: now },
+    ]),
+    sectionBlock(`*에러*\n\`\`\`${errMsg}\`\`\``),
+    actionButtonBlock([
+      { text: "백오피스", url: `${BASE_URL}/admin/bookings`, primary: true },
+    ]),
+  ]);
+}
+
+/** 사진 업로드 에러 알림 */
+export async function sendUploadError(
+  error: unknown,
+  fileInfo: { count: number; sizes: number[] },
+): Promise<void> {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const maxSize = fileInfo.sizes.length > 0
+    ? `${(Math.max(...fileInfo.sizes) / 1024 / 1024).toFixed(1)}MB`
+    : "-";
+
+  await postSlack([
+    headerBlock("⚠️ 사진 업로드 실패"),
+    fieldsBlock([
+      { label: "파일 수", value: `${fileInfo.count}개` },
+      { label: "최대 크기", value: maxSize },
+      { label: "시각", value: now },
+    ]),
+    sectionBlock(`*에러*\n\`\`\`${errMsg}\`\`\``),
+  ]);
+}
+
 // 관리자 메모 업데이트 → 스레드 답글
 export async function sendAdminMemoUpdated(
   b: Booking,

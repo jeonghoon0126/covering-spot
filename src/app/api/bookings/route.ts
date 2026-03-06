@@ -6,7 +6,7 @@ import {
   createBooking,
   updateBooking,
 } from "@/lib/db";
-import { sendBookingCreated } from "@/lib/slack-notify";
+import { sendBookingCreated, sendBookingSubmitError } from "@/lib/slack-notify";
 import { isDateBookable, extractFloor } from "@/lib/booking-utils";
 import { generateBookingToken, validateBookingToken } from "@/lib/booking-token";
 import { BookingCreateSchema, PhoneSchema } from "@/lib/validation";
@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  let body: Record<string, unknown> = {};
   try {
     // Rate limiting: 5 requests per IP per 60s (prevents spam bookings)
     const ip = getRateLimitKey(req);
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    body = await req.json();
 
     // Zod 서버사이드 검증
     const parsed = BookingCreateSchema.safeParse(body);
@@ -231,6 +232,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ booking, bookingToken }, { status: 201 });
   } catch (e) {
     console.error("[bookings/POST]", e);
+    sendBookingSubmitError(e, body).catch(() => {});
     return NextResponse.json(
       { error: "예약 생성 실패" },
       { status: 500 },

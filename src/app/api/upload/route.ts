@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { sendUploadError } from "@/lib/slack-notify";
 
 export async function POST(req: NextRequest) {
+  let files: File[] = [];
   try {
     const rl = checkRateLimit(getRateLimitKey(req), 10, 60_000); // 10 uploads per minute
     if (!rl.allowed) {
@@ -10,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const files = formData.getAll("photos") as File[];
+    files = formData.getAll("photos") as File[];
 
     if (files.length === 0) {
       return NextResponse.json(
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ urls });
   } catch (e) {
     console.error("[upload/POST]", e);
+    sendUploadError(e, { count: files.length, sizes: files.map((f) => f.size) }).catch(() => {});
     return NextResponse.json(
       { error: "업로드 실패" },
       { status: 500 },
