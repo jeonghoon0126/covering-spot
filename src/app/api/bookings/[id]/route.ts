@@ -269,7 +269,7 @@ export async function DELETE(
     }
 
     // 수거 시각 24시간 전 이후에는 취소 불가
-    if (new Date() >= getCustomerDeadline(booking.date, booking.timeSlot)) {
+    if (new Date() >= getCustomerDeadline(booking.date, booking.confirmedTime || booking.timeSlot)) {
       return NextResponse.json(
         { error: "수거 시각 24시간 전 이후에는 취소할 수 없습니다. 취소가 필요하시면 고객센터로 문의해 주세요." },
         { status: 400 },

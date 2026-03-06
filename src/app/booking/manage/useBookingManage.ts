@@ -24,7 +24,7 @@ export function canCancel(b: Booking): boolean {
     b.status === "quote_confirmed" ||
     b.status === "change_requested" ||
     b.status === "in_progress"
-  ) && isBeforeDeadline(b.date, b.timeSlot);
+  ) && isBeforeDeadline(b.date, b.confirmedTime || b.timeSlot);
 }
 
 export interface EditForm {
