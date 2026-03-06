@@ -334,7 +334,7 @@ export async function sendDailyEventsReport(
   steps: { step: string; cnt: number }[],
   bannerClicks = 0,   // 커버링 앱 방문수거 배너 클릭 (Mixpanel)
 ): Promise<void> {
-  const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AENH7JW2Y";
+  const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
 
   const get = (name: string) => events.find((e) => e.event_name === name)?.cnt ?? 0;
 
