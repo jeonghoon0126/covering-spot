@@ -122,13 +122,13 @@ export async function PUT(
           { status: 400 },
         );
       }
-      const updated = await updateBooking(id, { status: "user_confirmed" });
+      const updated = await updateBooking(id, { status: "in_progress" });
       if (!updated) {
         return NextResponse.json({ error: "수정 실패" }, { status: 500 });
       }
-      sendStatusChanged(updated, "user_confirmed").catch((err) => console.error("[Slack] user_confirmed 알림 실패:", err?.message));
+      sendStatusChanged(updated, "in_progress").catch((err) => console.error("[Slack] user_confirm→in_progress 알림 실패:", err?.message));
       if (updated.phone) {
-        sendStatusSms(updated.phone, "user_confirmed", id).catch((err) => console.error("[SMS] user_confirmed 발송 실패:", err?.message));
+        sendStatusSms(updated.phone, "in_progress", id, null, null, updated.date, updated.confirmedTime).catch((err) => console.error("[SMS] in_progress 발송 실패:", err?.message));
       }
       trackServer("[EVENT] SpotBookingUserConfirmed", {
         booking_id: id,

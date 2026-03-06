@@ -14,7 +14,6 @@
  */
 
 const BASE = "https://coveringspot.vercel.app"; // DNS 전파 완료 후 process.env.NEXT_PUBLIC_BASE_URL ?? "https://spot.covering.co.kr"으로 복원
-const STATUS_LINK = `\n\n${BASE}/booking/manage`;
 
 function formatPrice(n: number): string {
   return n.toLocaleString("ko-KR") + "원";
@@ -32,9 +31,9 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
   received: (_fp, _pu, date) =>
     `[커버링 방문수거] 수거 신청이 접수되었어요!${date ? `\n수거 희망일: ${date}` : ""}\n\n담당자가 견적을 검토 중이에요. 빠르게 연락드릴게요.\n신청 내역은 아래 링크에서 확인하세요.`,
   quote_confirmed: (finalPrice, _pu, date, confirmedTime) =>
-    `[커버링 방문수거] 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n해당 견적으로 신청해주신 수거 일자(${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""})에 기사님이 방문 예정이에요.\n\n만약 주문 취소를 원하시면 아래 링크 > 전화번호 입력 > 신청 조회 > 주문 취소를 해주세요.\n수거시각으로부터 24시간 이내에 주문 취소가 가능해요. 수거 당일 취소는 불가능하니 이 점 꼭 확인해주세요.`,
-  in_progress: () =>
-    "[커버링 방문수거] 수거 일정이 확정되었어요!\n\n수거 당일 기사님이 출발 시 안내 문자를 다시 드릴게요.\n감사합니다!",
+    `[커버링 방문수거] 견적이 확정되었어요.\n\n최종 견적: ${finalPrice != null ? formatPrice(finalPrice) : "미정"}\n\n아래의 링크로 접속하셔서 '견적 수락' 버튼을 눌러주시면 견적이 확정돼요.\n\n견적이 확정되면 수거 일자 ${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""}에 커버링 전문 기사님이 방문하여 배출 품목을 수거해드려요.`,
+  in_progress: (_fp, _pu, date, confirmedTime) =>
+    `[커버링 방문수거] 수거 일정이 확정되었어요!\n\n수거 일자 ${date ?? "미정"}${confirmedTime ? ` ${confirmedTime}` : ""}에 커버링 전문 기사님이 방문하여 배출 품목을 수거해드려요.\n\n수거 당일 기사님이 출발 시 안내 문자를 다시 드릴게요.\n\n[취소 정책]\n수거시각으로부터 24시간 이전까지 취소 가능해요.\n수거 당일 취소는 불가능하니 이 점 꼭 확인해 주세요.`,
   completed: () =>
     "[커버링 방문수거] 수거가 완료되었어요!\n\n이용해 주셔서 감사합니다.\n다음에도 필요하시면 편하게 신청해 주세요.",
   payment_requested: (_finalPrice, paymentUrl) =>
@@ -108,7 +107,8 @@ export async function sendStatusSms(
     const templateFn = STATUS_TEMPLATES[resolvedStatus];
     if (!templateFn) return;
 
-    const text = templateFn(finalPrice, paymentUrl, date, confirmedTime) + STATUS_LINK;
+    const statusLink = `\n\n${BASE}/booking/manage?phone=${encodeURIComponent(phone)}`;
+    const text = templateFn(finalPrice, paymentUrl, date, confirmedTime) + statusLink;
 
     const res = await fetch(
       `https://api.flarelane.com/v1/projects/${projectId}/sms`,

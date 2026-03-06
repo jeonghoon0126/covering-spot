@@ -78,6 +78,7 @@ export interface BookingManageState {
 export interface BookingManageHandlers {
   setPhone: (phone: string) => void;
   setExpandedId: (id: string | null) => void;
+  doSearch: (phoneValue: string) => Promise<void>;
   handleSearch: (e: React.FormEvent) => Promise<void>;
   handleConfirm: (id: string) => Promise<void>;
   handleCancel: (id: string) => Promise<void>;
@@ -351,6 +352,7 @@ export function useBookingManage(): BookingManageState & BookingManageHandlers {
     // handlers
     setPhone,
     setExpandedId,
+    doSearch,
     handleSearch,
     handleConfirm,
     handleCancel,

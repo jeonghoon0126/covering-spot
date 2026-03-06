@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from("bookings")
       .select("id, phone, date")
-      .eq("status", "quote_confirmed")
+      .in("status", ["quote_confirmed", "in_progress"])
       .eq("date", tomorrowStr);
 
     if (error) {

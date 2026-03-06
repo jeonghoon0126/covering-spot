@@ -69,9 +69,7 @@ export function ItemSelectionStep({
   function handleCategoryClick(catName: string) {
     setCategoryFilter(catName);
     setOpenCat(catName);
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setBottomSheetOpen(true);
-    }
+    setBottomSheetOpen(true);
   }
 
   const selectedCategoryItems = categories.find((c) => c.name === categoryFilter)?.items ?? [];
@@ -122,14 +120,14 @@ export function ItemSelectionStep({
         />
       </div>
 
-      {/* 카테고리 필터 탭 (아이콘 + 텍스트) */}
+      {/* 카테고리 필터 탭 (아이콘 + 텍스트, 그리드) */}
       {!itemSearch.trim() && categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="grid grid-cols-3 gap-2">
           {categories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => handleCategoryClick(cat.name)}
-              className={`shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                 categoryFilter === cat.name
                   ? "bg-primary text-white"
                   : "bg-bg-warm text-text-sub hover:bg-primary-bg border border-border-light"
@@ -138,7 +136,7 @@ export function ItemSelectionStep({
               <div className="w-7 h-7 flex items-center justify-center">
                 {categoryIcons[cat.name] || defaultCategoryIcon}
               </div>
-              <span className="whitespace-nowrap">{cat.name}</span>
+              <span>{cat.name}</span>
             </button>
           ))}
         </div>
@@ -198,75 +196,7 @@ export function ItemSelectionStep({
             });
           })()}
         </div>
-      ) : (
-        categories
-        .filter((cat) => !categoryFilter || cat.name === categoryFilter)
-        .map((cat) => (
-          <div
-            key={cat.name}
-            className="bg-bg rounded-lg shadow-md border border-border-light overflow-hidden transition-all duration-200 hover:shadow-hover"
-          >
-            <button
-              onClick={() =>
-                setOpenCat(openCat === cat.name ? null : cat.name)
-              }
-              className="w-full px-6 py-5 max-sm:px-4 max-sm:py-4 flex items-center justify-between text-left hover:bg-bg-warm/60 transition-colors duration-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-primary-tint/50 flex items-center justify-center shrink-0">
-                  {categoryIcons[cat.name] || defaultCategoryIcon}
-                </div>
-                <span className="font-medium">{cat.name}</span>
-              </div>
-              <span className="flex items-center gap-1 text-text-muted text-sm">
-                {cat.items.length}개
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className={`transition-transform duration-200 ${openCat === cat.name ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </span>
-            </button>
-            {openCat === cat.name && (
-              <div className="px-6 max-sm:px-4 pb-5 space-y-2">
-                {cat.items.map((item) => {
-                  const qty = getItemQty(cat.name, item.name);
-                  return (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between py-2 border-b border-border-light last:border-0"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {item.name}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3">
-                        <button
-                          onClick={() =>
-                            updateItemQty(cat.name, item.name, item.displayName, item.price, -1)
-                          }
-                          disabled={qty === 0}
-                          className="w-10 h-10 rounded-sm bg-bg-warm text-text-sub font-bold disabled:opacity-30 transition-all duration-200 hover:bg-bg-warm2 active:scale-90"
-                        >
-                          −
-                        </button>
-                        <span className="w-6 text-center text-sm font-semibold">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateItemQty(cat.name, item.name, item.displayName, item.price, 1)
-                          }
-                          className="w-10 h-10 rounded-sm bg-primary text-white font-bold transition-all duration-200 hover:bg-primary-dark active:scale-90"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))
-      )}
+      ) : null}
 
       {/* 커스텀 품목 입력 */}
       <div className="bg-bg rounded-lg shadow-md border border-border-light p-5 max-sm:p-4">

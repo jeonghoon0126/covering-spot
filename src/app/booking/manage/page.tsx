@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,8 @@ import { STATUS_LABELS, STATUS_COLORS, STATUS_MESSAGES, TIME_SLOTS, TIME_SLOT_LA
 import { useBookingManage, canEdit, canReschedule, canCancel, canConfirm, getQuoteExpiryLabel } from "./useBookingManage";
 import { isBeforeDeadline } from "@/lib/booking-utils";
 
-export default function BookingManagePage() {
+function BookingManageContent() {
+  const searchParams = useSearchParams();
   const {
     phone,
     bookings,
@@ -32,6 +34,7 @@ export default function BookingManagePage() {
     today,
     setPhone,
     setExpandedId,
+    doSearch,
     handleSearch,
     handleConfirm,
     handleCancel,
@@ -50,6 +53,15 @@ export default function BookingManagePage() {
 
   const [filterDate, setFilterDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+
+  // SMS URL phone param 자동 입력
+  useEffect(() => {
+    const urlPhone = searchParams.get("phone");
+    if (urlPhone) {
+      setPhone(urlPhone);
+      doSearch(urlPhone);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredBookings = bookings.filter((b: Booking) => {
     const dateMatch = filterDate ? b.date === filterDate : true;
@@ -521,5 +533,13 @@ export default function BookingManagePage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function BookingManagePage() {
+  return (
+    <Suspense>
+      <BookingManageContent />
+    </Suspense>
   );
 }
