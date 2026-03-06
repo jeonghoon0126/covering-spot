@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
+import { track } from "@/lib/analytics";
 
 export function FloatingCTA() {
   const [show, setShow] = useState(false);
@@ -50,6 +51,7 @@ export function FloatingCTA() {
           </CTALink>
           <Link
             href="/booking"
+            onClick={() => track("[CLICK] SpotHomeScreen_bookingBtn", { location: "floating" })}
             className="flex-1 flex items-center justify-center bg-primary text-white text-[15px] font-semibold py-3.5 rounded-md shadow-sm shadow-primary/20 hover:bg-primary-light active:scale-[0.98] transition-all"
           >
             수거 신청하기
@@ -69,6 +71,7 @@ export function FloatingCTA() {
           </CTALink>
           <Link
             href="/booking"
+            onClick={() => track("[CLICK] SpotHomeScreen_bookingBtn", { location: "floating" })}
             className="flex items-center bg-primary text-white text-[15px] font-semibold py-3 px-6 rounded-md shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
           >
             5분만에 수거신청하기

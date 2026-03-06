@@ -299,6 +299,7 @@ export function ItemPrices({ categories }: Props) {
               </CTALink>
               <Link
                 href="/booking"
+                onClick={() => track("[CLICK] SpotHomeScreen_bookingBtn", { location: "price" })}
                 className="flex items-center justify-center gap-1.5 w-full text-[15px] font-bold text-white bg-primary py-4 rounded-lg shadow-sm shadow-primary/20 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(26,163,255,0.25)] active:scale-[0.98] transition-all duration-300"
               >
                 온라인 수거 신청하기

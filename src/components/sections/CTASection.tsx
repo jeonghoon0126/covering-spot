@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { CTALink } from "@/components/ui/CTALink";
+import { track } from "@/lib/analytics";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
@@ -39,6 +42,7 @@ export function CTASection() {
             </CTALink>
             <Link
               href="/booking"
+              onClick={() => track("[CLICK] SpotHomeScreen_bookingBtn", { location: "bottom" })}
               className="inline-flex items-center gap-1.5 text-[17px] font-bold text-white bg-primary py-[17px] px-9 rounded-lg shadow-lg shadow-primary/30 hover:bg-primary-light hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(26,163,255,0.3)] active:scale-[0.98] transition-all duration-300 ease-out"
             >
               5분만에 수거신청하기

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CTALink } from "@/components/ui/CTALink";
 import { KakaoIcon } from "@/components/ui/KakaoIcon";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { track } from "@/lib/analytics";
 import Link from "next/link";
 
 /* ── Wave Background CSS (inline keyframes) ── */
@@ -276,6 +277,7 @@ export function Hero() {
               </CTALink>
               <Link
                 href="/booking"
+                onClick={() => track("[CLICK] SpotHomeScreen_bookingBtn", { location: "hero" })}
                 className="group inline-flex items-center bg-primary text-white text-base font-semibold py-[16px] px-8 rounded-lg shadow-sm shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary-light hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 max-md:w-full max-md:max-w-[320px] max-md:justify-center"
               >
                 5분만에 수거신청하기
