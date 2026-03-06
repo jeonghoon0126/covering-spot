@@ -3,9 +3,9 @@ import { supabase } from "@/lib/supabase";
 import { sendDailyEventsReport } from "@/lib/slack-notify";
 
 /** Mixpanel Segmentation API로 어제 방문수거 배너 클릭 수 조회 */
-async function getMixpanelBannerClicks(dateStr: string): Promise<number> {
+async function getMixpanelBannerClicks(dateStr: string): Promise<{ count: number; debug: string }> {
   const apiSecret = process.env.MIXPANEL_API_SECRET;
-  if (!apiSecret) return 0;
+  if (!apiSecret) return { count: 0, debug: "no_secret" };
 
   try {
     const auth = Buffer.from(`${apiSecret}:`).toString("base64");
@@ -17,27 +17,23 @@ async function getMixpanelBannerClicks(dateStr: string): Promise<number> {
       where: 'properties["banner_title"] == "방문 수거"',
       type: "general",
     });
+    const url = `https://mixpanel.com/api/2.0/segmentation?${params}`;
 
-    const res = await fetch(
-      `https://mixpanel.com/api/2.0/segmentation?${params}`,
-      { headers: { Authorization: `Basic ${auth}` } },
-    );
+    const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } });
+    const body = await res.text();
 
-    if (!res.ok) {
-      console.error("[mixpanel] status:", res.status, await res.text().catch(() => ""));
-      return 0;
-    }
+    if (!res.ok) return { count: 0, debug: `http_${res.status}:${body.slice(0, 100)}` };
 
-    const data = await res.json() as {
+    const data = JSON.parse(body) as {
       data?: { values?: Record<string, Record<string, number>> };
     };
     const values = data?.data?.values?.["[CLICK] Banner_click"];
-    if (!values) return 0;
+    if (!values) return { count: 0, debug: `no_values:${body.slice(0, 100)}` };
 
-    return Object.values(values).reduce((sum, v) => sum + v, 0);
+    const count = Object.values(values).reduce((sum, v) => sum + v, 0);
+    return { count, debug: "ok" };
   } catch (e) {
-    console.error("[mixpanel] error:", e);
-    return 0;
+    return { count: 0, debug: `error:${String(e).slice(0, 100)}` };
   }
 }
 
@@ -68,7 +64,7 @@ export async function GET(req: NextRequest) {
     const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 
     // Mixpanel 배너 클릭 + Supabase 이벤트 병렬 조회
-    const [bannerClicks, eventsResult, stepsResult] = await Promise.all([
+    const [bannerResult, eventsResult, stepsResult] = await Promise.all([
       getMixpanelBannerClicks(dateStr),
       supabase.from("spot_events").select("event_name").gte("created_at", from).lt("created_at", to),
       supabase.from("spot_events").select("properties").eq("event_name", "[VIEW] SpotBookingScreen_step").gte("created_at", from).lt("created_at", to),
@@ -94,10 +90,9 @@ export async function GET(req: NextRequest) {
     }
     const steps = Object.entries(stepMap).map(([step, cnt]) => ({ step, cnt }));
 
-    await sendDailyEventsReport(dateLabel, events, steps, bannerClicks);
+    await sendDailyEventsReport(dateLabel, events, steps, bannerResult.count);
 
-    const hasApiSecret = !!process.env.MIXPANEL_API_SECRET;
-    return NextResponse.json({ ok: true, date: dateLabel, eventCount: events.length, bannerClicks, hasApiSecret });
+    return NextResponse.json({ ok: true, date: dateLabel, eventCount: events.length, bannerClicks: bannerResult.count, mpDebug: bannerResult.debug });
   } catch (e) {
     console.error("[daily-events-report]", e);
     return NextResponse.json({ error: "report failed" }, { status: 500 });
