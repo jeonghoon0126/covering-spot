@@ -332,6 +332,7 @@ export async function sendDailyEventsReport(
   dateLabel: string,  // e.g. "03/06 (목)"
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
+  bannerClicks = 0,   // 커버링 앱 방문수거 배너 클릭 (Mixpanel)
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AENH7JW2Y";
 
@@ -343,14 +344,20 @@ export async function sendDailyEventsReport(
   const bookingScreen = get("[ROUTE] SpotBookingScreen");
   const complete = get("[EVENT] SpotBookingComplete");
 
-  const pct = (n: number) => home > 0 ? ` (${(n / home * 100).toFixed(1)}%)` : "";
+  // 배너→홈 전환율, 홈 기준 하위 전환율
+  const pctOf = (n: number, base: number) => base > 0 ? ` (${(n / base * 100).toFixed(1)}%)` : "";
 
   const funnelLines = [
-    `홈 방문          *${home.toLocaleString()}건*`,
-    `├ 카카오 클릭     ${kakao.toLocaleString()}건${pct(kakao)}`,
-    `├ 수거신청 클릭   ${bookingBtn.toLocaleString()}건${pct(bookingBtn)}`,
-    `├ 예약화면 진입   ${bookingScreen.toLocaleString()}건${pct(bookingScreen)}`,
-    `└ 예약 완료       *${complete.toLocaleString()}건*${pct(complete)}`,
+    ...(bannerClicks > 0 ? [
+      `앱 배너 클릭      *${bannerClicks.toLocaleString()}건*`,
+      `홈 방문           ${home.toLocaleString()}건${pctOf(home, bannerClicks)}`,
+    ] : [
+      `홈 방문           *${home.toLocaleString()}건*`,
+    ]),
+    `├ 카카오 클릭     ${kakao.toLocaleString()}건${pctOf(kakao, home)}`,
+    `├ 수거신청 클릭   ${bookingBtn.toLocaleString()}건${pctOf(bookingBtn, home)}`,
+    `├ 예약화면 진입   ${bookingScreen.toLocaleString()}건${pctOf(bookingScreen, home)}`,
+    `└ 예약 완료       *${complete.toLocaleString()}건*${pctOf(complete, home)}`,
   ].join("\n");
 
   const stepMap = Object.fromEntries(steps.map((s) => [s.step, s.cnt]));
