@@ -44,8 +44,8 @@ export async function GET(req: NextRequest) {
       limit,
     });
 
-    // 상태별 카운트 (전체 기준, status 컬럼만 조회)
-    const counts = await getBookingStatusCounts();
+    // 상태별 카운트 (날짜 필터 적용)
+    const counts = await getBookingStatusCounts({ dateFrom, dateTo });
 
     return NextResponse.json({
       bookings,

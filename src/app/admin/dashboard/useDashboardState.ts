@@ -6,6 +6,12 @@ import { safeSessionGet, safeSessionSet, safeLocalGet, safeLocalRemove } from "@
 import type { Booking } from "@/types/booking";
 import { PAGE_SIZE, type SheetImportRow } from "./dashboard-constants";
 
+function todayKST(offsetDays = 0): string {
+  const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function useDashboardState() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -19,8 +25,8 @@ export function useDashboardState() {
   // 검색 + 필터
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => todayKST());
+  const [dateTo, setDateTo] = useState(() => todayKST());
   const [showFilters, setShowFilters] = useState(false);
 
   // 퀵 액션 로딩 상태
@@ -192,6 +198,19 @@ export function useDashboardState() {
     setCurrentPage(1);
   }
 
+  function handleQuickDate(type: "today" | "tomorrow") {
+    const d = todayKST(type === "tomorrow" ? 1 : 0);
+    setDateFrom(d);
+    setDateTo(d);
+    setCurrentPage(1);
+  }
+
+  function resetDates() {
+    setDateFrom("");
+    setDateTo("");
+    setCurrentPage(1);
+  }
+
   function requestQuickAction(booking: Booking, newStatus: string, label: string) {
     setConfirmPending({ bookingId: booking.id, newStatus, label });
   }
@@ -354,6 +373,8 @@ export function useDashboardState() {
     showFilters,
     setShowFilters,
     handleDateChange,
+    handleQuickDate,
+    resetDates,
     // 퀵 액션
     quickLoading,
     confirmPending,

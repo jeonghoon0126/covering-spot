@@ -7,12 +7,12 @@ import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!validateToken(req)) {
     return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   // ?templateKey=xxx → 미리보기 본문 반환
   const previewKey = req.nextUrl.searchParams.get("templateKey");
@@ -46,12 +46,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ logs: data });
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!validateToken(req)) {
     return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   const body = await req.json();
   const { templateKey, customBody } = body as { templateKey: string; customBody?: string };

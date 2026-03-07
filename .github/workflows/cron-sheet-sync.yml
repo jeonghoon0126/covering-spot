@@ -1,0 +1,22 @@
+name: Cron - 단건시트 양방향 동기화
+
+on:
+  schedule:
+    # 5분마다 실행 (UTC 기준, GitHub Actions 최소 단위)
+    - cron: "*/5 * * * *"
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call sheet-sync API
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://coveringspot.vercel.app/api/cron/sheet-sync")
+          echo "HTTP Status: $RESPONSE"
+          if [[ "$RESPONSE" != "200" ]]; then
+            echo "Cron job returned non-200: $RESPONSE"
+            exit 1
+          fi

@@ -1,5 +1,11 @@
 "use client";
 
+function todayKST(offsetDays = 0): string {
+  const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 interface SearchFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
@@ -8,6 +14,7 @@ interface SearchFiltersProps {
   dateFrom: string;
   dateTo: string;
   onDateChange: (field: "from" | "to", val: string) => void;
+  onQuickDate: (type: "today" | "tomorrow") => void;
   onResetDates: () => void;
 }
 
@@ -19,8 +26,15 @@ export function SearchFilters({
   dateFrom,
   dateTo,
   onDateChange,
+  onQuickDate,
   onResetDates,
 }: SearchFiltersProps) {
+  const today = todayKST();
+  const tomorrow = todayKST(1);
+  const isTodayActive = dateFrom === today && dateTo === today;
+  const isTomorrowActive = dateFrom === tomorrow && dateTo === tomorrow;
+  const isAllActive = !dateFrom && !dateTo;
+
   return (
     <div className="space-y-3 mb-4">
       <div className="flex gap-2">
@@ -43,7 +57,7 @@ export function SearchFilters({
         <button
           onClick={onToggleFilters}
           className={`shrink-0 px-3 py-2.5 rounded-md border text-sm transition-colors ${
-            showFilters || dateFrom || dateTo
+            showFilters
               ? "border-primary bg-primary-bg text-primary"
               : "border-border-light bg-bg text-text-sub"
           }`}
@@ -54,7 +68,41 @@ export function SearchFilters({
         </button>
       </div>
 
-      {/* 기간 필터 */}
+      {/* 날짜 퀵 버튼 */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => onQuickDate("today")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+            isTodayActive
+              ? "bg-primary text-white shadow-sm"
+              : "bg-bg border border-border-light text-text-sub hover:border-primary/40 hover:text-text-primary"
+          }`}
+        >
+          오늘
+        </button>
+        <button
+          onClick={() => onQuickDate("tomorrow")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+            isTomorrowActive
+              ? "bg-primary text-white shadow-sm"
+              : "bg-bg border border-border-light text-text-sub hover:border-primary/40 hover:text-text-primary"
+          }`}
+        >
+          내일
+        </button>
+        <button
+          onClick={onResetDates}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+            isAllActive
+              ? "bg-primary text-white shadow-sm"
+              : "bg-bg border border-border-light text-text-sub hover:border-primary/40 hover:text-text-primary"
+          }`}
+        >
+          전체
+        </button>
+      </div>
+
+      {/* 날짜 직접 입력 (필터 펼침 시) */}
       {showFilters && (
         <div className="flex gap-2 items-center flex-wrap">
           <span className="text-xs text-text-sub shrink-0">수거일</span>
@@ -73,14 +121,6 @@ export function SearchFilters({
             onChange={(e) => onDateChange("to", e.target.value)}
             className="flex-1 min-w-[120px] px-2.5 py-2 text-sm rounded-md border border-border bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
           />
-          <button
-            onClick={onResetDates}
-            className={`shrink-0 text-xs text-semantic-red transition-opacity ${
-              dateFrom || dateTo ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-            }`}
-          >
-            초기화
-          </button>
         </div>
       )}
     </div>
