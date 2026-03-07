@@ -73,10 +73,12 @@ export const VEHICLE_CAPACITY: Record<string, number> = {
 
 /* ── 시간대 ── */
 
-export const TIME_SLOTS = ["10:00", "12:00", "14:00", "16:00"];
+export const TIME_SLOTS = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
 export const TIME_SLOT_LABELS: Record<string, string> = {
   "10:00": "오전 10~12시",
   "12:00": "오후 12~14시",
   "14:00": "오후 14~16시",
   "16:00": "오후 16~18시",
+  "18:00": "오후 18~20시",
+  "20:00": "오후 20~22시",
 };

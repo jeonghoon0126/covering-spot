@@ -177,6 +177,7 @@ export async function PUT(
 
     const previousStatus = existing.status;
     const previousMemo = existing.adminMemo;
+    const previousConfirmedTime = existing.confirmedTime;
 
     // quote_confirmed 전환 시 타임스탬프 저장 (7일 자동 만료 기준)
     if (data.status === "quote_confirmed" && previousStatus !== "quote_confirmed") {
@@ -270,6 +271,19 @@ export async function PUT(
     // 관리자 메모 변경 시 스레드 답글
     if (data.adminMemo !== undefined && data.adminMemo !== previousMemo && data.adminMemo) {
       sendAdminMemoUpdated(updated, data.adminMemo).catch((err) => console.error("[Slack] 메모 알림 실패:", err?.message));
+    }
+
+    // 확정 시간 단독 변경 시 고객 SMS (status 변경과 동시인 경우 기존 SMS에 포함 → 중복 방지)
+    if (
+      data.confirmedTime !== undefined &&
+      data.confirmedTime !== previousConfirmedTime &&
+      data.confirmedTime &&
+      data.status === undefined &&
+      (existing.status === "in_progress" || existing.status === "quote_confirmed") &&
+      updated.phone
+    ) {
+      sendStatusSms(updated.phone, "time_confirmed", id, null, null, updated.date, updated.confirmedTime)
+        .catch((err) => console.error("[SMS] time_confirmed 발송 실패:", err?.message));
     }
 
     // Audit log (fire-and-forget)
