@@ -123,7 +123,7 @@ export function calculateQuote(
   const totalPrice = itemsTotal + crewPrice + ladderPrice;
 
   // 6. 견적 레인지 계산
-  const estimateMin = itemsTotal + crewPrice1 + ladderPrice;
+  const estimateMin = itemsTotal + crewPrice + ladderPrice;
   let itemsTotalMax = itemsTotal * 1.15;
   const hasDisassemblyItem = secureItems.some((item) =>
     DISASSEMBLY_CATEGORIES.includes(item.category),
