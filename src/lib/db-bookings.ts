@@ -241,15 +241,31 @@ export async function getAllBookings(): Promise<Booking[]> {
 
 /**
  * 상태별 주문 카운트 (대시보드 탭 배지용)
- * getAllBookings() 대비 전체 행 로드 없이 집계만 수행
+ * dateFrom/dateTo가 있으면 해당 날짜 범위 내 카운트만 반환
  */
-export async function getBookingStatusCounts(): Promise<Record<string, number>> {
-  // Supabase RPC로 SQL GROUP BY 집계 (전체 행 로드 대신 집계만 수행)
+export async function getBookingStatusCounts(params?: { dateFrom?: string; dateTo?: string }): Promise<Record<string, number>> {
+  const { dateFrom, dateTo } = params || {};
+
+  // 날짜 필터가 있으면 직접 쿼리 (RPC는 날짜 필터 미지원)
+  if (dateFrom || dateTo) {
+    let query = supabase.from("bookings").select("status").limit(10000);
+    if (dateFrom) query = query.gte("date", dateFrom);
+    if (dateTo) query = query.lte("date", dateTo);
+    const { data, error } = await query;
+    if (error) throw error;
+    const counts: Record<string, number> = {};
+    for (const row of data || []) {
+      const s = row.status as string;
+      counts[s] = (counts[s] || 0) + 1;
+    }
+    return counts;
+  }
+
+  // 날짜 필터 없으면 RPC로 전체 집계 (효율적)
   const { data, error } = await supabase.rpc("get_booking_status_counts");
 
   if (error) {
     console.error("[getBookingStatusCounts] RPC 실패, 폴백:", error.message);
-    // 폴백: 기존 방식 (RPC 함수가 아직 배포 안 된 환경)
     const { data: fallback, error: fbErr } = await supabase
       .from("bookings")
       .select("status")

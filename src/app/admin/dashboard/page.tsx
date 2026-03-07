@@ -53,10 +53,8 @@ export default function AdminDashboardPage() {
           dateFrom={state.dateFrom}
           dateTo={state.dateTo}
           onDateChange={state.handleDateChange}
-          onResetDates={() => {
-            state.handleDateChange("from", "");
-            state.handleDateChange("to", "");
-          }}
+          onQuickDate={state.handleQuickDate}
+          onResetDates={state.resetDates}
         />
 
         {/* 상태 탭 */}
