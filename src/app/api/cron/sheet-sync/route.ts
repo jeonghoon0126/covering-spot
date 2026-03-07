@@ -20,6 +20,12 @@ export const dynamic = "force-dynamic";
 const DISPATCH_DONE_STATUSES = new Set(["in_progress", "completed", "check_completed"]);
 const PICKUP_DONE_STATUSES = new Set(["completed", "check_completed"]);
 
+function resolveStatus(dispatchDone: string, pickupDone: string): Booking["status"] {
+  if (dispatchDone === "완료" && pickupDone === "완료") return "completed";
+  if (dispatchDone === "완료") return "in_progress";
+  return "pending";
+}
+
 /**
  * 단건시트(신사업) ↔ Supabase 양방향 동기화 Cron
  * - Vercel Cron: 5분마다 실행 (schedule: "* /5 * * * *" without space)
@@ -103,6 +109,7 @@ export async function GET(req: NextRequest) {
 
       const customerName = (row[SHEET_COL.APPLICANT] ?? "").trim();
       if (!customerName) continue;
+      if (!customerName.includes("(신사업)")) continue; // 신사업 건만 동기화
 
       const phoneRaw =
         (row[SHEET_COL.PHONE_OWNER] ?? "").trim() || (row[SHEET_COL.PHONE_SITE] ?? "").trim();
@@ -145,6 +152,13 @@ export async function GET(req: NextRequest) {
       const key = `${(b.customer_name as string).trim().toLowerCase()}|${b.date}`;
       dbMap.set(key, { id: b.id as string, status: b.status as string });
     }
+
+    // 4-1. 마이그레이션 모드 판단: 단건시트 자동동기화 건이 0개면 첫 마이그레이션
+    const { count: dangunCount } = await supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .eq("source", "단건시트 자동동기화");
+    const isMigration = (dangunCount ?? 0) === 0;
 
     // 5. 행별 처리
     let created = 0;
@@ -189,7 +203,7 @@ export async function GET(req: NextRequest) {
           address: r.address,
           addressDetail: "",
           memo: r.memo.trim(),
-          status: "pending",
+          status: resolveStatus(r.dispatchDoneCell, r.pickupDoneCell),
           createdAt: nowIso,
           updatedAt: nowIso,
           hasElevator: false,
@@ -206,13 +220,15 @@ export async function GET(req: NextRequest) {
         };
 
         const createdBooking = await createBooking(booking);
-        dbMap.set(key, { id: createdBooking.id, status: "pending" });
-        sendBookingCreated(createdBooking)
-          .then((threadTs) => {
-            if (threadTs)
-              updateBooking(createdBooking.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
-          })
-          .catch(() => {});
+        dbMap.set(key, { id: createdBooking.id, status: booking.status });
+        if (!isMigration) {
+          sendBookingCreated(createdBooking)
+            .then((threadTs) => {
+              if (threadTs)
+                updateBooking(createdBooking.id, { slackThreadTs: threadTs } as Partial<Booking>).catch(() => {});
+            })
+            .catch(() => {});
+        }
         created++;
       }
     }
