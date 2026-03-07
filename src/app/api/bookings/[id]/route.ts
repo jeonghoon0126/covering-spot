@@ -260,8 +260,8 @@ export async function DELETE(
       );
     }
 
-    // pending, quote_confirmed, user_confirmed, change_requested, in_progress 상태에서만 취소 가능
-    if (booking.status !== "pending" && booking.status !== "quote_confirmed" && booking.status !== "user_confirmed" && booking.status !== "change_requested" && booking.status !== "in_progress") {
+    // pending, quote_confirmed, change_requested, in_progress 상태에서만 취소 가능
+    if (booking.status !== "pending" && booking.status !== "quote_confirmed" && booking.status !== "change_requested" && booking.status !== "in_progress") {
       return NextResponse.json(
         { error: "취소할 수 없는 상태입니다" },
         { status: 400 },

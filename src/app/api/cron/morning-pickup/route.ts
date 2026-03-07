@@ -6,7 +6,7 @@ import { sendErrorAlert } from "@/lib/slack-notify";
 /**
  * 수거 당일 오전 8시 출발 알림 Cron Job
  * - Vercel Cron: 매일 UTC 23:00 (KST 08:00 다음날) 실행
- * - status IN (user_confirmed, in_progress) 이고 date = 내일(UTC 기준 = KST 오늘) 인 건 → 출발 알림 SMS
+ * - status IN (in_progress) 이고 date = 내일(UTC 기준 = KST 오늘) 인 건 → 출발 알림 SMS
  */
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -23,11 +23,11 @@ export async function GET(req: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-    // quote_confirmed / user_confirmed 건을 in_progress로 자동 전환
+    // quote_confirmed 건을 in_progress로 자동 전환
     await supabase
       .from("bookings")
       .update({ status: "in_progress" })
-      .in("status", ["quote_confirmed", "user_confirmed"])
+      .in("status", ["quote_confirmed"])
       .eq("date", tomorrowStr)
       .neq("source", "sheet");
 

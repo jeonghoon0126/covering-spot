@@ -18,8 +18,7 @@ import { getSpotItems, getSpotAreas, getSpotLadder, createAdminNotification } fr
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["quote_confirmed", "rejected", "cancelled"],
-  quote_confirmed: ["user_confirmed", "in_progress", "cancelled", "rejected"],
-  user_confirmed: ["in_progress", "cancelled"],
+  quote_confirmed: ["in_progress", "cancelled", "rejected"],
   change_requested: ["quote_confirmed", "cancelled"],
   in_progress: ["completed", "cancelled"],
   completed: ["payment_requested"],
@@ -219,7 +218,7 @@ export async function PUT(
       }
       // 백오피스 알림 생성
       const STATUS_LABEL: Record<string, string> = {
-        pending: "접수", quote_confirmed: "견적확정", user_confirmed: "고객수락",
+        pending: "접수", quote_confirmed: "견적확정",
         change_requested: "일정변경요청", in_progress: "일정확정", completed: "수거완료",
         payment_requested: "정산요청", payment_completed: "정산완료",
         cancelled: "취소", rejected: "수거불가",
