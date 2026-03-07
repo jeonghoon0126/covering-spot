@@ -9,6 +9,7 @@ import { REQUIRES_PHOTO_CATEGORIES } from "@/data/spot-items";
 import type { QuoteResult } from "@/types/booking";
 import { track } from "@/lib/analytics";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { LottieOverlay } from "@/components/ui/LottieOverlay";
 import { STEPS, QUOTE_PREVIEW_DEBOUNCE } from "./booking-constants";
 import { StepIndicator } from "./StepIndicator";
 import { CustomerInfoStep } from "./CustomerInfoStep";
@@ -533,14 +534,7 @@ function BookingPageContent() {
   ];
 
   if (editLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-text-sub">예약 정보를 불러오는 중...</p>
-        </div>
-      </div>
-    );
+    return <LottieOverlay visible={true} message="예약 정보를 불러오는 중..." />;
   }
 
   return (
