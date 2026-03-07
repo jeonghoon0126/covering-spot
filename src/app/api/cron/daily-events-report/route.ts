@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { sendDailyEventsReport } from "@/lib/slack-notify";
+import { sendDailyEventsReport, sendErrorAlert } from "@/lib/slack-notify";
 
 // 배너 타입별 Mixpanel where 절 (banner_id 기반)
 const POPUP_WHERE    = 'properties["banner_id"] == "40"';
@@ -103,6 +103,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, date: dateLabel, popupBanner, benefitBanner, carouselBanner, funnelKakao });
   } catch (e) {
     console.error("[daily-events-report]", e);
+    sendErrorAlert("GET /api/cron/daily-events-report", e).catch(() => {});
     return NextResponse.json({ error: "report failed" }, { status: 500 });
   }
 }

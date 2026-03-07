@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { verifyGoogleToken, getOrCreateAdmin } from "@/lib/google-auth";
 import type { AdminRole } from "@/lib/admin-roles";
+import { sendErrorAlert } from "@/lib/slack-notify";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -163,6 +164,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ token, expiresIn });
   } catch (e) {
     console.error("[admin/auth]", e);
+    sendErrorAlert("POST /api/admin/auth", e).catch(() => {});
     return NextResponse.json(
       { error: "인증 실패" },
       { status: 500 },

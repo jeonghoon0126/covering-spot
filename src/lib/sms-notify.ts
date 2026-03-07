@@ -70,7 +70,7 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
  * 한국 전화번호를 E.164 형식으로 변환
  * "010-1234-5678" → "+821012345678"
  */
-function toE164(phone: string): string {
+export function toE164(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("0")) {
     return "+82" + digits.slice(1);
@@ -79,6 +79,67 @@ function toE164(phone: string): string {
     return "+" + digits;
   }
   return "+" + digits;
+}
+
+/**
+ * 템플릿 키로 SMS 본문만 렌더링 (발송 안 함)
+ * 미리보기 API에서 사용
+ */
+export function renderSmsTemplate(
+  templateKey: string,
+  params: {
+    finalPrice?: number | null;
+    paymentUrl?: string | null;
+    date?: string | null;
+    confirmedTime?: string | null;
+    phone: string;
+  },
+): string | null {
+  const resolvedStatus = STATUS_ALIAS[templateKey] ?? templateKey;
+  const templateFn = STATUS_TEMPLATES[resolvedStatus];
+  if (!templateFn) return null;
+  const statusLink = `\n\n${BASE}/booking/manage?phone=${encodeURIComponent(params.phone)}`;
+  return templateFn(params.finalPrice, params.paymentUrl, params.date, params.confirmedTime) + statusLink;
+}
+
+/**
+ * 직접 본문 문자열로 FlareLane SMS 발송
+ * customBody가 있을 때 사용 (미리보기 후 수정 발송)
+ */
+export async function sendRawSms(
+  phone: string,
+  body: string,
+  bookingId: string,
+): Promise<void> {
+  const apiKey = process.env.FLARELANE_API_KEY?.trim();
+  const projectId = process.env.FLARELANE_PROJECT_ID?.trim();
+
+  if (!apiKey || !projectId) {
+    console.warn("[sms-notify] FlareLane 환경변수 미설정 - SMS 발송 스킵");
+    return;
+  }
+
+  const res = await fetch(
+    `https://api.flarelane.com/v1/projects/${projectId}/sms`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        targetType: "phoneNumber",
+        targetIds: [toE164(phone)],
+        isAdvertisement: false,
+        body,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const resBody = await res.text();
+    throw new Error(`FlareLane 발송 실패 (booking=${bookingId}): ${res.status} ${resBody}`);
+  }
 }
 
 /**

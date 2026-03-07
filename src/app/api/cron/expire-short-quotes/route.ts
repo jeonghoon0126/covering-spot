@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendStatusSms } from "@/lib/sms-notify";
+import { sendErrorAlert } from "@/lib/slack-notify";
 
 /**
  * 견적 6시간 자동 취소 + 3시간 전 리마인드 Cron Job
@@ -96,6 +97,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ cancelled: cancelledCount, reminded: remindedCount });
   } catch (e) {
     console.error("[cron/expire-short-quotes]", e);
+    sendErrorAlert("GET /api/cron/expire-short-quotes", e).catch(() => {});
     return NextResponse.json({ error: "cron 실행 실패" }, { status: 500 });
   }
 }

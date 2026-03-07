@@ -31,11 +31,40 @@ interface SmsSectionProps {
 
 export function SmsSection({ bookingId, token }: SmsSectionProps) {
   const [templateKey, setTemplateKey] = useState(TEMPLATE_OPTIONS[0].value);
+  const [editedBody, setEditedBody] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [logs, setLogs] = useState<SmsLog[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
+
+  const fetchPreview = useCallback(async (key: string) => {
+    setPreviewLoading(true);
+    setEditedBody("");
+    try {
+      const res = await fetch(
+        `/api/admin/bookings/${bookingId}/sms?templateKey=${encodeURIComponent(key)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setEditedBody(data.body ?? "");
+      }
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [bookingId, token]);
+
+  useEffect(() => {
+    fetchPreview(TEMPLATE_OPTIONS[0].value);
+  }, [fetchPreview]);
+
+  function handleTemplateChange(key: string) {
+    setTemplateKey(key);
+    setResult(null);
+    fetchPreview(key);
+  }
 
   const fetchLogs = useCallback(async () => {
     setLogsLoading(true);
@@ -66,14 +95,13 @@ export function SmsSection({ bookingId, token }: SmsSectionProps) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ templateKey }),
+        body: JSON.stringify({ templateKey, customBody: editedBody }),
       });
       const data = await res.json();
       if (!res.ok) {
         setResult(`실패: ${data.error ?? "알 수 없는 오류"}`);
       } else {
         setResult("발송 완료");
-        // 이력 갱신
         fetchLogs();
         if (!logsOpen) setLogsOpen(true);
       }
@@ -95,26 +123,46 @@ export function SmsSection({ bookingId, token }: SmsSectionProps) {
     <div className="bg-bg rounded-[--radius-md] border border-border-light p-4 space-y-3">
       <h3 className="text-sm font-semibold text-text-primary">SMS 발송</h3>
 
-      <div className="flex gap-2">
-        <select
-          value={templateKey}
-          onChange={(e) => setTemplateKey(e.target.value)}
-          className="flex-1 h-9 px-2 border border-border rounded-lg text-sm text-text-primary bg-bg outline-none focus:border-primary"
-        >
-          {TEMPLATE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleSend}
-          disabled={sending}
-          className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-40 whitespace-nowrap"
-        >
-          {sending ? "발송 중..." : "발송"}
-        </button>
+      {/* 템플릿 드롭다운 */}
+      <select
+        value={templateKey}
+        onChange={(e) => handleTemplateChange(e.target.value)}
+        className="w-full h-9 px-2 border border-border rounded-lg text-sm text-text-primary bg-bg outline-none focus:border-primary"
+      >
+        {TEMPLATE_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      {/* 본문 미리보기 + 수정 */}
+      <div className="relative">
+        {previewLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-bg/70 rounded-lg z-10">
+            <span className="text-xs text-text-muted">불러오는 중...</span>
+          </div>
+        )}
+        <textarea
+          value={editedBody}
+          onChange={(e) => setEditedBody(e.target.value)}
+          rows={7}
+          className="w-full px-3 py-2 border border-border rounded-lg text-xs text-text-primary bg-bg outline-none focus:border-primary resize-none leading-relaxed"
+          placeholder="템플릿을 선택하면 본문이 표시됩니다"
+        />
+        {editedBody && (
+          <p className="text-right text-xs text-text-muted">{editedBody.length}자</p>
+        )}
       </div>
+
+      {/* 발송 버튼 */}
+      <button
+        onClick={handleSend}
+        disabled={sending || !editedBody || previewLoading}
+        className="w-full h-9 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-40"
+      >
+        {sending ? "발송 중..." : "발송"}
+      </button>
 
       {result && (
         <p className={`text-xs font-medium ${result.startsWith("실패") ? "text-semantic-red" : "text-semantic-green"}`}>
