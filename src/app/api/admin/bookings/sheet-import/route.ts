@@ -135,6 +135,12 @@ function parseCSV(csvText: string): SheetRow[] {
     if (!row.phone) row.errors.push("전화번호 없음");
     if (!row.address) row.errors.push("주소 없음");
 
+    // 금액 0원 행 스킵 (취소/무효 건)
+    if (row.estimatedPrice !== undefined) {
+      const price = parseInt(row.estimatedPrice.replace(/,/g, ""), 10);
+      if (!isNaN(price) && price === 0) row.errors.push("금액 0원 (취소 건)");
+    }
+
     rows.push(row);
   }
 
