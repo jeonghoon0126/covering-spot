@@ -22,8 +22,7 @@ const PICKUP_DONE_STATUSES = new Set(["completed", "check_completed"]);
 
 function resolveStatus(dispatchDone: string, pickupDone: string, date: string, todayStr: string): Booking["status"] {
   if (dispatchDone === "완료" && pickupDone === "완료") return "completed";
-  if (dispatchDone === "완료") return "in_progress";
-  if (date < todayStr) return "payment_completed"; // 오늘 이전 → 정산완료
+  if (date < todayStr) return "payment_completed"; // 날짜 지남 → 정산완료 (배차여부 무관)
   return "in_progress";                            // 오늘 이후 → 진행중
 }
 
@@ -180,8 +179,8 @@ export async function GET(req: NextRequest) {
           await updateBooking(existing.id, { status: "cancelled" } as Partial<Booking>);
           dbMap.set(key, { ...existing, status: "cancelled" });
           cancelled++;
-        } else if (existing.status === "pending") {
-          // pending 상태 자동 업데이트: 마이그레이션 된 141건 일괄 처리
+        } else if (existing.status === "pending" || (existing.status === "in_progress" && r.date < todayStr)) {
+          // pending 또는 날짜 지난 in_progress → 올바른 상태로 재계산
           const newStatus = resolveStatus(r.dispatchDoneCell, r.pickupDoneCell, r.date, todayStr);
           await updateBooking(existing.id, { status: newStatus } as Partial<Booking>);
           dbMap.set(key, { ...existing, status: newStatus });
