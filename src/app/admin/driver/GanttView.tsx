@@ -10,7 +10,6 @@ import type { Driver } from "./types";
 const GANTT_BLOCK_BG: Record<string, string> = {
   pending:           "#FFF7E5",
   quote_confirmed:   "#E5F4FF",
-  user_confirmed:    "#EDFCF6",
   change_requested:  "#FFF7E5",
   in_progress:       "#E5F4FF",
   completed:         "#EDFCF6",
@@ -23,7 +22,6 @@ const GANTT_BLOCK_BG: Record<string, string> = {
 const GANTT_BLOCK_BORDER: Record<string, string> = {
   pending:           "#FF9C1A",
   quote_confirmed:   "#1AA3FF",
-  user_confirmed:    "#07C576",
   change_requested:  "#FF9C1A",
   in_progress:       "#1AA3FF",
   completed:         "#07C576",
@@ -36,7 +34,6 @@ const GANTT_BLOCK_BORDER: Record<string, string> = {
 export const GANTT_STATUS_LABELS: Record<string, string> = {
   pending: "접수",
   quote_confirmed: "견적확정",
-  user_confirmed: "견적확인완료",
   change_requested: "일정변경",
   in_progress: "진행중",
   completed: "수거완료",
