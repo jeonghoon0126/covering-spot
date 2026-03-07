@@ -8,6 +8,7 @@ import {
   sendQuoteConfirmed,
   sendStatusChanged,
   sendAdminMemoUpdated,
+  sendErrorAlert,
 } from "@/lib/slack-notify";
 import { sendStatusSms } from "@/lib/sms-notify";
 import { createPaymentLink } from "@/lib/payment-link";
@@ -321,6 +322,7 @@ export async function PUT(
     return NextResponse.json({ booking: updated });
   } catch (e) {
     console.error("[admin/bookings/[id]/PUT]", e);
+    sendErrorAlert("PUT /api/admin/bookings/[id]", e).catch(() => {});
     return NextResponse.json(
       { error: "수정 실패" },
       { status: 500 },

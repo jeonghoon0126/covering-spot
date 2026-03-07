@@ -409,3 +409,26 @@ export async function sendAdminMemoUpdated(
   if (!b.slackThreadTs) return;
   await sendThreadReply(b.slackThreadTs, `📝 관리자 메모 업데이트\n${memo}`);
 }
+
+/** 서버 에러 범용 알림 */
+export async function sendErrorAlert(
+  route: string,
+  error: unknown,
+  context?: Record<string, unknown>,
+): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? (error.stack ?? "").slice(0, 400) : "";
+  const blocks: unknown[] = [
+    { type: "header", text: { type: "plain_text", text: "🚨 서버 에러 발생" } },
+    {
+      type: "section",
+      fields: [
+        { type: "mrkdwn", text: `*라우트*\n\`${route}\`` },
+        { type: "mrkdwn", text: `*메시지*\n${message}` },
+      ],
+    },
+    ...(stack ? [{ type: "section", text: { type: "mrkdwn", text: `\`\`\`${stack}\`\`\`` } }] : []),
+    ...(context ? [{ type: "section", text: { type: "mrkdwn", text: `*컨텍스트*\n\`\`\`${JSON.stringify(context, null, 2).slice(0, 300)}\`\`\`` } }] : []),
+  ];
+  await postSlack(blocks).catch(() => {});
+}

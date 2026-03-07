@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendStatusSms } from "@/lib/sms-notify";
+import { sendErrorAlert } from "@/lib/slack-notify";
 
 /**
  * 견적 미확인 7일 자동 만료 Cron Job
@@ -73,6 +74,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ cancelled: expired.length, ids });
   } catch (e) {
     console.error("[cron/expire-quotes]", e);
+    sendErrorAlert("GET /api/cron/expire-quotes", e).catch(() => {});
     return NextResponse.json({ error: "cron 실행 실패" }, { status: 500 });
   }
 }

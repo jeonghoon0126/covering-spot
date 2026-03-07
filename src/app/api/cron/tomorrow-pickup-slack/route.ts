@@ -6,6 +6,7 @@ import {
   dividerBlock,
   actionButtonBlock,
 } from "@/lib/slack-blocks";
+import { sendErrorAlert } from "@/lib/slack-notify";
 
 const BASE_URL = "https://coveringspot.vercel.app";
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Y8ztdzT-Y08-XOkKSX-jryLJFT4r1ID4nuzRcN9ddTU";
@@ -155,6 +156,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: data.length });
   } catch (e) {
     console.error("[cron/tomorrow-pickup-slack]", e);
+    sendErrorAlert("GET /api/cron/tomorrow-pickup-slack", e).catch(() => {});
     return NextResponse.json({ error: "cron 실행 실패" }, { status: 500 });
   }
 }

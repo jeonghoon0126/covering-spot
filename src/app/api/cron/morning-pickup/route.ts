@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendStatusSms } from "@/lib/sms-notify";
+import { sendErrorAlert } from "@/lib/slack-notify";
 
 /**
  * 수거 당일 오전 8시 출발 알림 Cron Job
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: data.length });
   } catch (e) {
     console.error("[cron/morning-pickup]", e);
+    sendErrorAlert("GET /api/cron/morning-pickup", e).catch(() => {});
     return NextResponse.json({ error: "cron 실행 실패" }, { status: 500 });
   }
 }
