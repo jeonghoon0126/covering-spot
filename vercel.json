@@ -15,10 +15,6 @@
     {
       "path": "/api/cron/daily-events-report",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/sheet-sync",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
