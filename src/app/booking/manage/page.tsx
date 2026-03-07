@@ -12,6 +12,7 @@ import { formatPrice, formatManWon } from "@/lib/format";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_MESSAGES, TIME_SLOTS, TIME_SLOT_LABELS } from "@/lib/constants";
 import { useBookingManage, canEdit, canReschedule, canCancel, canConfirm, getQuoteExpiryLabel } from "./useBookingManage";
 import { isBeforeDeadline } from "@/lib/booking-utils";
+import { LottieOverlay } from "@/components/ui/LottieOverlay";
 
 function BookingManageContent() {
   const searchParams = useSearchParams();
@@ -71,6 +72,7 @@ function BookingManageContent() {
 
   return (
     <div className="space-y-6">
+      <LottieOverlay visible={loading} message="조회 중..." />
       <div>
         <h1 className="text-2xl font-bold mb-2">신청 조회/관리</h1>
         <p className="text-text-sub text-sm">

@@ -57,7 +57,8 @@ export function useDashboardState() {
   const [sheetStep, setSheetStep] = useState<"input" | "preview" | "done">("input");
   const [sheetRows, setSheetRows] = useState<SheetImportRow[]>([]);
   const [sheetLoading, setSheetLoading] = useState(false);
-  const [sheetResult, setSheetResult] = useState<{ succeeded: number; failed: number; skipped: number } | null>(null);
+  const [sheetUpsert, setSheetUpsert] = useState(false);
+  const [sheetResult, setSheetResult] = useState<{ succeeded: number; upserted: number; skippedDuplicate: number; failed: number; skipped: number } | null>(null);
 
   const showToast = useCallback((msg: string, isError = false) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -300,11 +301,11 @@ export function useDashboardState() {
       const res = await fetch("/api/admin/bookings/sheet-import", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ url: sheetURL, dryRun: false }),
+        body: JSON.stringify({ url: sheetURL, dryRun: false, upsert: sheetUpsert }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || "임포트 실패", true); return; }
-      setSheetResult({ succeeded: data.succeeded, failed: data.failed, skipped: data.skipped });
+      setSheetResult({ succeeded: data.succeeded, upserted: data.upserted ?? 0, skippedDuplicate: data.skippedDuplicate ?? 0, failed: data.failed, skipped: data.skipped });
       setSheetStep("done");
       fetchBookings();
     } catch {
@@ -319,6 +320,7 @@ export function useDashboardState() {
     setSheetURL("");
     setSheetStep("input");
     setSheetRows([]);
+    setSheetUpsert(false);
     setSheetResult(null);
   }
 
@@ -388,6 +390,8 @@ export function useDashboardState() {
     setSheetStep,
     sheetRows,
     sheetLoading,
+    sheetUpsert,
+    setSheetUpsert,
     sheetResult,
     handleSheetPreview,
     handleSheetImport,

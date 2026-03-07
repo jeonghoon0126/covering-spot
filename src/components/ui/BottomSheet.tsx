@@ -31,7 +31,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         onClick={onClose}
       />
       {/* Sheet */}
-      <div className="absolute bottom-0 left-0 right-0 bg-bg rounded-t-2xl max-h-[75vh] flex flex-col">
+      <div className="absolute bottom-0 left-0 right-0 md:left-1/2 md:right-auto md:w-[480px] md:-translate-x-1/2 bg-bg rounded-t-2xl max-h-[75vh] flex flex-col">
         {/* Handle + Header */}
         <div className="flex-shrink-0 pt-3 px-4 pb-3 border-b border-border-light">
           <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />

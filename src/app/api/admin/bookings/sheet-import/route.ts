@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { validateToken } from "@/app/api/admin/auth/route";
 import { createBooking, updateBooking } from "@/lib/db";
 import { sendBookingCreated } from "@/lib/slack-notify";
+import { supabase } from "@/lib/supabase";
 import type { Booking } from "@/types/booking";
 
 export const dynamic = "force-dynamic";
@@ -73,9 +74,9 @@ const HEADER_MAP: Record<string, string> = {
   price: "estimatedPrice",
   품목설명: "itemsDescription",
   품목: "itemsDescription",
-  메모: "memo",
-  비고: "memo",
-  memo: "memo",
+  메모: "sheetMemo",
+  비고: "sheetMemo",
+  memo: "sheetMemo",
 };
 
 export interface SheetRow {
@@ -89,7 +90,7 @@ export interface SheetRow {
   area?: string;
   estimatedPrice?: string;
   itemsDescription?: string;
-  memo?: string;
+  sheetMemo?: string;
   errors: string[];
 }
 
@@ -126,13 +127,19 @@ function parseCSV(csvText: string): SheetRow[] {
       area: raw.area || undefined,
       estimatedPrice: raw.estimatedPrice || undefined,
       itemsDescription: raw.itemsDescription || undefined,
-      memo: raw.memo || undefined,
+      sheetMemo: raw.sheetMemo || undefined,
       errors: [],
     };
 
     if (!row.customerName) row.errors.push("고객명 없음");
     if (!row.phone) row.errors.push("전화번호 없음");
     if (!row.address) row.errors.push("주소 없음");
+
+    // 금액 0원 행 스킵 (취소/무효 건)
+    if (row.estimatedPrice !== undefined) {
+      const price = parseInt(row.estimatedPrice.replace(/,/g, ""), 10);
+      if (!isNaN(price) && price === 0) row.errors.push("금액 0원 (취소 건)");
+    }
 
     rows.push(row);
   }
@@ -144,6 +151,7 @@ function rowToBooking(row: SheetRow): Booking {
   const now = new Date().toISOString();
   const adminMemoParts = [
     row.itemsDescription ? `[품목] ${row.itemsDescription}` : "",
+    row.sheetMemo ? `[메모] ${row.sheetMemo}` : "",
   ].filter(Boolean);
 
   return {
@@ -160,7 +168,7 @@ function rowToBooking(row: SheetRow): Booking {
     phone: row.phone!,
     address: row.address!,
     addressDetail: row.addressDetail || "",
-    memo: row.memo || "",
+    memo: "",
     status: "pending",
     createdAt: now,
     updatedAt: now,
@@ -185,7 +193,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { url, dryRun = true } = body as { url: string; dryRun?: boolean };
+    const { url, dryRun = true, upsert = false } = body as { url: string; dryRun?: boolean; upsert?: boolean };
 
     if (!url?.trim()) {
       return NextResponse.json({ error: "구글 시트 URL을 입력해주세요" }, { status: 400 });
@@ -227,11 +235,39 @@ export async function POST(req: NextRequest) {
     }
 
     // 실제 임포트
-    const results: { rowIndex: number; bookingId?: string; error?: string }[] = [];
+    const results: { rowIndex: number; bookingId?: string; skipped?: boolean; reason?: string; error?: string }[] = [];
 
     for (const row of validRows) {
       try {
         const booking = rowToBooking(row);
+
+        // 중복 체크: phone + date + timeSlot이 같은 booking 존재 여부
+        const { data: existing } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("phone", booking.phone)
+          .eq("date", booking.date)
+          .eq("time_slot", booking.timeSlot)
+          .maybeSingle();
+
+        if (existing) {
+          if (upsert) {
+            // upsert 모드: 시트 값으로 업데이트 (단, status/confirmedTime/finalPrice는 보호)
+            await updateBooking(existing.id, {
+              address: booking.address,
+              addressDetail: booking.addressDetail,
+              hasElevator: booking.hasElevator,
+              hasParking: booking.hasParking,
+              memo: booking.memo,
+              adminMemo: booking.adminMemo,
+            } as Partial<Booking>);
+            results.push({ rowIndex: row.rowIndex, bookingId: existing.id, reason: "upsert" });
+          } else {
+            results.push({ rowIndex: row.rowIndex, skipped: true, reason: "중복" });
+          }
+          continue;
+        }
+
         const created = await createBooking(booking);
         // Slack 알림 (fire-and-forget)
         sendBookingCreated(created)
@@ -245,10 +281,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const succeeded = results.filter((r) => r.bookingId).length;
+    const succeeded = results.filter((r) => r.bookingId && !r.reason).length;
+    const upserted = results.filter((r) => r.reason === "upsert").length;
+    const skippedDuplicate = results.filter((r) => r.skipped).length;
     const failed = results.filter((r) => r.error).length;
 
-    return NextResponse.json({ succeeded, failed, results, skipped: invalidRows.length });
+    return NextResponse.json({ succeeded, upserted, skippedDuplicate, failed, results, skipped: invalidRows.length });
   } catch (e) {
     console.error("[sheet-import/POST]", e);
     return NextResponse.json({ error: "임포트 실패" }, { status: 500 });

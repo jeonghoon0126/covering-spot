@@ -50,7 +50,7 @@ export const ITEM_CATEGORIES = [
 ] as const;
 
 /** 수거 시간대 옵션 */
-export const TIME_SLOT_OPTIONS = ["10:00", "12:00", "14:00", "16:00"] as const;
+export const TIME_SLOT_OPTIONS = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00"] as const;
 
 /** 소요시간 옵션 */
 export const DURATION_OPTIONS = [

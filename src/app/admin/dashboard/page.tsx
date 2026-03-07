@@ -123,6 +123,8 @@ export default function AdminDashboardPage() {
         onStepChange={state.setSheetStep}
         sheetRows={state.sheetRows}
         sheetLoading={state.sheetLoading}
+        sheetUpsert={state.sheetUpsert}
+        onSheetUpsertChange={state.setSheetUpsert}
         sheetResult={state.sheetResult}
         onPreview={state.handleSheetPreview}
         onImport={state.handleSheetImport}

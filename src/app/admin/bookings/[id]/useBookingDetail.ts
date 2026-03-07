@@ -366,6 +366,7 @@ export function useBookingDetail() {
   return {
     router,
     booking,
+    token,
     loading,
     saving,
     isLocked,

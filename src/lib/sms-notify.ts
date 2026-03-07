@@ -61,6 +61,9 @@ const STATUS_TEMPLATES: Record<string, (finalPrice?: number | null, paymentUrl?:
     "[커버링 방문수거] 일정 변경 요청이 접수되었어요.\n\n담당자가 확인 후 연락드릴게요.\n감사합니다!",
   payment_completed: () =>
     "[커버링 방문수거] 정산이 완료되었습니다.\n\n이용해 주셔서 감사합니다. 또 필요하실 때 편하게 신청해 주세요!",
+  // "time_confirmed"는 DB status가 아닌 확정 시간 단독 변경 전용 키 (admin/bookings/[id]/route.ts에서 호출)
+  time_confirmed: (_fp, _pu, date, confirmedTime) =>
+    `[커버링 방문수거] 수거 일정이 업데이트되었어요.\n\n확정 일정: ${date ?? "미정"} ${confirmedTime ?? ""}\n\n변경 사항 확인 후 문의가 있으시면 카카오톡 채널로 연락해 주세요.`,
 };
 
 /**

@@ -86,12 +86,14 @@ export const CONSENT_CONTENTS: Record<string, { title: string; body: string }> =
 };
 
 export const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
-export const TIME_OPTIONS = ["10:00", "12:00", "14:00", "16:00"];
+export const TIME_OPTIONS = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
 export const TIME_LABELS: Record<string, string> = {
   "10:00": "오전 10~12시",
   "12:00": "오후 12~14시",
   "14:00": "오후 14~16시",
   "16:00": "오후 16~18시",
+  "18:00": "오후 18~20시",
+  "20:00": "오후 20~22시",
 };
 
 export const QUOTE_PREVIEW_DEBOUNCE = 800;

@@ -14,11 +14,13 @@ import {
   CompletionPhotosReadonly,
 } from "./PhotosSection";
 import { AuditLogSection } from "./AuditLogSection";
+import { SmsSection } from "./SmsSection";
 
 export default function AdminBookingDetailPage() {
   const {
     router,
     booking,
+    token,
     loading,
     saving,
     isLocked,
@@ -206,6 +208,8 @@ export default function AdminBookingDetailPage() {
           saving={saving}
           onStatusChange={handleStatusChange}
         />
+
+        <SmsSection bookingId={booking.id} token={token} />
 
         <AuditLogSection
           auditLogs={auditLogs}

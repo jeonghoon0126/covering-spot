@@ -10,7 +10,9 @@ interface SheetImportModalProps {
   onStepChange: (step: "input" | "preview" | "done") => void;
   sheetRows: SheetImportRow[];
   sheetLoading: boolean;
-  sheetResult: { succeeded: number; failed: number; skipped: number } | null;
+  sheetUpsert: boolean;
+  onSheetUpsertChange: (value: boolean) => void;
+  sheetResult: { succeeded: number; upserted: number; skippedDuplicate: number; failed: number; skipped: number } | null;
   onPreview: () => void;
   onImport: () => void;
   onClose: () => void;
@@ -24,6 +26,8 @@ export function SheetImportModal({
   onStepChange,
   sheetRows,
   sheetLoading,
+  sheetUpsert,
+  onSheetUpsertChange,
   sheetResult,
   onPreview,
   onImport,
@@ -70,6 +74,17 @@ export function SheetImportModal({
                   className="w-full h-11 px-3 border border-border rounded-lg text-sm text-text-primary bg-bg outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sheetUpsert}
+                  onChange={(e) => onSheetUpsertChange(e.target.checked)}
+                  className="w-4 h-4 rounded accent-primary"
+                />
+                <span className="text-sm text-text-sub">
+                  upsert 모드 <span className="text-text-muted">(중복 건도 주소/메모 업데이트, status·확정시간·금액은 보호)</span>
+                </span>
+              </label>
               <button
                 onClick={onPreview}
                 disabled={!sheetURL.trim() || sheetLoading}
@@ -147,6 +162,8 @@ export function SheetImportModal({
               <div className="text-4xl">{sheetResult.failed === 0 ? "✅" : "⚠️"}</div>
               <div>
                 <p className="text-lg font-bold text-text-primary">{sheetResult.succeeded}건 등록 완료</p>
+                {sheetResult.upserted > 0 && <p className="text-sm text-primary mt-1">{sheetResult.upserted}건 업데이트 (upsert)</p>}
+                {sheetResult.skippedDuplicate > 0 && <p className="text-sm text-text-muted mt-1">{sheetResult.skippedDuplicate}건 중복 스킵</p>}
                 {sheetResult.failed > 0 && <p className="text-sm text-semantic-red mt-1">{sheetResult.failed}건 실패</p>}
                 {sheetResult.skipped > 0 && <p className="text-sm text-text-muted mt-1">{sheetResult.skipped}건 스킵 (필수 필드 누락)</p>}
               </div>
