@@ -20,10 +20,11 @@ export const dynamic = "force-dynamic";
 const DISPATCH_DONE_STATUSES = new Set(["in_progress", "completed", "check_completed"]);
 const PICKUP_DONE_STATUSES = new Set(["completed", "check_completed"]);
 
-function resolveStatus(dispatchDone: string, pickupDone: string): Booking["status"] {
+function resolveStatus(dispatchDone: string, pickupDone: string, date: string, todayStr: string): Booking["status"] {
   if (dispatchDone === "완료" && pickupDone === "완료") return "completed";
   if (dispatchDone === "완료") return "in_progress";
-  return "pending";
+  if (date < todayStr) return "payment_completed"; // 오늘 이전 → 정산완료
+  return "in_progress";                            // 오늘 이후 → 진행중
 }
 
 /**
@@ -79,6 +80,7 @@ export async function GET(req: NextRequest) {
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const dateMin = fmt(cutoffPast);
     const dateMax = fmt(cutoffFuture);
+    const todayStr = fmt(now); // 오늘 날짜 (KST)
 
     // 3. 유효 시트 행 파싱 (처리 범위 내)
     type SheetRowParsed = {
@@ -93,6 +95,7 @@ export async function GET(req: NextRequest) {
       finalPrice: number | null;
       dispatchDoneCell: string;
       pickupDoneCell: string;
+      settlementCell: string;
     };
 
     const validRows: SheetRowParsed[] = [];
@@ -131,6 +134,7 @@ export async function GET(req: NextRequest) {
         finalPrice: parseSheetPrice((row[SHEET_COL.FINAL_PRICE] ?? "").trim()),
         dispatchDoneCell: (row[SHEET_COL.DISPATCH_DONE] ?? "").trim(),
         pickupDoneCell: (row[SHEET_COL.PICKUP_DONE] ?? "").trim(),
+        settlementCell: (row[SHEET_COL.SETTLEMENT] ?? "").trim(),
       });
     }
 
@@ -176,13 +180,22 @@ export async function GET(req: NextRequest) {
           await updateBooking(existing.id, { status: "cancelled" } as Partial<Booking>);
           dbMap.set(key, { ...existing, status: "cancelled" });
           cancelled++;
+        } else if (existing.status === "pending") {
+          // pending 상태 자동 업데이트: 마이그레이션 된 141건 일괄 처리
+          const newStatus = resolveStatus(r.dispatchDoneCell, r.pickupDoneCell, r.date, todayStr);
+          await updateBooking(existing.id, { status: newStatus } as Partial<Booking>);
+          dbMap.set(key, { ...existing, status: newStatus });
         }
-        // Supabase → Sheet: 배차완료/수거완료 (빈칸인 경우만)
-        if (!r.dispatchDoneCell && DISPATCH_DONE_STATUSES.has(existing.status)) {
+        // Supabase → Sheet: 배차완료/수거완료/취소 (빈칸인 경우만)
+        const latestStatus = dbMap.get(key)?.status ?? existing.status;
+        if (!r.dispatchDoneCell && DISPATCH_DONE_STATUSES.has(latestStatus)) {
           sheetUpdates.push({ range: `O${r.sheetRowNum}`, value: "완료" });
         }
-        if (!r.pickupDoneCell && PICKUP_DONE_STATUSES.has(existing.status)) {
+        if (!r.pickupDoneCell && PICKUP_DONE_STATUSES.has(latestStatus)) {
           sheetUpdates.push({ range: `P${r.sheetRowNum}`, value: "완료" });
+        }
+        if (!r.settlementCell && latestStatus === "cancelled") {
+          sheetUpdates.push({ range: `Q${r.sheetRowNum}`, value: "취소" });
         }
       } else {
         // 신규 생성: 최종금액=0(취소 건) 스킵
@@ -203,7 +216,7 @@ export async function GET(req: NextRequest) {
           address: r.address,
           addressDetail: "",
           memo: r.memo.trim(),
-          status: resolveStatus(r.dispatchDoneCell, r.pickupDoneCell),
+          status: resolveStatus(r.dispatchDoneCell, r.pickupDoneCell, r.date, todayStr),
           createdAt: nowIso,
           updatedAt: nowIso,
           hasElevator: false,
