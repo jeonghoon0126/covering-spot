@@ -11,10 +11,18 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
   // Page view (pathname → 화면 이름 매핑)
   useEffect(() => {
     // 홈 첫 방문 시 Airbridge ad_group 파라미터 캡처 (배너 유입 소스 식별)
+    // Airbridge 단축 링크(abr.ge) → ?airbridge_referrer=...&ad_group=XXX 형태로 전달됨
     if (pathname === "/") {
       try {
         const params = new URLSearchParams(window.location.search);
-        const adGroup = params.get("ad_group");
+        let adGroup = params.get("ad_group"); // 직접 파라미터 우선
+        if (!adGroup) {
+          // Airbridge referrer 내부에서 파싱
+          const referrer = params.get("airbridge_referrer");
+          if (referrer) {
+            adGroup = new URLSearchParams(referrer).get("ad_group");
+          }
+        }
         if (adGroup && !sessionStorage.getItem("spot_source")) {
           sessionStorage.setItem("spot_source", adGroup);
         }
