@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendDailyEventsReport, sendErrorAlert } from "@/lib/slack-notify";
 
-// 배너 타입별 Mixpanel where 절 (banner_id 기반)
-const POPUP_WHERE    = 'properties["banner_id"] == "40"';
-const BENEFIT_WHERE  = ['44','47','48'].map((id) => `properties["banner_id"] == "${id}"`).join(' or ');
-const CAROUSEL_WHERE = ['1','2'].map((id) => `properties["banner_id"] == "${id}"`).join(' or ');
+// 배너 타입별 Mixpanel where 절 (banner_id 정수 비교)
+const POPUP_WHERE    = 'properties["banner_id"] == 48';   // 팝업: 방문수거_MVP
+const BENEFIT_WHERE  = 'properties["banner_id"] == 41';   // 혜택: 방문수거 혜택배너
+const CAROUSEL_WHERE = 'properties["banner_id"] == 47';   // 캐러셀: 방문수거 OPEN (카카오)
 
 /** Mixpanel Segmentation API로 배너 클릭 수 조회 */
 async function getMixpanelBannerCount(dateStr: string, where: string): Promise<number> {
@@ -40,6 +40,11 @@ async function getMixpanelBannerCount(dateStr: string, where: string): Promise<n
   }
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  home_bottom_sheet: "팝업",
+  benefit_banner: "혜택배너",
+};
+
 export async function GET(req: NextRequest) {
   // CRON_SECRET 검증
   const cronSecret = process.env.CRON_SECRET;
@@ -67,13 +72,19 @@ export async function GET(req: NextRequest) {
     const dateStr = `${dKST.getUTCFullYear()}-${String(dKST.getUTCMonth() + 1).padStart(2, "0")}-${String(dKST.getUTCDate()).padStart(2, "0")}`;
 
     // Mixpanel 배너 3종 + Supabase 이벤트 병렬 조회
-    const [popupBanner, benefitBanner, carouselBanner, eventsResult, stepsResult, funnelKakaoResult] = await Promise.all([
+    const [popupBanner, benefitBanner, carouselBanner, eventsResult, stepsResult, funnelKakaoResult, sourceFunnelResult] = await Promise.all([
       getMixpanelBannerCount(dateStr, POPUP_WHERE),
       getMixpanelBannerCount(dateStr, BENEFIT_WHERE),
       getMixpanelBannerCount(dateStr, CAROUSEL_WHERE),
       supabase.from("spot_events").select("event_name").gte("created_at", from).lt("created_at", to),
       supabase.from("spot_events").select("properties").eq("event_name", "[VIEW] SpotBookingScreen_step").gte("created_at", from).lt("created_at", to),
       supabase.from("spot_events").select("id", { count: "exact", head: true }).eq("event_name", "[CLICK] SpotHomeScreen_cta").eq("properties->>location", "funnel").gte("created_at", from).lt("created_at", to),
+      supabase.from("spot_events").select("event_name, properties").in("event_name", [
+        "[ROUTE] SpotHomeScreen",
+        "[CLICK] SpotHomeScreen_bookingBtn",
+        "[ROUTE] SpotBookingScreen",
+        "[EVENT] SpotBookingComplete",
+      ]).gte("created_at", from).lt("created_at", to),
     ]);
 
     if (eventsResult.error) throw eventsResult.error;
@@ -98,9 +109,25 @@ export async function GET(req: NextRequest) {
 
     const funnelKakao = funnelKakaoResult.count ?? 0;
 
-    await sendDailyEventsReport(dateLabel, events, steps, popupBanner, benefitBanner, carouselBanner, funnelKakao);
+    // 소스별 퍼널 집계 (배너 유입 소스 추적, 3/05 배포 이후 데이터)
+    const sourceEventMap: Record<string, Record<string, number>> = {};
+    for (const row of sourceFunnelResult.data ?? []) {
+      const src = (row.properties as Record<string, unknown>)?.source as string;
+      if (!src || src === "carousel_banner") continue; // 카카오 캐러셀은 웹 유입 없음
+      if (!sourceEventMap[src]) sourceEventMap[src] = {};
+      sourceEventMap[src][row.event_name] = (sourceEventMap[src][row.event_name] ?? 0) + 1;
+    }
+    const sourceFunnel = Object.entries(sourceEventMap).map(([src, counts]) => ({
+      source: SOURCE_LABELS[src] ?? src,
+      home: counts["[ROUTE] SpotHomeScreen"] ?? 0,
+      bookingBtn: counts["[CLICK] SpotHomeScreen_bookingBtn"] ?? 0,
+      bookingScreen: counts["[ROUTE] SpotBookingScreen"] ?? 0,
+      complete: counts["[EVENT] SpotBookingComplete"] ?? 0,
+    }));
 
-    return NextResponse.json({ ok: true, date: dateLabel, popupBanner, benefitBanner, carouselBanner, funnelKakao });
+    await sendDailyEventsReport(dateLabel, events, steps, popupBanner, benefitBanner, carouselBanner, funnelKakao, sourceFunnel);
+
+    return NextResponse.json({ ok: true, date: dateLabel, popupBanner, benefitBanner, carouselBanner, funnelKakao, sourceFunnel });
   } catch (e) {
     console.error("[daily-events-report]", e);
     sendErrorAlert("GET /api/cron/daily-events-report", e).catch(() => {});

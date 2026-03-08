@@ -87,8 +87,15 @@ export function track<T extends EventName>(
 ) {
   if (typeof window === "undefined") return;
 
+  // 세션 소스 (Airbridge ad_group → 배너 유입 식별)
+  let spotSource: string | undefined;
+  try {
+    spotSource = sessionStorage.getItem("spot_source") ?? undefined;
+  } catch { /* sessionStorage 접근 실패 무시 */ }
+
   const props = {
     ...properties,
+    ...(spotSource ? { source: spotSource } : {}),
     ...getExperimentVariant(),
     timestamp: Date.now(),
     url: window.location.href,

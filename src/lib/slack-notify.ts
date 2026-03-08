@@ -339,10 +339,11 @@ export async function sendDailyEventsReport(
   dateLabel: string,
   events: { event_name: string; cnt: number }[],
   steps: { step: string; cnt: number }[],
-  popupBanner = 0,    // 팝업 배너 (banner_id=40)
-  benefitBanner = 0,  // 혜택배너 랜딩 (banner_id=44,47,48)
-  carouselBanner = 0, // 캐러셀 → 카카오채널 (banner_id=1,2)
+  popupBanner = 0,    // 팝업 배너 (banner_id=48)
+  benefitBanner = 0,  // 혜택배너 (banner_id=41)
+  carouselBanner = 0, // 캐러셀 → 카카오채널 (banner_id=47)
   funnelKakao = 0,    // 예약화면 내 카카오 이탈
+  sourceFunnel?: { source: string; home: number; bookingBtn: number; bookingScreen: number; complete: number }[],
 ): Promise<void> {
   const pickupChannel = process.env.SLACK_PICKUP_CHANNEL_ID ?? "C0AH1D7V1MM";
 
@@ -393,11 +394,26 @@ export async function sendDailyEventsReport(
     return `Step${i} ${stepNames[String(i)]}  ${String(cnt.toLocaleString()).padStart(5)}  ${bar(cnt, step0)}  ${pctStr}`;
   }).join("\n");
 
+  // 소스별 퍼널 섹션 (배너 유입 소스 추적, 3/05 이후 데이터)
+  let sourceFunnelBlock: unknown[] = [];
+  if (sourceFunnel && sourceFunnel.length > 0) {
+    const pctOf = (n: number, base: number) => base > 0 ? `${(n / base * 100).toFixed(0)}%` : "-";
+    const srcLines = sourceFunnel.map(({ source, home, bookingBtn, bookingScreen, complete }) => {
+      const completePct = pctOf(complete, home);
+      return `${source.padEnd(8)} 홈${String(home).padStart(4)} → 신청${String(bookingBtn).padStart(3)} → 예약${String(bookingScreen).padStart(3)} → 완료${String(complete).padStart(3)} (${completePct})`;
+    }).join("\n");
+    sourceFunnelBlock = [
+      dividerBlock(),
+      sectionBlock(`*소스별 퍼널*\n\`\`\`${srcLines}\`\`\``),
+    ];
+  }
+
   await postSlack([
     headerBlock(`📊 방문수거 일일 리포트 | ${dateLabel}`),
     sectionBlock(`\`\`\`${funnelLines}${bannerLine}\`\`\``),
     dividerBlock(),
     sectionBlock(`*예약 스텝 이탈*\n\`\`\`${stepLines}\`\`\``),
+    ...sourceFunnelBlock,
   ], undefined, pickupChannel);
 }
 
