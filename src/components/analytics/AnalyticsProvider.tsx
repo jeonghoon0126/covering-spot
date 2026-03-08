@@ -10,6 +10,17 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
 
   // Page view (pathname → 화면 이름 매핑)
   useEffect(() => {
+    // 홈 첫 방문 시 Airbridge ad_group 파라미터 캡처 (배너 유입 소스 식별)
+    if (pathname === "/") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const adGroup = params.get("ad_group");
+        if (adGroup && !sessionStorage.getItem("spot_source")) {
+          sessionStorage.setItem("spot_source", adGroup);
+        }
+      } catch { /* sessionStorage 접근 실패 무시 */ }
+    }
+
     const screenMap: Record<string, Parameters<typeof track>[0]> = {
       "/": "[ROUTE] SpotHomeScreen",
       "/booking": "[ROUTE] SpotBookingScreen",
